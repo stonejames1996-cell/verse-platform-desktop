@@ -26,7 +26,8 @@ from rewind_core import APP_VERSION, UPDATE_REPO
 log = logging.getLogger("verse.update")
 
 ASSET_NAME = "VersePlatformSetup.exe"
-CHECK_EVERY = 6 * 3600
+CHECK_EVERY = 2 * 3600
+FOLDER = os.path.join(tempfile.gettempdir(), "VersePlatformUpdate")
 UA = f"VersePlatform/{APP_VERSION}"
 
 
@@ -48,14 +49,44 @@ class Updater:
     def enabled(self):
         return bool(UPDATE_REPO) and "/" in UPDATE_REPO
 
+    def cleanup(self):
+        """Removes installers for versions that are already installed."""
+        try:
+            for f in os.listdir(FOLDER):
+                m = re.fullmatch(r"VersePlatformSetup-v(\d+\.\d+\.\d+)\.exe(\.part)?", f)
+                if m and _ver(m.group(1)) <= _ver(APP_VERSION):
+                    os.remove(os.path.join(FOLDER, f))
+        except OSError:
+            pass
+
     def start(self):
+        self.cleanup()
         if not self.enabled:
             log.info("Auto update is off (no UPDATE_REPO set)")
             return
         threading.Thread(target=self._loop, daemon=True).start()
 
+    def pending_on_disk(self):
+        """An update downloaded (and checked) by an earlier run that never got installed."""
+        best = None
+        try:
+            for f in os.listdir(FOLDER):
+                m = re.fullmatch(r"VersePlatformSetup-v(\d+\.\d+\.\d+)\.exe", f)
+                if m and _ver(m.group(1)) > _ver(APP_VERSION) and (not best or _ver(m.group(1)) > _ver(best[0])):
+                    best = (m.group(1), os.path.join(FOLDER, f))
+        except OSError:
+            pass
+        return best
+
+    def use_pending(self):
+        found = self.pending_on_disk()
+        if found:
+            self.version, self.path = found
+            log.info("Update %s was already downloaded", self.version)
+        return bool(found)
+
     def _loop(self):
-        time.sleep(60)  # let recording and the window settle first
+        time.sleep(8)  # let recording and the window settle first
         while True:
             try:
                 self.check()
@@ -89,9 +120,10 @@ class Updater:
             self._busy.release()
 
     def _download(self, asset, tag):
-        folder = os.path.join(tempfile.gettempdir(), "VersePlatformUpdate")
-        os.makedirs(folder, exist_ok=True)
-        path = os.path.join(folder, f"VersePlatformSetup-{tag}.exe")
+        os.makedirs(FOLDER, exist_ok=True)
+        path = os.path.join(FOLDER, f"VersePlatformSetup-{tag}.exe")
+        if os.path.exists(path) and asset.get("size") and os.path.getsize(path) == asset["size"]:
+            return path  # already downloaded by an earlier run
         part = path + ".part"
         h = hashlib.sha256()
         req = urllib.request.Request(asset["browser_download_url"], headers={"User-Agent": UA})

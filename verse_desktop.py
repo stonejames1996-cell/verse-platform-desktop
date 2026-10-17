@@ -107,6 +107,9 @@ def origin_of(url):
     return f"{p.scheme}://{p.netloc}" if p.scheme and p.netloc else ""
 
 
+_crash_file = None
+
+
 class App:
     def __init__(self, ff, background):
         self.ff = ff
@@ -355,12 +358,14 @@ class App:
         threading.Thread(target=self.watch_loop, daemon=True).start()
         threading.Thread(target=self._scan_library, daemon=True).start()
         self.mics = list_mics(self.ff) if IS_WINDOWS else []
+        if self.updater.use_pending():   # left over and already tried once at launch: just offer the button
+            self.on_update_ready(self.updater.version, allow_auto=False)
         self.updater.start()
         self.highlights.start()
 
     # ------------------------------------------------------------ updates
-    def on_update_ready(self, version):
-        idle = not (self.rec and self.rec.capturing) and self.win_hidden
+    def on_update_ready(self, version, allow_auto=True):
+        idle = allow_auto and not (self.rec and self.rec.capturing) and self.win_hidden
         if idle:
             # nobody is playing or looking at the window (e.g. just after Windows started): update now
             self.update_now(relaunch_hidden=True)
@@ -393,6 +398,7 @@ class App:
         if self.quitting:
             return
         self.quitting = True
+        log.info("Quitting")
         if self.updater.version and not self.updater.installing:
             self.updater.install(relaunch=False)  # pending update goes in quietly on the way out
         try:
@@ -531,6 +537,22 @@ class Api:
         if not self._from_library():
             return None
         return {"ok": self._app.update_now()}
+
+    def check_updates(self):
+        if not self._from_library():
+            return None
+        u = self._app.updater
+        if not u.enabled:
+            return {"message": "Updates aren't set up in this build"}
+        if not u.version:
+            try:
+                u.check()
+            except Exception as e:
+                log.warning("Manual update check failed: %s", e)
+                return {"message": "Couldn't reach the update server, try again soon"}
+        if u.version:
+            return {"message": f"Version {u.version} is ready. Click Update at the top to install it"}
+        return {"message": f"You're on the latest version ({APP_VERSION})"}
 
     def list_clips(self):
         if not self._from_library():
@@ -674,6 +696,15 @@ def main():
         handlers.append(logging.StreamHandler())
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s", handlers=handlers)
     log.info("%s %s starting", APP_NAME, APP_VERSION)
+    try:  # if the app ever crashes hard, write down where
+        import faulthandler
+        global _crash_file
+        _crash_file = open(os.path.join(DATA_DIR, "crash.log"), "a", encoding="utf-8")
+        faulthandler.enable(_crash_file)
+    except Exception:
+        pass
+    threading.excepthook = lambda a: log.error("Thread %s crashed", a.thread.name if a.thread else "?",
+                                               exc_info=(a.exc_type, a.exc_value, a.exc_traceback))
     background = "--background" in sys.argv
 
     if already_running():
@@ -687,6 +718,26 @@ def main():
             if not background:
                 message_box(f"{APP_NAME} is already running. Look for its icon in the system tray.")
         return
+    # an update downloaded last time but never installed (the app was closed suddenly): install it now
+    upd = Updater(lambda v: None)
+    found = upd.pending_on_disk() if upd.enabled else None
+    if found:
+        marker = os.path.join(DATA_DIR, "update_attempt.txt")
+        try:
+            with open(marker, encoding="utf-8") as f:
+                tried = f.read().strip()
+        except OSError:
+            tried = ""
+        if tried != found[0]:  # only try once per version, so a broken installer can't loop
+            try:
+                with open(marker, "w", encoding="utf-8") as f:
+                    f.write(found[0])
+            except OSError:
+                pass
+            upd.version, upd.path = found
+            log.info("Installing update %s left over from last time", found[0])
+            if upd.install(relaunch=True, background=background):
+                return
     if IS_WINDOWS:
         try:  # real pixel sizes, so fullscreen detection works with display scaling
             import ctypes

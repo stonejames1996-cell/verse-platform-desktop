@@ -284,7 +284,7 @@ async function loadSettings() {
   $("#autostart").checked = r.autostart;
   $("#hotkey-btn").textContent = r.config.hotkey.toUpperCase().replace(/\+/g, " + ");
   $("#folder-path").textContent = r.config.clips_folder;
-  $("#version").textContent = `Verse Platform for Windows ${r.version}`;
+  $("#version").textContent = `Verse Platform for Windows ${r.version}. Updates install by themselves`;
   $("#known-games-hint").textContent = `${r.known_games.length} popular games are picked up automatically, including ${r.known_games.slice(0, 6).join(", ")}.`;
   renderCustomGames();
   const apps = $("#running-apps");
@@ -347,6 +347,14 @@ function wire() {
     setSetting("highlight_events", ev);
   });
   $("#autostart").addEventListener("change", (e) => call("set_autostart", e.target.checked));
+  $("#check-updates").addEventListener("click", async (e) => {
+    const b = e.currentTarget;
+    b.disabled = true; b.textContent = "Checking...";
+    const r = await call("check_updates");
+    b.disabled = false; b.textContent = "Check for updates";
+    if (r && r.message) toast(r.message);
+    tick();
+  });
   $("#change-folder").addEventListener("click", async () => {
     const r = await call("choose_clips_folder");
     if (r && r.message) toast(r.message);
