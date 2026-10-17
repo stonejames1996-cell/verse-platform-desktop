@@ -34,7 +34,7 @@ import threading
 import time
 
 APP_NAME = "Verse Platform"
-APP_VERSION = "1.0.7"
+APP_VERSION = "1.0.8"
 VERSE_URL = "https://verseplatform.gg"
 # GitHub repo the app updates itself from ("owner/repo"). Release.bat fills this in. Blank = no auto update.
 UPDATE_REPO = "stonejames1996-cell/verse-platform-desktop"
@@ -300,6 +300,7 @@ class Recorder:
         self.run = 0              # bumps every time ffmpeg (re)starts, keeps chunk names in order
         self.label = ""           # what's being recorded (game name), used in clip names
         self.last_tag = ""        # highlight name of the clip being saved, if any
+        self.subfolder = ""       # match folder inside the game's folder, e.g. "2026-10-17 4.08pm ARAM - Brand"
         self.last_seconds = 0
         self.save_lock = threading.Lock()
         self.on_saved = None  # callback(path or None, message)
@@ -518,9 +519,15 @@ class Recorder:
             folder = self.cfg["clips_folder"]
             if self.label and self.cfg.get("sort_clips_by_game", True):
                 folder = os.path.join(folder, safe_name(self.label))
+                if self.subfolder:
+                    folder = os.path.join(folder, safe_name(self.subfolder))
             os.makedirs(folder, exist_ok=True)
-            stamp = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-            name = " ".join(x for x in (safe_name(self.label) or "Verse Platform", safe_name(tag), stamp) if x)
+            if self.subfolder and self.label:
+                stamp = datetime.datetime.now().strftime("%H-%M-%S")
+                name = f"{safe_name(tag) or 'Clip'} {stamp}"
+            else:
+                stamp = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+                name = " ".join(x for x in (safe_name(self.label) or "Verse Platform", safe_name(tag), stamp) if x)
             out = os.path.join(folder, f"{name}.mp4")
             cmd = [self.ff, "-hide_banner", "-loglevel", "error", "-y"] + inputs + [
                    "-map", "0", "-c", "copy", "-avoid_negative_ts", "make_zero", "-movflags", "+faststart", out]

@@ -36,6 +36,22 @@ MULTI = {2: ("double", "Double kill", 4), 3: ("triple", "Triple kill", 6),
 OBJECTIVES = {"BaronKill": "Baron", "DragonKill": "Dragon", "HeraldKill": "Herald",
               "HordeKill": "Voidgrubs", "AtakhanKill": "Atakhan"}
 
+# game modes as the live game reports them -> what players call them
+MODES = {"CLASSIC": "Summoner's Rift", "ARAM": "ARAM", "KIWI": "ARAM Mayhem", "CHERRY": "Arena", "URF": "URF",
+         "ARURF": "ARURF", "ONEFORALL": "One for All", "NEXUSBLITZ": "Nexus Blitz", "ULTBOOK": "Ultimate Spellbook",
+         "PRACTICETOOL": "Practice Tool", "TUTORIAL": "Tutorial", "SWIFTPLAY": "Swiftplay", "BRAWL": "Brawl",
+         "STRAWBERRY": "Swarm", "DOOMBOTSTEEMO": "Doom Bots", "TFT": "Teamfight Tactics"}
+
+
+def mode_name(raw, map_number=None):
+    raw = str(raw or "").upper()
+    if raw in MODES:
+        return MODES[raw]
+    if map_number == 12:
+        return "ARAM"
+    return raw.title() or "League"
+
+
 # Riot's local game API uses its own certificate, so skip verification for this one localhost address
 _ctx = ssl.create_default_context()
 _ctx.check_hostname = False
@@ -69,8 +85,9 @@ class LeagueHighlights:
 
     GAME = "League of Legends"
 
-    def __init__(self, get_cfg, is_playing, save, clock=time.time):
+    def __init__(self, get_cfg, is_playing, save, clock=time.time, on_match=None):
         self.get_cfg, self.is_playing, self.save, self.clock = get_cfg, is_playing, save, clock
+        self.on_match = on_match or (lambda m: None)   # called with the match details as they change
         self._reset()
 
     def _reset(self):
@@ -81,6 +98,8 @@ class LeagueHighlights:
         self.my_kills = []      # wall times of my kills, so a multi kill clip starts at the first one
         self.saved = 0
         self.offset = None      # wall clock minus game clock
+        self.match = None       # {"id", "mode", "champion", "champion_key", "kills"...}
+        self.ticks = 0
 
     def start(self):
         threading.Thread(target=self._loop, daemon=True, name="highlights").start()
@@ -89,7 +108,7 @@ class LeagueHighlights:
         while True:
             try:
                 cfg = self.get_cfg()
-                if cfg.get("auto_highlights", True) and self.is_playing(self.GAME):
+                if self.is_playing(self.GAME):
                     self._tick(cfg)
                 elif self.me or self.play:
                     self._check_fire(cfg, force_after_game=True)
@@ -111,9 +130,11 @@ class LeagueHighlights:
             self.me = _names(me, *[x for p in mine for x in (p.get("riotId"), p.get("riotIdGameName"), p.get("summonerName"))])
             log.info("Watching League highlights for %s", me)
         try:
-            game_time = float(_get("/gamestats").get("gameTime", 0))
+            stats = _get("/gamestats")
+            game_time = float(stats.get("gameTime", 0))
             events = _get("/eventdata").get("Events", [])
             self.offset = self.clock() - game_time
+            self._update_match(stats, game_time)
         except Exception:
             events = []
         if self.last_id is None and self.offset is not None:
@@ -124,6 +145,35 @@ class LeagueHighlights:
                 self.last_id = e["EventID"]
                 self._event(e, cfg)
         self._check_fire(cfg)
+
+    def _update_match(self, stats, game_time):
+        self.ticks += 1
+        if self.match and self.ticks % 5:
+            self.match["length"] = int(game_time)
+            return
+        try:
+            players = _get("/playerlist")
+        except Exception:
+            return
+        me = next((p for p in players if _names(p.get("riotId"), p.get("summonerName"), p.get("riotIdGameName")) & self.me), None)
+        if not me:
+            return
+        sc = me.get("scores") or {}
+        if not self.match:
+            started = self.clock() - game_time
+            when = time.strftime("%Y-%m-%d %I.%M%p", time.localtime(started)).replace(" 0", " ").lower()
+            raw_key = str(me.get("rawChampionName", "")).split("_")[-1]
+            mode = mode_name(stats.get("gameMode"), stats.get("mapNumber"))
+            champ = me.get("championName", "")
+            self.match = {"id": f"lol-{int(started)}", "game": self.GAME, "mode": mode,
+                          "raw_mode": stats.get("gameMode"), "champion": champ,
+                          "champion_key": raw_key if raw_key and raw_key.isalnum() else "",
+                          "started": time.strftime("%Y-%m-%dT%H:%M:%S", time.localtime(started)),
+                          "folder": f"{when[:10]} {when[11:]} {mode} - {champ}", "result": ""}
+            log.info("Match: %s as %s (mode %s)", mode, champ, stats.get("gameMode"))
+        self.match.update({"kills": sc.get("kills", 0), "deaths": sc.get("deaths", 0),
+                           "assists": sc.get("assists", 0), "length": int(game_time)})
+        self.on_match(dict(self.match))
 
     def _is_me(self, name):
         return bool(name) and bool(_names(name) & self.me)
@@ -172,9 +222,12 @@ class LeagueHighlights:
             hits.append(("structure", "Tower" if name == "TurretKilled" else "Inhibitor", 1.5 if name == "TurretKilled" else 2))
         elif name == "GameEnd":
             win = str(e.get("Result", "")).lower() == "win"
+            if self.match:
+                self.match["result"] = "Win" if win else "Loss"
+                self.on_match(dict(self.match))
             hits.append(("victory", "Victory", 5.5) if win else ("defeat", "Defeat", 1))
 
-        hits = [h for h in hits if on.get(h[0])]
+        hits = [h for h in hits if on.get(h[0])] if cfg.get("auto_highlights", True) else []
         if hits:
             start = min(t, streak_start)
             if not self.play:

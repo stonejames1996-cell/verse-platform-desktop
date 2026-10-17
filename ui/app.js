@@ -7,6 +7,10 @@ let api = null;
 let S = {};               // last state from Python
 let settings = {};
 let clips = [];
+let matches = {};           // League match details by id
+const openMatches = new Set();
+const closedMatches = new Set();
+let ddVersion = "";         // League icon version from Riot's Data Dragon
 let clipsRev = -1;
 let filter = "All";
 let openClipId = null;
@@ -113,9 +117,11 @@ function isPosted(c) {
 }
 
 async function loadClips() {
-  const r = await call("list_clips");
+  const [r, m] = await Promise.all([call("list_clips"), call("list_matches")]);
   if (!r) return;
   clips = r;
+  matches = Object.fromEntries((m || []).map((x) => [x.id, x]));
+  if (!ddVersion && Object.keys(matches).length) loadDD();
   renderClips();
   if (openClipId) renderPlayerBar();
 }
@@ -136,13 +142,67 @@ function renderClips() {
     groups.get(g).push(c);
   }
   $("#clip-groups").replaceChildren(
-    ...[...groups].map(([g, list]) =>
-      el("section", { class: "group" },
-        el("div", { class: "group-head" }, el("h3", {}, g), el("span", {}, `${list.length} clip${list.length > 1 ? "s" : ""}`)),
-        el("div", { class: "grid" }, list.map(clipCard))
-      )
-    )
+    ...[...groups].map(([g, list]) => {
+      // clips from a League match go into that match's folder card
+      const byMatch = new Map(), loose = [];
+      for (const c of list) {
+        if (c.match && matches[c.match]) {
+          if (!byMatch.has(c.match)) byMatch.set(c.match, []);
+          byMatch.get(c.match).push(c);
+        } else loose.push(c);
+      }
+      const order = [...byMatch.keys()].sort((a, b) => (matches[b].started || "").localeCompare(matches[a].started || ""));
+      const n = byMatch.size;
+      return el("section", { class: "group" },
+        el("div", { class: "group-head" }, el("h3", {}, g),
+          el("span", {}, (n ? `${n} game${n > 1 ? "s" : ""} · ` : "") + `${list.length} clip${list.length > 1 ? "s" : ""}`)),
+        ...order.map((id, i) => matchCard(matches[id], byMatch.get(id), i === 0)),
+        loose.length && n ? el("div", { class: "loose-head" }, "Other clips") : null,
+        loose.length ? el("div", { class: "grid" }, loose.map(clipCard)) : null
+      );
+    })
   );
+}
+
+function loadDD() {
+  ddVersion = "pending";
+  fetch("https://ddragon.leagueoflegends.com/api/versions.json").then((r) => r.json())
+    .then((v) => { ddVersion = v[0]; renderClips(); }).catch(() => { ddVersion = ""; });
+}
+function fmtLen(sec) {
+  return sec ? `${Math.max(1, Math.round(sec / 60))} min` : "";
+}
+function matchCard(m, list, latest) {
+  const open = openMatches.has(m.id) || (latest && !closedMatches.has(m.id));
+  const icon = el("span", { class: "m-champ" }, (m.champion || "?")[0]);
+  if (m.champion_key && ddVersion && ddVersion !== "pending") {
+    const img = el("img", { src: `https://ddragon.leagueoflegends.com/cdn/${ddVersion}/img/champion/${m.champion_key}.png`, alt: "" });
+    img.onerror = () => img.remove();
+    icon.append(img);
+  }
+  const meta = [];
+  if (m.result) meta.push(el("b", { class: m.result === "Win" ? "win" : "loss" }, m.result));
+  if (m.kills != null) meta.push(`${m.kills} / ${m.deaths} / ${m.assists}`);
+  if (m.length) meta.push(fmtLen(m.length));
+  if (m.started) meta.push(fmtWhen(m.started));
+  const metaEl = el("span", { class: "m-meta" });
+  meta.forEach((x, i) => { if (i) metaEl.append(" · "); metaEl.append(x); });
+  const head = el("button", { class: "m-head", "aria-expanded": String(open), onclick: () => {
+      if (open) { openMatches.delete(m.id); closedMatches.add(m.id); }
+      else { closedMatches.delete(m.id); openMatches.add(m.id); }
+      renderClips();
+    } },
+    icon,
+    el("span", { class: "m-title" },
+      el("strong", {}, m.mode || "Match", el("i", {}, " as "), m.champion || ""),
+      metaEl),
+    el("span", { class: "m-count" }, `${list.length} clip${list.length > 1 ? "s" : ""}`),
+    open ? null : el("span", { class: "m-thumbs" }, list.slice(0, 4).map((c) =>
+      c.thumb_url ? el("img", { src: c.thumb_url, alt: "", loading: "lazy" }) : el("span"))),
+    el("span", { class: "m-chev", "aria-hidden": "true" })
+  );
+  return el("div", { class: "match" + (open ? " open" : "") }, head,
+    open ? el("div", { class: "grid m-grid" }, list.slice().sort((a, b) => (a.created || "").localeCompare(b.created || "")).map(clipCard)) : null);
 }
 function clipCard(c) {
   const posted = isPosted(c);
@@ -154,7 +214,7 @@ function clipCard(c) {
       el("span", { class: "dur" }, fmtDur(c.duration))
     ),
     el("div", { class: "clip-name" }, c.title),
-    el("div", { class: "clip-when" }, fmtWhen(c.created))
+    el("div", { class: "clip-when" }, c.match ? (c.highlight ? "Auto clip" : "Saved with your shortcut") : fmtWhen(c.created))
   );
 }
 

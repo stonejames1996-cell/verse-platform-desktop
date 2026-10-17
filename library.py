@@ -69,6 +69,13 @@ class ClipLibrary:
         os.makedirs(self.thumb_dir, exist_ok=True)
         self.lock = threading.RLock()
         self.clips = {}
+        self.matches_path = os.path.join(data_dir, "matches.json")
+        self.matches = {}   # one entry per League match: mode, champion, result, K/D/A...
+        try:
+            with open(self.matches_path, encoding="utf-8") as f:
+                self.matches = {m["id"]: m for m in json.load(f)}
+        except Exception:
+            pass
         try:
             with open(self.index_path, encoding="utf-8") as f:
                 for c in json.load(f):
@@ -84,6 +91,21 @@ class ClipLibrary:
         with open(tmp, "w", encoding="utf-8") as f:
             json.dump(list(self.clips.values()), f, indent=1)
         os.replace(tmp, self.index_path)
+
+    def save_match(self, match):
+        with self.lock:
+            if self.matches.get(match["id"]) == match:
+                return
+            self.matches[match["id"]] = dict(match)
+            tmp = self.matches_path + ".tmp"
+            with open(tmp, "w", encoding="utf-8") as f:
+                json.dump(list(self.matches.values()), f, indent=1)
+            os.replace(tmp, self.matches_path)
+
+    def list_matches(self):
+        with self.lock:
+            used = {c.get("match") for c in self.clips.values()}
+            return [dict(m) for m in self.matches.values() if m["id"] in used]
 
     def abs_path(self, clip):
         return os.path.join(self.clips_folder, clip["path"])
@@ -101,20 +123,26 @@ class ClipLibrary:
             return dict(c) if c else None
 
     # ---- adding clips
-    def add(self, path, game="", highlight=""):
+    def add(self, path, game="", highlight="", match=None):
         rel = os.path.relpath(path, self.clips_folder)
         with self.lock:
             for c in self.clips.values():
                 if c["path"] == rel:
                     return c
         with self.lock:
-            number = 1 + sum(1 for c in self.clips.values() if c.get("game", "") == game)
+            if match:   # inside a match folder: "Clip 1", "Clip 2"... for the ones saved with the key
+                number = 1 + sum(1 for c in self.clips.values() if c.get("match") == match and not c.get("highlight"))
+                title = highlight or f"Clip {number}"
+            else:
+                number = 1 + sum(1 for c in self.clips.values() if c.get("game", "") == game)
+                title = highlight or f"{game or 'Clip'} #{number}"
         clip = {
             "id": uuid.uuid4().hex[:12],
             "path": rel,
-            "title": highlight or f"{game or 'Clip'} #{number}",
+            "title": title,
             "game": game,
             "highlight": highlight,
+            "match": match,
             "created": datetime.datetime.fromtimestamp(os.path.getmtime(path)).isoformat(timespec="seconds"),
             "duration": round(probe_duration(self.ff, path), 1),
             "size": os.path.getsize(path),
@@ -144,7 +172,7 @@ class ClipLibrary:
         if os.path.isdir(self.clips_folder):
             for root, _, files in os.walk(self.clips_folder):
                 for fn in files:
-                    if fn.lower().endswith(".mp4"):
+                    if fn.lower().endswith(".mp4") and not fn.lower().endswith(".wm.mp4"):
                         full = os.path.join(root, fn)
                         found.add(os.path.relpath(full, self.clips_folder))
         with self.lock:
@@ -154,9 +182,13 @@ class ClipLibrary:
                 self.clips.pop(cid, None)
             if gone:
                 self._save()
+        with self.lock:
+            by_folder = {m.get("folder"): m["id"] for m in self.matches.values() if m.get("folder")}
         for rel in sorted(found - known):
-            parent = os.path.dirname(rel)
-            self.add(os.path.join(self.clips_folder, rel), game=parent if parent else "")
+            parts = rel.replace("\\", "/").split("/")
+            game = parts[0] if len(parts) > 1 else ""
+            match = by_folder.get(parts[1]) if len(parts) > 2 else None
+            self.add(os.path.join(self.clips_folder, rel), game=game, match=match)
 
     # ---- changes
     def mark_posted(self, clip_id, url=""):

@@ -134,7 +134,9 @@ class App:
         self.overlay = Overlay(lambda: self.cfg.get("monitor", 0))
         self.wm_queue = queue.Queue()
         threading.Thread(target=self._watermark_loop, daemon=True, name="watermark").start()
-        self.highlights = LeagueHighlights(lambda: self.cfg, self.is_playing, self.save_highlight)
+        self.current_match = None
+        self.highlights = LeagueHighlights(lambda: self.cfg, self.is_playing, self.save_highlight,
+                                           on_match=self.on_match)
         try:
             with open(INSTANCE_FILE, "w", encoding="utf-8") as f:
                 json.dump({"port": self.media.port, "secret": self.media.secret}, f)
@@ -247,6 +249,16 @@ class App:
             except Exception:
                 log.exception("Watermark failed")
 
+    def on_match(self, m):
+        """League match details came in or changed: clips from now on go in that match's folder."""
+        old = self.current_match
+        self.current_match = m
+        if self.rec and self.rec.label == m.get("game"):
+            self.rec.subfolder = m["folder"]
+        self.library.save_match(m)
+        if not old or old.get("id") != m["id"] or old.get("result") != m.get("result"):
+            self.bump()
+
     def is_playing(self, game):
         return bool(self.rec and self.rec.capturing and self.rec.label == game)
 
@@ -268,7 +280,8 @@ class App:
         game = self.rec.label if self.rec else ""
         tag = getattr(self.rec, "last_tag", "") if self.rec else ""
         secs = secs_text(getattr(self.rec, "last_seconds", 0) or self.cfg["buffer_seconds"])
-        clip = self.library.add(path, game=game, highlight=tag)
+        match = self.current_match["id"] if (self.current_match and self.rec and self.rec.subfolder) else None
+        clip = self.library.add(path, game=game, highlight=tag, match=match)
         self.bump()
         if clip and self.cfg.get("clip_watermark", True):
             self.wm_queue.put(clip["id"])
@@ -305,6 +318,8 @@ class App:
                         if game:
                             last_seen = now
                             if not rec.capturing:
+                                rec.subfolder = ""          # new game: the next match folder comes from its details
+                                self.current_match = None
                                 rec.begin_capture(game)
                                 self.notify(f"Recording {game}", f"Press {hk} to save a clip")
                             rec.label = game
@@ -553,6 +568,11 @@ class Api:
         if u.version:
             return {"message": f"Version {u.version} is ready. Click Update at the top to install it"}
         return {"message": f"You're on the latest version ({APP_VERSION})"}
+
+    def list_matches(self):
+        if not self._from_library():
+            return None
+        return self._app.library.list_matches()
 
     def list_clips(self):
         if not self._from_library():

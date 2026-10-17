@@ -1,6 +1,6 @@
-## What's new in 1.0.7
+## What's new in 1.0.8
 
-* **Updates can't get stuck any more.** If an update was downloaded but the app got closed before installing it, it now installs the next time you open the app.
-* Checks for updates every 2 hours (was 6) and a few seconds after opening.
-* **Check for updates** button in Settings, General.
-* Better error logging to help track down any problems.
+* **Match folders for League of Legends:** My clips now groups your League clips by match. Each match shows the mode and your champion (like "ARAM as Brand"), win or loss, your K/D/A, game length and when you played. Your latest match opens up, older ones fold away with a preview strip. Click to open or close.
+* Every clip from that match goes in its folder, auto highlights and the ones you save with your shortcut.
+* The files on your PC follow the same layout: `Videos\Verse Platform\League of Legends\<date time mode - champion>\`.
+* Clips from before this update stay where they were, under "Other clips".
