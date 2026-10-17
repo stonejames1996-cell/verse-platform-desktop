@@ -15,6 +15,7 @@ Run with --background to start hidden in the tray (used by "Start with Windows")
 import json
 import logging
 import os
+import queue
 import subprocess
 import sys
 import threading
@@ -39,7 +40,7 @@ RESTART_KEYS = {"fps", "bitrate", "output_height", "monitor", "record_desktop_au
 LIVE_KEYS = {"hotkey", "buffer_seconds", "record_mode", "detect_fullscreen_apps", "stop_delay_seconds",
              "custom_games", "ignored_apps", "play_sound_on_save", "sort_clips_by_game",
              "show_save_overlay", "auto_highlights", "highlight_events", "highlight_before",
-             "highlight_after", "highlight_max_per_game"}
+             "highlight_after", "highlight_max_per_game", "clip_watermark"}
 
 # A small "Clips" tab added to the left edge of Verse pages inside the app, so the clip library
 # is always one click away. Verse can render its own button instead: if the page has an element
@@ -128,6 +129,8 @@ class App:
         self.media = MediaServer(self.library, os.path.join(RES, "ui"), self.on_command)
         self.updater = Updater(self.on_update_ready)
         self.overlay = Overlay(lambda: self.cfg.get("monitor", 0))
+        self.wm_queue = queue.Queue()
+        threading.Thread(target=self._watermark_loop, daemon=True, name="watermark").start()
         self.highlights = LeagueHighlights(lambda: self.cfg, self.is_playing, self.save_highlight)
         try:
             with open(INSTANCE_FILE, "w", encoding="utf-8") as f:
@@ -227,6 +230,20 @@ class App:
         if self.rec:
             threading.Thread(target=self.rec.save_clip, daemon=True).start()
 
+    def _watermark_loop(self):
+        """Adds "Clipped by Verse Platform" to new clips, one at a time, in the background."""
+        while True:
+            clip_id = self.wm_queue.get()
+            try:
+                encoder = self.rec.encoder if self.rec else "libx264"
+                # no graphics card encoder: wait until the game's over rather than slow it down
+                while encoder == "libx264" and self.rec and self.rec.capturing and not self.quitting:
+                    time.sleep(5)
+                if self.library.add_watermark(clip_id, encoder):
+                    self.bump()
+            except Exception:
+                log.exception("Watermark failed")
+
     def is_playing(self, game):
         return bool(self.rec and self.rec.capturing and self.rec.label == game)
 
@@ -248,8 +265,10 @@ class App:
         game = self.rec.label if self.rec else ""
         tag = getattr(self.rec, "last_tag", "") if self.rec else ""
         secs = secs_text(getattr(self.rec, "last_seconds", 0) or self.cfg["buffer_seconds"])
-        self.library.add(path, game=game, highlight=tag)
+        clip = self.library.add(path, game=game, highlight=tag)
         self.bump()
+        if clip and self.cfg.get("clip_watermark", True):
+            self.wm_queue.put(clip["id"])
         if tag:
             self.notice(f"Highlight saved: {tag}")
             if overlay:
@@ -557,7 +576,7 @@ class Api:
         a = self._app
         try:
             info = a.library.export(clip_id, start, end, a.rec.encoder if a.rec else "libx264",
-                                    a.cfg.get("max_post_seconds", 60))
+                                    a.cfg.get("max_post_seconds", 60), watermark=a.cfg.get("clip_watermark", True))
         except ExportError as e:
             return {"error": str(e)}
         except Exception as e:

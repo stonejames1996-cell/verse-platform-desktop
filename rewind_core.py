@@ -34,7 +34,7 @@ import threading
 import time
 
 APP_NAME = "Verse Platform"
-APP_VERSION = "1.0.5"
+APP_VERSION = "1.0.6"
 VERSE_URL = "https://verseplatform.gg"
 # GitHub repo the app updates itself from ("owner/repo"). Release.bat fills this in. Blank = no auto update.
 UPDATE_REPO = "stonejames1996-cell/verse-platform-desktop"
@@ -81,7 +81,8 @@ DEFAULT_CONFIG = {
     "ignored_apps": [],            # exe names that should never trigger recording
     "ffmpeg_path": "",             # blank = find ffmpeg automatically
     "play_sound_on_save": True,
-    "show_save_overlay": True,     # "Last 60s saved by Verse Platform" pop-up over the game
+    "show_save_overlay": True,
+    "clip_watermark": True,        # "Clipped by Verse Platform" in the first 2 seconds of every clip     # "Last 60s saved by Verse Platform" pop-up over the game
     "auto_highlights": True,       # clip big plays by themselves (League of Legends)
     "highlight_events": {},        # which moments count, see highlights.DEFAULT_EVENTS (blank = defaults)
     "highlight_before": 5,         # seconds kept before the first moment of a play

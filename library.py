@@ -14,6 +14,7 @@ import secrets
 import socketserver
 import subprocess
 import threading
+import time
 import urllib.parse
 import uuid
 
@@ -36,6 +37,21 @@ def probe_duration(ff, path):
     except Exception:
         pass
     return 0.0
+
+
+def probe_height(ff, path):
+    try:
+        r = subprocess.run([ff, "-hide_banner", "-i", path], stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                           timeout=20, creationflags=NO_WINDOW)
+        m = re.search(rb"Video:.*?, (\d{2,5})x(\d{2,5})", r.stderr)
+        if m:
+            return int(m.group(2))
+    except Exception:
+        pass
+    return 1080
+
+
+LOW_PRIORITY = 0x00004000 if os.name == "nt" else 0   # BELOW_NORMAL_PRIORITY_CLASS, so games stay smooth
 
 
 class ExportError(Exception):
@@ -174,7 +190,7 @@ class ClipLibrary:
     def export_path(self, clip_id):
         return os.path.join(self.export_dir, f"{clip_id}.mp4")
 
-    def export(self, clip_id, start, end, encoder="libx264", max_seconds=60):
+    def export(self, clip_id, start, end, encoder="libx264", max_seconds=60, watermark=False):
         """Makes the copy that gets posted: the part between start and end (seconds),
         at most max_seconds long. Cutting on the 2 second keyframes is instant and lossless;
         any other cut point is re-encoded (fast on the GPU)."""
@@ -192,6 +208,10 @@ class ClipLibrary:
         out = self.export_path(clip_id)
         whole = start < 0.05 and (not dur or end > dur - 0.05)
         on_keyframes = abs(start / 2 - round(start / 2)) < 0.01
+        # the saved clip already starts with the watermark. If the start was trimmed off, add it again
+        wm = watermark and start >= 0.05
+        if wm:
+            on_keyframes = False
         if whole:
             cmd = [self.ff, "-hide_banner", "-loglevel", "error", "-y", "-i", src, "-map", "0", "-c", "copy",
                    "-movflags", "+faststart", out]
@@ -200,20 +220,26 @@ class ClipLibrary:
                    "-t", f"{end - start:.3f}", "-map", "0", "-c", "copy", "-avoid_negative_ts", "make_zero",
                    "-movflags", "+faststart", out]
         else:
-            cmd = self._encode_cmd(src, start, end, out, encoder)
+            cmd = self._encode_cmd(src, start, end, out, encoder, wm)
         r = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=600, creationflags=NO_WINDOW)
         if r.returncode != 0 and encoder != "libx264" and not whole and not on_keyframes:
             log.warning("GPU trim failed, using CPU: %s", r.stderr.decode(errors="replace")[-200:])
-            r = subprocess.run(self._encode_cmd(src, start, end, out, "libx264"), stdout=subprocess.PIPE,
+            r = subprocess.run(self._encode_cmd(src, start, end, out, "libx264", wm), stdout=subprocess.PIPE,
                                stderr=subprocess.PIPE, timeout=900, creationflags=NO_WINDOW)
         if r.returncode != 0 or not os.path.exists(out):
             raise ExportError("Couldn't prepare the clip: " + r.stderr.decode(errors="replace").strip()[-200:])
         return {"path": out, "duration": round(probe_duration(self.ff, out) or (end - start), 2),
                 "size": os.path.getsize(out)}
 
-    def _encode_cmd(self, src, start, end, out, encoder):
-        cmd = [self.ff, "-hide_banner", "-loglevel", "error", "-y", "-ss", f"{start:.3f}", "-i", src,
-               "-t", f"{end - start:.3f}", "-map", "0:v:0", "-map", "0:a?", "-c:v", encoder]
+    def _encode_cmd(self, src, start, end, out, encoder, wm=False):
+        cmd = [self.ff, "-hide_banner", "-loglevel", "error", "-y", "-ss", f"{start:.3f}", "-i", src]
+        if wm:
+            import watermark
+            cmd += watermark.inputs(watermark.png_for(probe_height(self.ff, src)))
+            cmd += ["-t", f"{end - start:.3f}", "-filter_complex", watermark.filter_graph(),
+                    "-map", "[vo]", "-map", "0:a?", "-c:v", encoder]
+        else:
+            cmd += ["-t", f"{end - start:.3f}", "-map", "0:v:0", "-map", "0:a?", "-c:v", encoder]
         if "nvenc" in encoder:
             cmd += ["-preset", "p5", "-rc", "vbr", "-cq", "21", "-b:v", "0"]
         elif "amf" in encoder:
@@ -223,6 +249,55 @@ class ClipLibrary:
         else:
             cmd += ["-preset", "veryfast", "-crf", "20"]
         return cmd + ["-pix_fmt", "yuv420p", "-c:a", "aac", "-b:a", "192k", "-movflags", "+faststart", out]
+
+    def add_watermark(self, clip_id, encoder):
+        """Burns "Clipped by Verse Platform" into the first 2 seconds of a saved clip, in place.
+        Runs at low priority. Keeps the original if anything goes wrong."""
+        clip = self.get(clip_id)
+        if not clip or clip.get("watermarked"):
+            return False
+        src = self.abs_path(clip)
+        dur = clip.get("duration") or probe_duration(self.ff, src)
+        if not dur:
+            return False
+        tmp = src + ".wm.mp4"
+        ok = False
+        for enc in ([encoder, "libx264"] if encoder != "libx264" else ["libx264"]):
+            cmd = self._encode_cmd(src, 0, dur, tmp, enc, wm=True)
+            # keep the original audio as is (no re-encode)
+            i = cmd.index("-c:a")
+            cmd[i + 1:i + 4] = ["copy"]
+            r = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=1800,
+                               creationflags=NO_WINDOW | LOW_PRIORITY)
+            if r.returncode == 0 and os.path.exists(tmp) and probe_duration(self.ff, tmp) > dur - 1:
+                ok = True
+                break
+            log.warning("Watermark with %s failed: %s", enc, r.stderr.decode(errors="replace")[-300:])
+        if not ok:
+            try:
+                os.remove(tmp)
+            except OSError:
+                pass
+            return False
+        for _ in range(20):  # the player may have the file open for a moment
+            try:
+                os.replace(tmp, src)
+                break
+            except OSError:
+                time.sleep(1)
+        else:
+            log.warning("Couldn't swap in the watermarked clip, keeping the original")
+            try:
+                os.remove(tmp)
+            except OSError:
+                pass
+            return False
+        with self.lock:
+            if clip_id in self.clips:
+                self.clips[clip_id]["watermarked"] = True
+                self.clips[clip_id]["size"] = os.path.getsize(src)
+                self._save()
+        return True
 
     def set_folder(self, folder):
         with self.lock:

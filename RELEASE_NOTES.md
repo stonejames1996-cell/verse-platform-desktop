@@ -1,5 +1,4 @@
-## What's new in 1.0.5
+## What's new in 1.0.6
 
-* **Pick your League highlights:** tick exactly what gets auto clipped in Settings, League of Legends highlights. Double, triple, quadra and pentakills, first blood, aces, teamfights, steals, Baron and Elder Dragon, victories and more. Every kill, any Dragon, towers, defeats and your deaths are there too if you want them.
-* **Short highlight clips:** auto clips now cover just the play, 5 seconds before the first moment to 5 seconds after the last one (adjustable). A whole fight is still one clip, named like "Triple kill + Ace".
-* **Most auto clips per game** setting (10 by default) so your drive doesn't fill up.
+* **"Clipped by Verse Platform" watermark:** every clip now opens with a small Verse tag in the top corner for the first 2 seconds. It's part of the video, so it shows wherever the clip gets shared. If you trim the start off before posting, it's added again at the start of the posted part. Turn it off in Settings, General.
+* It's added in the background at low priority right after a clip saves, so your game stays smooth. On PCs without a graphics card encoder it waits until the game ends.
