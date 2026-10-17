@@ -111,6 +111,9 @@ NO_WINDOW = 0x08000000 if IS_WINDOWS else 0  # CREATE_NO_WINDOW so ffmpeg doesn'
 
 # --------------------------------------------------------------------------- config / setup
 
+FREEZE_SECONDS = 8   # a picture that hasn't changed at all for this long means capture went stale
+
+
 def save_config(cfg):
     try:
         with open(CONFIG_PATH, "w", encoding="utf-8") as f:
@@ -319,6 +322,9 @@ class Recorder:
         self.subfolder = ""       # match folder inside the game's folder, e.g. "2026-10-17 4.08pm ARAM - Brand"
         self.last_seconds = 0
         self.last_start = 0.0
+        self.freeze_path = ""
+        self.last_freeze = 0.0
+        self.freezes = 0
         self.save_lock = threading.Lock()
         self.on_saved = None  # callback(path or None, message)
         self.encoder = pick_encoder(ff, cfg["encoder"])
@@ -360,7 +366,13 @@ class Recorder:
         if c["output_height"]:
             vf.append(f"scale=-2:{int(c['output_height'])}")
         vf.append("format=yuv420p" if self.encoder == "libx264" else "format=nv12")
-        graph = f"[0:v]{','.join(vf)}[v]"
+        # a small copy of the picture goes through freezedetect: if the screen stops updating for 8s
+        # (Windows' screen capture can silently go stale and repeat one frame forever) it writes to
+        # freeze_<run>.txt, and the watchdog restarts capture
+        self.freeze_path = os.path.join(self.seg_dir, f"freeze_{self.run:05d}.txt")
+        fz = self.freeze_path.replace("\\", "/").replace(":", "\\:")
+        graph = (f"[0:v]{','.join(vf)},split=2[v][fz];[fz]scale=160:-2,freezedetect=n=0.001:d={FREEZE_SECONDS},"
+                 f"metadata=mode=print:key=lavfi.freezedetect.freeze_start:file='{fz}':direct=1,nullsink")
         two_tracks = len(audio_labels) == 2 and bool(self.audio_info)
         if audio_labels:
             if two_tracks:
@@ -460,12 +472,26 @@ class Recorder:
                 continue
             started = time.time()
             self._launch()
+            frozen = False
             while self.running and self.capturing and self.proc and self.proc.poll() is None:
                 time.sleep(0.2)
+                if _size(self.freeze_path) > 0 and time.time() - self.last_freeze > 30:
+                    frozen = True
+                    break
             code = self.proc.returncode if self.proc else None
             self._kill()
             if not (self.running and self.capturing):
                 continue  # stopped on purpose
+            if frozen:
+                self.last_freeze = time.time()
+                self.freezes += 1
+                log.warning("Capture froze (the screen stopped updating for %ss), restarting it", FREEZE_SECONDS)
+                try:
+                    os.remove(self.freeze_path)
+                except OSError:
+                    pass
+                time.sleep(0.3)
+                continue
             failures = failures + 1 if time.time() - started < 10 else 0
             log.warning("Capture stopped (exit code %s), restarting...", code)
             time.sleep(min(30, 1 + failures * 2))
