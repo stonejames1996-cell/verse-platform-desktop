@@ -192,8 +192,13 @@ function fmtLen(sec) {
 }
 function matchCard(m, list, latest) {
   const open = openMatches.has(m.id) || (latest && !closedMatches.has(m.id));
+  const deaths = list.filter((c) => c.review), plays = list.filter((c) => !c.review);
   const icon = el("span", { class: "m-champ" }, (m.champion || "?")[0]);
-  if (m.champion_key && ddVersion && ddVersion !== "pending") {
+  if (m.icon_url) {
+    const img = el("img", { src: m.icon_url, alt: "" });
+    img.onerror = () => img.remove();
+    icon.append(img);
+  } else if (m.champion_key && ddVersion && ddVersion !== "pending") {
     const img = el("img", { src: `https://ddragon.leagueoflegends.com/cdn/${ddVersion}/img/champion/${m.champion_key}.png`, alt: "" });
     img.onerror = () => img.remove();
     icon.append(img);
@@ -212,10 +217,10 @@ function matchCard(m, list, latest) {
     } },
     icon,
     el("span", { class: "m-title" },
-      el("strong", {}, m.mode || "Match", el("i", {}, " as "), m.champion || ""),
+      el("strong", {}, m.mode || "Match", el("i", {}, m.joiner || " as "), m.champion || ""),
       metaEl),
-    el("span", { class: "m-count" }, `${list.length} clip${list.length > 1 ? "s" : ""}`),
-    open ? null : el("span", { class: "m-thumbs" }, list.slice(0, 4).map((c) =>
+    el("span", { class: "m-count" }, `${plays.length} clip${plays.length !== 1 ? "s" : ""}` + (deaths.length ? ` · ${deaths.length} death${deaths.length > 1 ? "s" : ""}` : "")),
+    open ? null : el("span", { class: "m-thumbs" }, plays.slice(0, 4).map((c) =>
       c.thumb_url ? el("img", { src: c.thumb_url, alt: "", loading: "lazy" }) : el("span"))),
     el("span", { class: "m-chev", "aria-hidden": "true" })
   );
@@ -226,7 +231,10 @@ function matchCard(m, list, latest) {
     el("span", { class: "tick" }), all ? "Selected" : "Select game") : null;
   return el("div", { class: "match" + (open ? " open" : "") + (all && selecting ? " picked" : "") },
     el("div", { class: "m-top" }, head, pick),
-    open ? el("div", { class: "grid m-grid" }, list.map(clipCard)) : null);
+    open && plays.length ? el("div", { class: "grid m-grid" }, plays.map(clipCard)) : null,
+    open && deaths.length ? el("details", { class: "m-deaths" },
+      el("summary", {}, `Death review · ${deaths.length}`, el("small", {}, " only on this PC, never posted unless you choose to")),
+      el("div", { class: "grid m-grid" }, deaths.map(clipCard))) : null);
 }
 function clipCard(c) {
   const posted = isPosted(c);
@@ -237,9 +245,10 @@ function clipCard(c) {
       el("div", { class: "clip-thumb" },
         c.thumb_url ? el("img", { src: c.thumb_url, alt: "", loading: "lazy" }) : null,
         posted ? el("span", { class: "up uploaded" }, icon("i-check"), "Posted") : null,
-        c.highlight && !posted ? el("span", { class: "up auto" }, "Auto") : null,
+        c.highlight && !posted && !c.review && !c.squad ? el("span", { class: "up auto" }, "Auto") : null,
       c.recap ? el("span", { class: "up auto" }, "Recap") : null,
       c.vertical ? el("span", { class: "up auto" }, "9:16") : null,
+      c.squad_combo ? el("span", { class: "up squad" }, "Squad POV") : c.squad ? el("span", { class: "up squad" }, "Squad") : null,
         el("span", { class: "dur" }, fmtDur(c.duration))
       ),
       el("div", { class: "clip-name" }, c.title),
@@ -456,6 +465,18 @@ async function loadSettings() {
   const hl = Object.assign({}, r.highlight_defaults || {}, r.config.highlight_events || {});
   for (const c of $$("[data-hl]")) c.checked = !!hl[c.dataset.hl];
   $("#hl-body").classList.toggle("off", !r.config.auto_highlights);
+  const gs = r.gsi_games || {};
+  const found = Object.entries(gs).filter(([, ok]) => ok).map(([g]) => g);
+  $("#gsi-note").textContent = found.length
+    ? `Set up for ${found.join(" and ")}.` + (gs["Dota 2"] ? " Dota 2 also needs -gamestateintegration in its Steam launch options." : "")
+    : "";
+  call("squad_status").then((sq) => {
+    if (!sq) return;
+    $("#squad-status").textContent = !sq.code ? "Make a code and send it to your mates, or paste theirs"
+      : sq.error ? sq.error
+      : sq.connected ? `Connected as ${sq.name}` : `You're ${sq.name}. Works while you're in a game`;
+    $("#squad-copy").hidden = !sq.code;
+  });
   const combo = $("#combo-select");
   if (combo && r.controller_combos) {
     combo.replaceChildren(el("option", { value: "" }, "Off"),
@@ -534,6 +555,18 @@ function wire() {
     const ev = Object.assign({}, settings.highlight_defaults || {}, settings.config.highlight_events || {});
     ev[c.dataset.hl] = c.checked;
     setSetting("highlight_events", ev);
+  });
+  $("#squad-new").addEventListener("click", async () => {
+    const r = await call("squad_new_code");
+    if (r && r.code) {
+      try { await navigator.clipboard.writeText(r.code); toast(`Squad code ${r.code} copied. Send it to your mates`); }
+      catch { toast(`Your squad code is ${r.code}`); }
+    }
+    loadSettings();
+  });
+  $("#squad-copy").addEventListener("click", async () => {
+    const code = $("#squad-code").value;
+    try { await navigator.clipboard.writeText(code); toast("Squad code copied"); } catch { toast(code); }
   });
   $("#autostart").addEventListener("change", (e) => call("set_autostart", e.target.checked));
   $("#check-updates").addEventListener("click", async (e) => {

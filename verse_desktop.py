@@ -31,6 +31,8 @@ from updater import Updater
 from overlay import Overlay, secs_text
 from highlights import DEFAULT_EVENTS, LeagueHighlights
 from triggers import COMBOS, ControllerTrigger, VoiceTrigger
+from gsi import CS2Highlights, DotaHighlights, GSIServer, install_cfgs
+from squad import Squad, make_code
 from library import highlight_score
 
 log = logging.getLogger(APP_NAME)
@@ -43,6 +45,7 @@ LIVE_KEYS = {"hotkey", "buffer_seconds", "record_mode", "detect_fullscreen_apps"
              "custom_games", "ignored_apps", "play_sound_on_save", "sort_clips_by_game",
              "show_save_overlay", "auto_highlights", "highlight_events", "highlight_before",
              "highlight_after", "highlight_max_per_game", "voice_command",
+             "death_review", "death_review_before", "squad_code", "squad_name", "squad_share",
              "controller_combo", "auto_clean_days", "auto_clean_permanent"}
 
 # A small "Clips" tab added to the left edge of Verse pages inside the app, so the clip library
@@ -161,7 +164,7 @@ def caption_info(clip, match):
     if clip.get("recap"):
         text = f"My week{' in ' + game if game else ''} 🎬"
     elif hl:
-        text = hl + (f" on {champ}" if champ else "") + (f" in {mode}" if mode and mode != "Summoner's Rift" else "")
+        text = hl + (f" on {champ}" if champ else "") + (f" in {mode}" if mode and mode not in ("Summoner's Rift", "Dota") else "")
         text += " 🔥" if highlight_score(hl) >= 5 else " 🎮"
     elif champ:
         text = f"{champ} in {mode or game} 🎮"
@@ -169,7 +172,7 @@ def caption_info(clip, match):
         text = f"{game} clip 🎮" if game else ""
     tags = [GAME_TAGS.get(game) or _tag(game)]
     tags += [_tag(p) for p in hl.split(" + ")] if hl else []
-    tags += [_tag(champ), _tag(mode) if mode and mode != "Summoner's Rift" else ""]
+    tags += [_tag(champ), _tag(mode) if mode and mode not in ("Summoner's Rift", "Dota") else ""]
     tags += ["weeklyrecap"] if clip.get("recap") else []
     tags += ["vertical"] if clip.get("vertical") else []
     tags = [t for i, t in enumerate(tags) if t and t not in tags[:i]] + ["verse"]
@@ -208,7 +211,18 @@ class App:
         self.voice = VoiceTrigger(self.trigger_save)
         self.pad = ControllerTrigger(lambda: self.cfg.get("controller_combo", ""), self.trigger_save)
         self.highlights = LeagueHighlights(lambda: self.cfg, self.is_playing, self.save_highlight,
-                                           on_match=self.on_match)
+                                           on_match=self.on_match, on_death=self.on_death)
+        # auto clips, death reviews and squad clips queue up here, so two at once never collide
+        self.save_q = queue.Queue()
+        threading.Thread(target=self._save_loop, daemon=True, name="saves").start()
+        self.gsi_games = {
+            "cs2": CS2Highlights(lambda: self.cfg, self.is_playing, self.save_highlight,
+                                 on_match=self.on_match, on_death=self.on_death),
+            "dota2": DotaHighlights(lambda: self.cfg, self.is_playing, self.save_highlight,
+                                    on_match=self.on_match, on_death=self.on_death),
+        }
+        self.gsi_setup = {}
+        self.squad = Squad(self)
         try:
             with open(INSTANCE_FILE, "w", encoding="utf-8") as f:
                 json.dump({"port": self.media.port, "secret": self.media.secret}, f)
@@ -362,8 +376,58 @@ class App:
         return bool(self.rec and self.rec.capturing and self.rec.label == game)
 
     def save_highlight(self, label, start, end):
-        if self.rec and (self.rec.capturing or self.rec.segments()):
-            self.rec.save_clip(tag=label, window=(start, end))
+        self.save_q.put(("highlight", label, start, end))
+
+    def on_death(self, game, t):
+        """Death review: the lead up to every death, saved privately in the match's Deaths folder."""
+        if self.cfg.get("death_review"):
+            before = float(self.cfg.get("death_review_before", 10) or 10)
+            self.save_q.put(("death", game, t - before, t + 2))
+
+    def _save_loop(self):
+        while True:
+            job = self.save_q.get()
+            try:
+                kind, a, start, end = job
+                wait = end + 2.5 - time.time()      # let the recorder finish the last chunk
+                if wait > 0:
+                    time.sleep(min(wait, 20))
+                rec = self.rec
+                if not rec or not (rec.capturing or rec.segments()):
+                    continue
+                if kind == "highlight":
+                    path = rec.save_clip(tag=a, window=(start, end), wait=True)
+                    if path:
+                        clip = self.library.add(path)   # on_saved already added it, this just looks it up
+                        self.squad.announce(clip, a, start, end)
+                elif kind == "death":
+                    n = 1 + sum(1 for c in self.library.list() if c.get("review") and c.get("match") ==
+                                (self.current_match or {}).get("id"))
+                    path = rec.save_clip(tag=f"Death {n}", window=(start, end), wait=True, quiet=True,
+                                         folder_extra="Deaths")
+                    if path:
+                        self.add_saved_clip(path, f"Death {n}", extra={"review": True}, watermark=False)
+                        log.info("Death review saved")
+            except Exception:
+                log.exception("Saving queued clip failed")
+
+    def add_saved_clip(self, path, label, extra=None, match=None, watermark=True):
+        """Adds a clip saved without the usual announcement (death reviews, squad POVs)."""
+        game = self.rec.label if self.rec else ""
+        if match is None:
+            match = self.current_match["id"] if (self.current_match and self.rec and self.rec.subfolder) else None
+        clip = self.library.add(path, game=game, highlight=label, match=match, extra=extra)
+        self.bump()
+        if clip and watermark and not clip.get("watermarked"):
+            self.wm_queue.put(clip["id"])
+        return clip
+
+    def flash(self, title, sub=""):
+        if self.cfg.get("show_save_overlay", True):
+            self.overlay.show(title, accent="", sub=sub)
+        else:
+            self.notify(title, sub)
+        self.notice(f"{title}: {sub}" if sub else title)
 
     def on_saved(self, path, msg):
         if self.cfg.get("play_sound_on_save") and IS_WINDOWS:
@@ -477,6 +541,14 @@ class App:
             self.on_update_ready(self.updater.version, allow_auto=False)
         self.updater.start()
         self.highlights.start()
+        try:
+            token = (self.cfg.get("device_id") or "verse")[:20]
+            port = GSIServer(int(self.cfg.get("gsi_port") or 3517), token, self.gsi_games).start()
+            if port and IS_WINDOWS:
+                self.gsi_setup = install_cfgs(port, token)
+        except Exception:
+            log.exception("CS2 / Dota 2 highlights setup failed")
+        self.squad.start()
         self.pad.start()
         if self.cfg.get("voice_command"):
             self.voice.start()
@@ -787,6 +859,8 @@ class Api:
             "version": APP_VERSION,
             "highlight_defaults": DEFAULT_EVENTS,
             "controller_combos": {k: v[0] for k, v in COMBOS.items()},
+            "gsi_games": {g: bool(p) for g, p in a.gsi_setup.items()},
+            "squad_error": a.squad.error,
         }
 
     def set_setting(self, key, value):
@@ -795,6 +869,11 @@ class Api:
         a = self._app
         if key not in RESTART_KEYS and key not in LIVE_KEYS:
             return {"message": "Unknown setting"}
+        if key == "squad_code":
+            import re as _re
+            value = _re.sub(r"[^A-Za-z0-9]", "", str(value or "")).upper()[:12]
+        if key == "squad_name":
+            value = str(value or "").strip()[:24]
         old = a.cfg.get(key)
         a.cfg[key] = value
         if key == "hotkey" and not a.register_hotkey():
@@ -815,7 +894,24 @@ class Api:
             if not value:
                 a.voice.stop()
             return {"message": 'Say "clip that" to save a clip' if value else "Voice command off"}
+        if key == "squad_code":
+            return {"message": f"You're in squad {value}" if value else "Squad POV is off"}
         return {}
+
+    def squad_new_code(self):
+        if not self._from_library():
+            return None
+        a = self._app
+        a.cfg["squad_code"] = make_code()
+        save_config(a.cfg)
+        return {"code": a.cfg["squad_code"]}
+
+    def squad_status(self):
+        if not self._from_library():
+            return None
+        sq = self._app.squad
+        return {"code": sq.code, "name": sq.name(), "error": sq.error,
+                "connected": bool(sq.last_ok and time.time() - sq.last_ok < 30)}
 
     # ---- clip tools
     def clip_tracks(self, clip_id):

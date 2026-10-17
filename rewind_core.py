@@ -32,9 +32,10 @@ import sys
 import tempfile
 import threading
 import time
+import uuid
 
 APP_NAME = "Verse Platform"
-APP_VERSION = "1.1.2"
+APP_VERSION = "1.2.0"
 VERSE_URL = "https://verseplatform.gg"
 # GitHub repo the app updates itself from ("owner/repo"). Release.bat fills this in. Blank = no auto update.
 UPDATE_REPO = "stonejames1996-cell/verse-platform-desktop"
@@ -82,7 +83,14 @@ DEFAULT_CONFIG = {
     "ffmpeg_path": "",             # blank = find ffmpeg automatically
     "play_sound_on_save": True,
     "show_save_overlay": True,
-    "clip_watermark": True,
+    "clip_watermark": True,        # always on, see load_config
+    "death_review": False,         # save the lead up to every death in a private Deaths folder
+    "death_review_before": 10,
+    "squad_code": "",              # squad POV: friends with the same code clip each other's highlights
+    "squad_name": "",              # how you show up to your squad, blank = your in-game name
+    "squad_share": True,           # send your POV of a squad mate's highlight to them
+    "device_id": "",
+    "gsi_port": 3517,              # Counter-Strike 2 and Dota 2 send live game info to this local port
     "voice_command": False,        # say "clip that" to save a clip (Windows speech recognition, offline)
     "controller_combo": "view_rb", # controller buttons that save a clip, blank = off (see triggers.COMBOS)
     "auto_clean_days": 0,          # remove unstarred, unposted clips older than this, 0 = never
@@ -119,6 +127,8 @@ def load_config():
                 cfg.update(json.load(f))
         except Exception as e:  # broken json shouldn't brick the app
             log.error("config.json could not be read (%s), using defaults", e)
+    if not cfg.get("device_id"):
+        cfg["device_id"] = uuid.uuid4().hex
     cfg["clip_watermark"] = True  # "Clipped by Verse Platform" is always on, it isn't a setting any more
     save_config(cfg)  # write back so new options show up for the user
     cfg["clips_folder"] = os.path.abspath(os.path.expanduser(cfg["clips_folder"]))
@@ -308,6 +318,7 @@ class Recorder:
         self.last_tag = ""        # highlight name of the clip being saved, if any
         self.subfolder = ""       # match folder inside the game's folder, e.g. "2026-10-17 4.08pm ARAM - Brand"
         self.last_seconds = 0
+        self.last_start = 0.0
         self.save_lock = threading.Lock()
         self.on_saved = None  # callback(path or None, message)
         self.encoder = pick_encoder(ff, cfg["encoder"])
@@ -465,7 +476,9 @@ class Recorder:
     def _cleanup_loop(self):
         while self.running:
             time.sleep(SEGMENT_SECONDS)
-            keep = math.ceil((self.cfg["buffer_seconds"] + 20) / SEGMENT_SECONDS)
+            # keep at least 2 minutes: a CS round's kills, a death review and a squad mate's
+            # highlight can reach further back than a short clip length
+            keep = math.ceil((max(self.cfg["buffer_seconds"], 120) + 20) / SEGMENT_SECONDS)
             if self.save_lock.locked():
                 continue  # don't delete chunks while a clip is being saved
             for old in self.segments()[:-keep]:
@@ -474,9 +487,12 @@ class Recorder:
                 except OSError:
                     pass
 
-    def save_clip(self, seconds=None, tag="", window=None):
-        """Saves the last 'seconds', or with window=(start, end) (time.time() values) just that stretch."""
-        if not self.save_lock.acquire(blocking=False):
+    def save_clip(self, seconds=None, tag="", window=None, wait=False, quiet=False, folder_extra=""):
+        """Saves the last 'seconds', or with window=(start, end) (time.time() values) just that stretch.
+        wait: queue behind a save that's already running (auto clips) instead of skipping it (key mashing).
+        quiet: don't announce it (death reviews, squad clips handle their own messages).
+        folder_extra: a subfolder inside the match folder, e.g. "Deaths"."""
+        if not self.save_lock.acquire(timeout=60) if wait else not self.save_lock.acquire(blocking=False):
             return None  # already saving, ignore button mashing
         try:
             self.last_tag = tag   # e.g. "Triple kill" when an auto highlight saved it
@@ -502,7 +518,11 @@ class Recorder:
                 start, end = window
                 pick = [x for x in segs if _mtime(x) > start and _mtime(x) - SEGMENT_SECONDS < end]
             self.last_seconds = len(pick) * SEGMENT_SECONDS if window else min(seconds, len(pick) * SEGMENT_SECONDS)
+            # when the saved video really starts (each chunk's file time is when it ended), for lining up squad POVs
+            self.last_start = (_mtime(pick[0]) - SEGMENT_SECONDS) if pick else 0.0
             if not pick:
+                if quiet:
+                    return None
                 self._notify(None, "Nothing recorded yet" if self.capturing else
                              "Not recording right now. Start a game, or switch to Always record")
                 return None
@@ -541,6 +561,8 @@ class Recorder:
                 folder = os.path.join(folder, safe_name(self.label))
                 if self.subfolder:
                     folder = os.path.join(folder, safe_name(self.subfolder))
+                    if folder_extra:
+                        folder = os.path.join(folder, safe_name(folder_extra))
             os.makedirs(folder, exist_ok=True)
             if self.subfolder and self.label:
                 stamp = datetime.datetime.now().strftime("%H-%M-%S")
@@ -578,10 +600,12 @@ class Recorder:
             shutil.rmtree(snap, ignore_errors=True)
             if not os.path.exists(out):
                 log.error("Saving clip failed: %s", err.strip()[-500:])
-                self._notify(None, "Saving the clip failed, check the log")
+                if not quiet:
+                    self._notify(None, "Saving the clip failed, check the log")
                 return None
             log.info("Saved %s", out)
-            self._notify(out, msg)
+            if not quiet:
+                self._notify(out, msg)
             return out
         finally:
             self.save_lock.release()

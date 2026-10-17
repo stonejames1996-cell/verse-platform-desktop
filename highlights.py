@@ -85,9 +85,10 @@ class LeagueHighlights:
 
     GAME = "League of Legends"
 
-    def __init__(self, get_cfg, is_playing, save, clock=time.time, on_match=None):
+    def __init__(self, get_cfg, is_playing, save, clock=time.time, on_match=None, on_death=None):
         self.get_cfg, self.is_playing, self.save, self.clock = get_cfg, is_playing, save, clock
         self.on_match = on_match or (lambda m: None)   # called with the match details as they change
+        self.on_death = on_death or (lambda game, t: None)   # death review: called with the wall time of each death
         self._reset()
 
     def _reset(self):
@@ -100,6 +101,16 @@ class LeagueHighlights:
         self.offset = None      # wall clock minus game clock
         self.match = None       # {"id", "mode", "champion", "champion_key", "kills"...}
         self.ticks = 0
+        self.me_name = ""
+        self.players = set()    # every player name in this match, so squad mates can be recognised
+
+    def to_wall(self, game_time):
+        """Game clock -> this PC's clock. Both PCs in a match share the game clock, so this lines up
+        squad clips exactly even when the two PCs' clocks differ."""
+        return None if self.offset is None else self.offset + float(game_time)
+
+    def to_game(self, wall):
+        return None if self.offset is None else float(wall) - self.offset
 
     def start(self):
         threading.Thread(target=self._loop, daemon=True, name="highlights").start()
@@ -127,6 +138,7 @@ class LeagueHighlights:
             except Exception:
                 return  # still loading, or watching a replay or spectating
             mine = [p for p in players if _names(p.get("riotId"), p.get("summonerName")) & _names(me)]
+            self.me_name = str(me)
             self.me = _names(me, *[x for p in mine for x in (p.get("riotId"), p.get("riotIdGameName"), p.get("summonerName"))])
             log.info("Watching League highlights for %s", me)
         try:
@@ -158,6 +170,7 @@ class LeagueHighlights:
         me = next((p for p in players if _names(p.get("riotId"), p.get("summonerName"), p.get("riotIdGameName")) & self.me), None)
         if not me:
             return
+        self.players = _names(*[x for p in players for x in (p.get("riotId"), p.get("riotIdGameName"), p.get("summonerName"))])
         sc = me.get("scores") or {}
         if not self.match:
             started = self.clock() - game_time
@@ -200,6 +213,10 @@ class LeagueHighlights:
                 hits.append(("every_kill", "Kill", 1))
             if self._is_me(e.get("VictimName")):
                 hits.append(("death", "Death", 0.5))
+                try:
+                    self.on_death(self.GAME, t)
+                except Exception:
+                    log.exception("death review")
         elif name == "Multikill" and self._is_me(e.get("KillerName")):
             n = min(5, int(e.get("KillStreak", 2)))
             hits.append(MULTI.get(n, MULTI[2]))

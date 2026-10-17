@@ -153,7 +153,8 @@
         </section>
 
         <section class="set-group" id="hl-group">
-          <h3>League of Legends highlights</h3>
+          <h3>Auto highlights</h3>
+          <p class="set-sub">League of Legends, Counter-Strike 2 and Dota 2. In CS2 a 3K or 4K is counted across the round. <span id="gsi-note"></span></p>
           <div class="row">
             <div class="row-text"><strong>Auto clip highlights</strong><span>Saves short clips of your plays by itself, no key needed</span></div>
             <label class="switch"><input type="checkbox" data-set="auto_highlights"><span></span></label>
@@ -166,7 +167,7 @@
               <label><input type="checkbox" data-hl="quadra"> Quadra kill</label>
               <label><input type="checkbox" data-hl="penta"> Pentakill</label>
               <label><input type="checkbox" data-hl="first_blood"> First blood</label>
-              <label><input type="checkbox" data-hl="ace"> Ace <small>you got the last kill</small></label>
+              <label><input type="checkbox" data-hl="ace"> Ace <small>League: you got the last kill. CS2's 5K counts as a Pentakill</small></label>
               <label><input type="checkbox" data-hl="teamfight"> Teamfight <small>3+ kills or assists in 10s</small></label>
               <label><input type="checkbox" data-hl="every_kill"> Every kill</label>
             </div>
@@ -197,11 +198,41 @@
               </div>
             </div>
             <div class="row">
+              <div class="row-text"><strong>Review my deaths</strong><span>Saves the lead up to every death in a private Deaths folder inside the match, so you can see what went wrong. Doesn't count towards the limit below.</span></div>
+              <div class="inline">
+                <select data-set="death_review_before" data-num aria-label="Seconds before each death">
+                  <option value="5">5s before</option><option value="10">10s before</option><option value="15">15s before</option><option value="20">20s before</option>
+                </select>
+                <label class="switch"><input type="checkbox" data-set="death_review"><span></span></label>
+              </div>
+            </div>
+            <div class="row">
               <div class="row-text"><strong>Most auto clips per game</strong></div>
               <select data-set="highlight_max_per_game" data-num aria-label="Most auto clips per game">
                 <option value="5">5</option><option value="10">10</option><option value="20">20</option><option value="0">No limit</option>
               </select>
             </div>
+          </div>
+        </section>
+
+        <section class="set-group" id="squad-group">
+          <h3>Squad POV <small class="beta">Beta</small></h3>
+          <p class="set-sub">Share a squad code with your duo or stack. When one of you gets a highlight, everyone's app clips that exact moment from their own screen, and you get both screens side by side in one video.</p>
+          <div class="row">
+            <div class="row-text"><strong>Squad code</strong><span id="squad-status">Make a code and send it to your mates, or paste theirs</span></div>
+            <div class="inline">
+              <input type="text" data-set="squad_code" id="squad-code" placeholder="No squad" maxlength="12" spellcheck="false" autocomplete="off" aria-label="Squad code">
+              <button class="btn btn-quiet" id="squad-new" type="button">Make a code</button>
+              <button class="btn btn-quiet" id="squad-copy" type="button">Copy</button>
+            </div>
+          </div>
+          <div class="row">
+            <div class="row-text"><strong>Your name in the squad</strong><span>Blank uses your in-game name</span></div>
+            <input type="text" data-set="squad_name" id="squad-name" placeholder="In-game name" maxlength="24" spellcheck="false" aria-label="Your name in the squad">
+          </div>
+          <div class="row">
+            <div class="row-text"><strong>Send my POV to my squad</strong><span>A small copy of your view of their highlight goes to them through Verse, so they get the side by side</span></div>
+            <label class="switch"><input type="checkbox" data-set="squad_share"><span></span></label>
           </div>
         </section>
 

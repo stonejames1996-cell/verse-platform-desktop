@@ -200,7 +200,7 @@ class ClipLibrary:
             return dict(c) if c else None
 
     # ---- adding clips
-    def add(self, path, game="", highlight="", match=None):
+    def add(self, path, game="", highlight="", match=None, extra=None):
         rel = os.path.relpath(path, self.clips_folder)
         with self.lock:
             for c in self.clips.values():
@@ -226,6 +226,7 @@ class ClipLibrary:
             "thumb": "",
             "posted": None,   # {"at": "...", "url": "..."} once it's on Verse
         }
+        clip.update(extra or {})   # e.g. {"review": True} for death review clips, {"squad": {...}} for squad POV
         clip["thumb"] = self._make_thumb(path, clip["id"], clip["duration"])
         with self.lock:
             self.clips[clip["id"]] = clip
@@ -351,7 +352,8 @@ class ClipLibrary:
         whole = start < 0.05 and (not dur or end > dur - 0.05)
         on_keyframes = abs(start / 2 - round(start / 2)) < 0.01
         # the saved clip already starts with the watermark. If the start was trimmed off, add it again
-        wm = watermark and start >= 0.05
+        # (clips that never got it burned in, like death reviews, get it here so every post has it)
+        wm = watermark and (start >= 0.05 or not clip.get("watermarked"))
         if wm:
             on_keyframes = False
         if whole:
