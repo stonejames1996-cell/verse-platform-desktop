@@ -287,8 +287,51 @@ class AudioFeeder:
             written += need
 
 
+class Loopback:
+    """Desktop audio from one output device (WASAPI loopback). Unpacks like the old
+    (rate, channels, source) tuple. close() frees the device so another can be opened."""
+
+    def __init__(self, pa, info):
+        self.pa, self.info = pa, info
+        self.rate = int(info["defaultSampleRate"])
+        self.channels = max(1, min(2, int(info["maxInputChannels"])))
+        self.name = info["name"]
+
+    def __iter__(self):
+        return iter((self.rate, self.channels, self.source))
+
+    def source(self, stop_event, out_q):
+        """Runs in its own thread. Uses a callback stream, so nothing blocks while no sound plays
+        (the writer pads silence) and stopping is instant."""
+        import pyaudiowpatch as pyaudio
+
+        def got(data, frame_count, time_info, status):
+            out_q.put(data)
+            return (None, pyaudio.paContinue)
+
+        stream = self.pa.open(format=pyaudio.paInt16, channels=self.channels, rate=self.rate, input=True,
+                              input_device_index=self.info["index"], frames_per_buffer=self.rate // 100,
+                              stream_callback=got)
+        try:
+            stream.start_stream()
+            stop_event.wait()
+        finally:
+            try:
+                stream.stop_stream()
+                stream.close()
+            except Exception:
+                pass
+
+    def close(self):
+        try:
+            self.pa.terminate()
+        except Exception:
+            pass
+
+
 def open_loopback():
-    """Returns (rate, channels, source_fn) for the default speakers' loopback, or None."""
+    """Loopback for the CURRENT default speakers/headset, or None. Starts a fresh PyAudio each time
+    so a headset plugged in after the app started is found."""
     try:
         import pyaudiowpatch as pyaudio
     except ImportError:
@@ -305,27 +348,54 @@ def open_loopback():
                     break
             else:
                 log.error("No loopback device found for %s", speakers["name"])
+                pa.terminate()
                 return None
     except Exception as e:
         log.error("Could not open desktop audio: %s", e)
+        pa.terminate()
+        return None
+    lb = Loopback(pa, speakers)
+    log.info("Desktop audio: %s (%d Hz, %d ch)", lb.name, lb.rate, lb.channels)
+    return lb
+
+
+def default_output_id():
+    """Windows' current default speakers/headset (its endpoint id), straight from Core Audio, so a
+    change is seen even while PortAudio still has the old device list. None if it can't be read."""
+    if not IS_WINDOWS:
+        return None
+    import ctypes
+    from ctypes import POINTER, byref, c_void_p, c_wchar_p
+    ole32 = ctypes.windll.ole32
+    ole32.CoInitializeEx(None, 0)          # fine if this thread already has COM
+    clsid, iid = (ctypes.c_byte * 16)(), (ctypes.c_byte * 16)()
+    ole32.CLSIDFromString(c_wchar_p("{BCDE0395-E52F-467C-8E3D-C4579291692E}"), byref(clsid))
+    ole32.CLSIDFromString(c_wchar_p("{A95664D2-9614-4F35-A746-DE8DB63617E6}"), byref(iid))
+    enum = c_void_p()
+    if ole32.CoCreateInstance(byref(clsid), None, 23, byref(iid), byref(enum)) != 0 or not enum:
         return None
 
-    rate = int(speakers["defaultSampleRate"])
-    channels = max(1, min(2, int(speakers["maxInputChannels"])))
-    index = speakers["index"]
-    log.info("Desktop audio: %s (%d Hz, %d ch)", speakers["name"], rate, channels)
+    def method(obj, index, *argtypes):
+        vtbl = ctypes.cast(obj, POINTER(POINTER(c_void_p))).contents
+        return ctypes.WINFUNCTYPE(ctypes.c_long, c_void_p, *argtypes)(vtbl[index])
 
-    def source(stop_event, out_q):
-        stream = pa.open(format=pyaudio.paInt16, channels=channels, rate=rate,
-                         input=True, input_device_index=index, frames_per_buffer=rate // 100)
+    device = c_void_p()
+    try:
+        # IMMDeviceEnumerator::GetDefaultAudioEndpoint(eRender, eConsole, &device)
+        if method(enum, 4, ctypes.c_int, ctypes.c_int, POINTER(c_void_p))(enum, 0, 0, byref(device)) != 0 or not device:
+            return None
+        text = c_wchar_p()
         try:
-            while not stop_event.is_set():
-                # blocks while nothing is playing, that's fine, the writer pads silence
-                out_q.put(stream.read(rate // 100, exception_on_overflow=False))
+            # IMMDevice::GetId(&text)
+            if method(device, 5, POINTER(c_wchar_p))(device, byref(text)) != 0:
+                return None
+            value = text.value
+            ole32.CoTaskMemFree(text)
+            return value
         finally:
-            stream.close()
-
-    return rate, channels, source
+            method(device, 2)(device)      # Release
+    finally:
+        method(enum, 2)(enum)              # Release
 
 
 # --------------------------------------------------------------------------- the recorder
@@ -349,6 +419,8 @@ class Recorder:
         self.freezes = 0
         self.unfreeze_path = ""
         self._tried = set()
+        self._audio_reload = False   # the default speakers/headset changed: reopen desktop audio
+        self._out_id = None
         self.save_lock = threading.Lock()
         self.on_saved = None  # callback(path or None, message)
         self.encoder = pick_encoder(ff, cfg["encoder"])
@@ -445,6 +517,8 @@ class Recorder:
         self.running = True
         threading.Thread(target=self._watchdog, daemon=True).start()
         threading.Thread(target=self._cleanup_loop, daemon=True).start()
+        if self.cfg["record_desktop_audio"] and IS_WINDOWS:
+            threading.Thread(target=self._device_loop, daemon=True, name="audio-device").start()
         log.info("Ready. Encoder=%s Capture=%s Buffer=%ss Hotkey=%s",
                  self.encoder, self.capture, self.cfg["buffer_seconds"], self.cfg["hotkey"])
         if capture:
@@ -472,7 +546,35 @@ class Recorder:
             self.capturing = False
             log.info("Capture paused (buffer kept)")
 
+    def _device_loop(self):
+        """Follows Windows' default speakers/headset. Switch to your headset after the app started
+        (or turn it on) and recording follows within a few seconds."""
+        failed = False
+        while self.running:
+            time.sleep(3)
+            try:
+                now = default_output_id()
+            except Exception:
+                if not failed:
+                    log.debug("Couldn't read the default sound device", exc_info=True)
+                failed = True
+                continue
+            if not now:
+                continue
+            if self._out_id and now != self._out_id:
+                log.info("Sound output changed, recording follows it")
+                self._audio_reload = True
+            elif self._out_id is None and not self.audio_info:
+                self._audio_reload = True    # no sound device at start, there is one now
+            self._out_id = now
+
     def _launch(self):
+        if self._audio_reload:
+            self._audio_reload = False
+            old, self.audio_info = self.audio_info, None
+            if old is not None and hasattr(old, "close"):
+                old.close()
+            self.audio_info = open_loopback()
         self.run += 1
         cmd = self.build_command()
         log.debug("ffmpeg: %s", subprocess.list2cmdline(cmd))
@@ -487,6 +589,8 @@ class Recorder:
     def _kill(self):
         if self.audio:
             self.audio.stop()
+            for t in self.audio.threads[:1]:   # let the sound device let go before it might be reopened
+                t.join(2)
             self.audio = None
         if self.proc and self.proc.poll() is None:
             try:
@@ -516,6 +620,8 @@ class Recorder:
             self._kill()
             if not (self.running and self.capturing):
                 continue  # stopped on purpose
+            if problem == "audio":
+                continue          # relaunches straight away on the new sound device
             if problem:
                 self.freezes += 1
                 self.last_freeze = time.time()
@@ -546,6 +652,8 @@ class Recorder:
         starts_seen, open_since, recent = 0, None, []
         while self.running and self.capturing and self.proc and self.proc.poll() is None:
             time.sleep(0.25)
+            if self._audio_reload:
+                return "audio"
             starts = _count(self.freeze_path, "freeze_start=")
             ends = _count(self.unfreeze_path, "freeze_end=")
             now = time.time()
