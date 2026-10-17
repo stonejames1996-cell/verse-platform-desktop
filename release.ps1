@@ -2,7 +2,7 @@
 #
 # What it does:
 #   1. Asks for the new version number (just press Enter for the next one).
-#   2. Opens RELEASE_NOTES.md in Notepad so you can write what changed. Save and close it.
+#   2. Opens release-notes\<version>.md in Notepad so you can write what changed. Save and close it.
 #   3. Updates APP_VERSION, saves everything to GitHub and tags the release.
 # GitHub then builds the installer and publishes it (about 10 minutes). Everyone's app
 # updates itself, and the website's Download button gives out the new version. Nothing to upload.
@@ -60,7 +60,10 @@ if ($tags -contains "v$version") { throw "v$version has already been released. P
 
 # --- Release notes ------------------------------------------------------------------------
 Step "Write the release notes in Notepad, then save and close it"
-Start-Process notepad.exe RELEASE_NOTES.md -Wait
+$notes = "release-notes\$version.md"
+New-Item -ItemType Directory -Force release-notes | Out-Null
+if (-not (Test-Path $notes)) { Set-Content $notes "* " -Encoding utf8 }
+Start-Process notepad.exe $notes -Wait
 
 $core = $core -replace 'APP_VERSION = ".*?"', "APP_VERSION = `"$version`""
 Set-Content rewind_core.py $core -NoNewline -Encoding utf8

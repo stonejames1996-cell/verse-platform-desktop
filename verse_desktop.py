@@ -87,8 +87,39 @@ DOCK_JS = r"""
         d.querySelector('.n').textContent = s.clips;
       }).catch(function () {});
     }
+    // "What's new" card after an update, shown once the window is in front
+    var wnAsked = false;
+    function whatsNew() {
+      if (wnAsked || !document.hasFocus()) return;
+      wnAsked = true;
+      window.pywebview.api.whats_new().then(function (w) {
+        if (!w || !w.notes || !w.notes.length) return;
+        var host = document.createElement('div');
+        host.style.cssText = 'position:fixed;inset:0;z-index:2147483600';
+        var root = host.attachShadow({ mode: 'open' });
+        var items = w.notes.map(function (n, i) {
+          return '<section><h3>' + (i ? 'Version ' + n.version : "What's new in " + n.version) + '</h3>' + n.html + '</section>';
+        }).join('');
+        root.innerHTML = '<style>' +
+          '.bg{position:fixed;inset:0;background:rgba(0,0,0,.6);display:grid;place-items:center;padding:16px;font:14px/1.5 system-ui,-apple-system,Segoe UI,sans-serif;color:#fafafa}' +
+          '.box{width:min(520px,100%);max-height:min(640px,90vh);display:flex;flex-direction:column;background:#111;border:1px solid #262626;border-radius:16px;box-shadow:0 24px 70px rgba(0,0,0,.6);overflow:hidden}' +
+          '.top{display:flex;align-items:center;gap:12px;padding:20px 22px 6px}.top b{font-size:13px;letter-spacing:.08em;text-transform:uppercase;color:#22d3ee}' +
+          '.body{overflow:auto;padding:4px 22px 6px}h3{font-size:19px;margin:12px 0 6px}section+section h3{font-size:15px;color:#a3a3a3;margin-top:18px}' +
+          'ul{margin:0;padding-left:20px}li{margin:6px 0}strong{color:#fff}code{background:#1f1f1f;padding:1px 5px;border-radius:5px;font-size:12.5px}p{margin:6px 0;color:#d4d4d4}' +
+          '.foot{display:flex;justify-content:flex-end;padding:14px 22px 18px}button{background:#06b6d4;color:#000;border:0;border-radius:999px;padding:9px 22px;font:600 14px system-ui,Segoe UI,sans-serif;cursor:pointer}button:hover{background:#22d3ee}' +
+          '</style><div class="bg" role="dialog" aria-modal="true" aria-label="What\'s new"><div class="box"><div class="top"><b>Verse Platform updated</b></div>' +
+          '<div class="body">' + items + '</div><div class="foot"><button>Got it</button></div></div></div>';
+        function close() { host.remove(); window.pywebview.api.whats_new_seen(); document.removeEventListener('keydown', key, true); }
+        function key(e) { if (e.key === 'Escape' || e.key === 'Enter') close(); }
+        root.querySelector('button').onclick = close;
+        root.querySelector('.bg').onclick = function (e) { if (e.target === e.currentTarget) close(); };
+        document.addEventListener('keydown', key, true);
+        document.body.appendChild(host);
+        root.querySelector('button').focus();
+      }).catch(function () { wnAsked = false; });
+    }
     tick();
-    setInterval(tick, 1500);
+    setInterval(function () { tick(); whatsNew(); }, 1500);
   });
 })();
 """
@@ -472,6 +503,29 @@ class Api:
         a = self._app
         return {"capturing": bool(a.rec and a.rec.capturing), "title": a.title,
                 "clips": sum(1 for _ in a.library.list())}
+
+    def whats_new(self):
+        """Patch notes to show once after an update, or None."""
+        if not (self._from_trusted() or self._from_library()):
+            return None
+        a = self._app
+        seen = a.cfg.get("last_seen_version", "")
+        if seen == APP_VERSION:
+            return None
+        if not seen and not a.library.list():
+            a.cfg["last_seen_version"] = APP_VERSION   # brand new install: nothing to catch up on
+            save_config(a.cfg)
+            return None
+        import whatsnew
+        notes = whatsnew.unseen(seen or "1.0.0")
+        if not notes:
+            return None
+        return {"version": APP_VERSION, "notes": [{"version": v, "html": h} for v, h in notes]}
+
+    def whats_new_seen(self):
+        if self._from_trusted() or self._from_library():
+            self._app.cfg["last_seen_version"] = APP_VERSION
+            save_config(self._app.cfg)
 
     def open_library(self):
         if not self._from_trusted():

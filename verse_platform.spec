@@ -4,7 +4,7 @@ from PyInstaller.utils.hooks import collect_data_files, collect_submodules
 
 block_cipher = None
 binaries = [("build_deps/ffmpeg.exe", ".")] if os.path.exists("build_deps/ffmpeg.exe") else []
-datas = [("assets/logo.png", "assets"), ("assets/logo.ico", "assets"), ("ui", "ui")]
+datas = [("assets/logo.png", "assets"), ("assets/logo.ico", "assets"), ("ui", "ui"), ("release-notes", "release-notes")]
 hidden = ["pystray._win32"]
 try:  # the window (pywebview + Edge WebView2 through pythonnet)
     datas += collect_data_files("webview")

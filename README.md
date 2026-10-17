@@ -17,7 +17,7 @@ People who install it get `Verse Platform Setup 1.0.2.exe`. Python, FFmpeg and e
 
 ## Releasing a new version (one click)
 
-Double click **Release.bat**. It asks for the version number (press Enter for the next one), opens `RELEASE_NOTES.md` in Notepad for you to write what changed, then sends it all to GitHub.
+Double click **Release.bat**. It asks for the version number (press Enter for the next one), opens `release-notes\<version>.md` in Notepad for you to write what changed, then sends it all to GitHub.
 
 GitHub builds the installer and publishes it as a Release (about 10 minutes, watch it under **Actions**). Then:
 
@@ -81,6 +81,6 @@ Everything is in the Settings page. The rarely needed extras are in `%APPDATA%\V
 | `ui/` | My clips and Settings screens |
 | `base44/SETUP.md` | The change Verse's website needs |
 | `updater.py` | Auto update from GitHub Releases |
-| `Release.bat`, `release.ps1`, `RELEASE_NOTES.md` | One click release |
+| `Release.bat`, `release.ps1`, `release-notes/` | One click release, and the patch notes for every version (shown on GitHub, the website and in the app) |
 | `Build Installer.bat`, `build.ps1`, `verse_platform.spec`, `installer.iss` | Building the installer |
 | `.github/workflows/build.yml` | Lets GitHub build the installer |

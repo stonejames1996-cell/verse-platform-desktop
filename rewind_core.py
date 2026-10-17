@@ -34,7 +34,7 @@ import threading
 import time
 
 APP_NAME = "Verse Platform"
-APP_VERSION = "1.0.9"
+APP_VERSION = "1.0.10"
 VERSE_URL = "https://verseplatform.gg"
 # GitHub repo the app updates itself from ("owner/repo"). Release.bat fills this in. Blank = no auto update.
 UPDATE_REPO = "stonejames1996-cell/verse-platform-desktop"
@@ -90,6 +90,7 @@ DEFAULT_CONFIG = {
     "highlight_max_per_game": 10,  # 0 = no limit
     "max_post_seconds": 60,        # Verse posts are 60 seconds max
     "verse_url": "",               # blank = https://verseplatform.gg
+    "last_seen_version": "",       # newest version whose "What's new" was shown
 }
 
 log = logging.getLogger(APP_NAME)
