@@ -29,6 +29,9 @@ if (-not (Test-Path .git)) {
     if ($url -notmatch "github\.com[/:]([^/]+)/([^/.]+)") { throw "That doesn't look like a GitHub repository address." }
     Git init -b main
     Git remote add origin "https://github.com/$($Matches[1])/$($Matches[2]).git"
+    # if the repository already has releases, pick up its history and keep the files in this folder
+    git fetch origin main --tags --quiet 2>$null
+    if ($LASTEXITCODE -eq 0) { Git reset --mixed origin/main --quiet }
 }
 if (-not (git config user.name)) { Git config user.name (Read-Host "Your name (shown on GitHub commits)") }
 if (-not (git config user.email)) { Git config user.email (Read-Host "Your GitHub email") }
