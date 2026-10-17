@@ -45,6 +45,11 @@ function fmtDur(sec) {
   sec = Math.round(sec || 0);
   return `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, "0")}`;
 }
+function fmtBytes(b) {
+  if (!b) return "0 MB";
+  const gb = b / 1024 ** 3;
+  return gb >= 1 ? `${gb.toFixed(gb >= 10 ? 0 : 1)} GB` : `${Math.max(1, Math.round(b / 1024 ** 2))} MB`;
+}
 function fmtWhen(iso) {
   const d = new Date(iso);
   if (isNaN(d)) return "";
@@ -233,6 +238,8 @@ function clipCard(c) {
         c.thumb_url ? el("img", { src: c.thumb_url, alt: "", loading: "lazy" }) : null,
         posted ? el("span", { class: "up uploaded" }, icon("i-check"), "Posted") : null,
         c.highlight && !posted ? el("span", { class: "up auto" }, "Auto") : null,
+      c.recap ? el("span", { class: "up auto" }, "Recap") : null,
+      c.vertical ? el("span", { class: "up auto" }, "9:16") : null,
         el("span", { class: "dur" }, fmtDur(c.duration))
       ),
       el("div", { class: "clip-name" }, c.title),
@@ -241,7 +248,10 @@ function clipCard(c) {
     el("button", { class: "c-check", "aria-label": on ? `Unselect ${c.title}` : `Select ${c.title}`, title: "Select",
       onclick: (e) => pickClip(c.id, e.shiftKey) }, el("span", { class: "tick" })),
     selecting ? null : el("button", { class: "c-del", "aria-label": `Delete ${c.title}`, title: "Delete",
-      onclick: () => confirmDelete([c.id]) }, icon("i-trash"))
+      onclick: () => confirmDelete([c.id]) }, icon("i-trash")),
+    selecting ? null : el("button", { class: "c-star" + (c.starred ? " on" : ""), "aria-pressed": String(!!c.starred),
+      "aria-label": c.starred ? `Unstar ${c.title}` : `Star ${c.title}`, title: c.starred ? "Starred: never cleaned up" : "Star",
+      onclick: async () => { await call("set_star", c.id, !c.starred); loadClips(); } }, icon("i-star"))
   );
 }
 
@@ -337,6 +347,10 @@ function openPlayer(id) {
   }, { once: true });
   v.play().catch(() => {});
   renderPlayerBar();
+  $("#player-star").setAttribute("aria-pressed", String(!!c.starred));
+  $("#remove-voice").checked = false;
+  $("#voice-row").hidden = true;
+  call("clip_tracks", id).then((n) => { if (openClipId === id) $("#voice-row").hidden = !(n >= 2); });
 }
 function setupTrim(dur) {
   trim.dur = Math.max(1, dur);
@@ -406,7 +420,7 @@ async function publish() {
   const label = btn.lastChild.textContent;
   btn.lastChild.textContent = "Preparing...";
   $("#player-video").pause();
-  const r = await call("publish_clip", openClipId, trim.start, trim.end);
+  const r = await call("publish_clip", openClipId, trim.start, trim.end, $("#remove-voice").checked);
   btn.disabled = false;
   btn.lastChild.textContent = label;
   if (!r) return;
@@ -442,6 +456,20 @@ async function loadSettings() {
   const hl = Object.assign({}, r.highlight_defaults || {}, r.config.highlight_events || {});
   for (const c of $$("[data-hl]")) c.checked = !!hl[c.dataset.hl];
   $("#hl-body").classList.toggle("off", !r.config.auto_highlights);
+  const combo = $("#combo-select");
+  if (combo && r.controller_combos) {
+    combo.replaceChildren(el("option", { value: "" }, "Off"),
+      ...Object.entries(r.controller_combos).map(([k, v]) => el("option", { value: k }, v)));
+    combo.value = r.config.controller_combo || "";
+  }
+  call("storage_info").then((st) => {
+    if (!st) return;
+    const pct = st.total ? Math.min(100, (st.used / st.total) * 100) : 0;
+    $("#store-used").style.width = Math.max(pct, st.used ? 1 : 0) + "%";
+    $("#store-text").textContent = `Your clips use ${fmtBytes(st.used)} (${st.count} clip${st.count === 1 ? "" : "s"}). ${fmtBytes(st.free)} free on this drive.`;
+    $("#clean-row").hidden = !st.old_count;
+    $("#clean-text").textContent = `${st.old_count} old clip${st.old_count === 1 ? "" : "s"} can go (${fmtBytes(st.old_bytes)})`;
+  });
   $("#autostart").checked = r.autostart;
   $("#hotkey-btn").textContent = r.config.hotkey.toUpperCase().replace(/\+/g, " + ");
   $("#folder-path").textContent = r.config.clips_folder;
@@ -571,6 +599,56 @@ function wire() {
   for (const id of ["#go-verse", "#go-verse-logo"]) $(id).addEventListener("click", () => call("go_verse", "/Home"));
   $("#player-folder").addEventListener("click", () => call("show_in_folder", openClipId));
   $("#player-delete").addEventListener("click", () => confirmDelete([openClipId]));
+  $("#player-star").addEventListener("click", async () => {
+    const on = $("#player-star").getAttribute("aria-pressed") !== "true";
+    $("#player-star").setAttribute("aria-pressed", String(on));
+    await call("set_star", openClipId, on);
+    toast(on ? "Starred: this clip won't be cleaned up" : "Star removed");
+    loadClips();
+  });
+  for (const b of $$("[data-vertical]")) b.addEventListener("click", async () => {
+    if (b.disabled) return;
+    const btns = $$("[data-vertical]");
+    btns.forEach((x) => (x.disabled = true));
+    const label = b.textContent;
+    b.textContent = "Making...";
+    $("#player-video").pause();
+    const r = await call("export_vertical", openClipId, trim.start, trim.end, b.dataset.vertical, $("#remove-voice").checked);
+    btns.forEach((x) => (x.disabled = false));
+    b.textContent = label;
+    if (!r) return;
+    if (r.error) return toast(r.error);
+    toast("Vertical clip saved to My clips");
+    await loadClips();
+    openPlayer(r.id);
+  });
+  $("#recap-btn").addEventListener("click", async () => {
+    const p = await call("recap_preview");
+    if (!p) return;
+    if (p.count < 2) return toast("Not enough clips from the last week for a recap yet. Save a few more!");
+    if (!(await askConfirm("Make your weekly recap?",
+      `Stitches your ${p.count} best clips from the last 7 days into one ${p.seconds} second video, ready to post. It can take a minute.`,
+      "Make recap"))) return;
+    const b = $("#recap-btn");
+    b.disabled = true;
+    b.lastChild.textContent = "Making recap...";
+    const r = await call("make_recap");
+    b.disabled = false;
+    b.lastChild.textContent = "Weekly recap";
+    if (!r) return;
+    if (r.error) return toast(r.error);
+    toast(`${r.title} saved to My clips`);
+    await loadClips();
+    openPlayer(r.id);
+  });
+  $("#clean-now").addEventListener("click", async () => {
+    const t = $("#clean-text").textContent;
+    if (!(await askConfirm("Clean up now?", t + ". Starred and posted clips are kept.", "Clean up"))) return;
+    const r = await call("clean_now");
+    if (r && r.message) toast(r.message);
+    loadClips();
+    loadSettings();
+  });
   $("#select-btn").addEventListener("click", () => setSelecting(!selecting));
   $("#select-cancel").addEventListener("click", () => setSelecting(false));
   $("#select-all").addEventListener("click", () => selectMany(order));

@@ -30,6 +30,8 @@ from library import ALLOWED_ORIGINS, ClipLibrary, ExportError, MediaServer
 from updater import Updater
 from overlay import Overlay, secs_text
 from highlights import DEFAULT_EVENTS, LeagueHighlights
+from triggers import COMBOS, ControllerTrigger, VoiceTrigger
+from library import highlight_score
 
 log = logging.getLogger(APP_NAME)
 INSTANCE_FILE = os.path.join(DATA_DIR, "instance.json")
@@ -40,7 +42,8 @@ RESTART_KEYS = {"fps", "bitrate", "output_height", "monitor", "record_desktop_au
 LIVE_KEYS = {"hotkey", "buffer_seconds", "record_mode", "detect_fullscreen_apps", "stop_delay_seconds",
              "custom_games", "ignored_apps", "play_sound_on_save", "sort_clips_by_game",
              "show_save_overlay", "auto_highlights", "highlight_events", "highlight_before",
-             "highlight_after", "highlight_max_per_game", "clip_watermark"}
+             "highlight_after", "highlight_max_per_game", "clip_watermark", "voice_command",
+             "controller_combo", "auto_clean_days", "auto_clean_permanent"}
 
 # A small "Clips" tab added to the left edge of Verse pages inside the app, so the clip library
 # is always one click away. Verse can render its own button instead: if the page has an element
@@ -140,6 +143,42 @@ def origin_of(url):
 
 _crash_file = None
 
+GAME_TAGS = {"League of Legends": "leagueoflegends", "VALORANT": "valorant", "Counter-Strike 2": "cs2", "CS2": "cs2",
+             "Fortnite": "fortnite", "Apex Legends": "apexlegends", "Overwatch 2": "overwatch2",
+             "Rocket League": "rocketleague", "Minecraft": "minecraft", "Marvel Rivals": "marvelrivals"}
+
+
+def _tag(text):
+    return "".join(ch for ch in (text or "").lower() if ch.isalnum())
+
+
+def caption_info(clip, match):
+    """A ready-made caption and hashtags from what the app knows about the clip, for Verse's Upload
+    screen to pre-fill (and to give its AI caption writer context)."""
+    match = match or {}
+    game, hl = clip.get("game") or "", clip.get("highlight") or ""
+    champ, mode = match.get("champion") or "", match.get("mode") or ""
+    if clip.get("recap"):
+        text = f"My week{' in ' + game if game else ''} 🎬"
+    elif hl:
+        text = hl + (f" on {champ}" if champ else "") + (f" in {mode}" if mode and mode != "Summoner's Rift" else "")
+        text += " 🔥" if highlight_score(hl) >= 5 else " 🎮"
+    elif champ:
+        text = f"{champ} in {mode or game} 🎮"
+    else:
+        text = f"{game} clip 🎮" if game else ""
+    tags = [GAME_TAGS.get(game) or _tag(game)]
+    tags += [_tag(p) for p in hl.split(" + ")] if hl else []
+    tags += [_tag(champ), _tag(mode) if mode and mode != "Summoner's Rift" else ""]
+    tags += ["weeklyrecap"] if clip.get("recap") else []
+    tags += ["vertical"] if clip.get("vertical") else []
+    tags = [t for i, t in enumerate(tags) if t and t not in tags[:i]] + ["verse"]
+    out = {"suggested_caption": text, "suggested_hashtags": tags, "highlight": hl,
+           "is_recap": bool(clip.get("recap")), "is_vertical": bool(clip.get("vertical"))}
+    if match:
+        out["match"] = {k: match.get(k) for k in ("mode", "champion", "result", "kills", "deaths", "assists", "length")}
+    return out
+
 
 class App:
     def __init__(self, ff, background):
@@ -166,6 +205,8 @@ class App:
         self.wm_queue = queue.Queue()
         threading.Thread(target=self._watermark_loop, daemon=True, name="watermark").start()
         self.current_match = None
+        self.voice = VoiceTrigger(self.trigger_save)
+        self.pad = ControllerTrigger(lambda: self.cfg.get("controller_combo", ""), self.trigger_save)
         self.highlights = LeagueHighlights(lambda: self.cfg, self.is_playing, self.save_highlight,
                                            on_match=self.on_match)
         try:
@@ -290,6 +331,33 @@ class App:
         if not old or old.get("id") != m["id"] or old.get("result") != m.get("result"):
             self.bump()
 
+    def trigger_save(self):
+        """Voice command or controller combo: same as pressing the shortcut."""
+        if self.rec and (self.rec.capturing or self.rec.segments()):
+            self.rec.save_clip()
+
+    def _auto_clean_loop(self):
+        """Once a day: clips older than the chosen number of days that aren't starred or posted go."""
+        time.sleep(90)
+        while not self.quitting:
+            days = int(self.cfg.get("auto_clean_days") or 0)
+            if days:
+                try:
+                    old = self.library.old_clips(days)
+                    if old:
+                        n, _ = self.library.delete_many([c["id"] for c in old],
+                                                        permanent=bool(self.cfg.get("auto_clean_permanent")))
+                        log.info("Auto clean removed %d clips older than %d days", n, days)
+                        if n:
+                            self.bump()
+                            self.notice(f"Cleaned up {n} old clip{'s' if n != 1 else ''}")
+                except Exception:
+                    log.exception("Auto clean failed")
+            for _ in range(24 * 60):
+                if self.quitting:
+                    return
+                time.sleep(60)
+
     def is_playing(self, game):
         return bool(self.rec and self.rec.capturing and self.rec.label == game)
 
@@ -313,6 +381,7 @@ class App:
         secs = secs_text(getattr(self.rec, "last_seconds", 0) or self.cfg["buffer_seconds"])
         match = self.current_match["id"] if (self.current_match and self.rec and self.rec.subfolder) else None
         clip = self.library.add(path, game=game, highlight=tag, match=match)
+        self.library.bump_stat("clips_saved", tag)
         self.bump()
         if clip and self.cfg.get("clip_watermark", True):
             self.wm_queue.put(clip["id"])
@@ -408,6 +477,10 @@ class App:
             self.on_update_ready(self.updater.version, allow_auto=False)
         self.updater.start()
         self.highlights.start()
+        self.pad.start()
+        if self.cfg.get("voice_command"):
+            self.voice.start()
+        threading.Thread(target=self._auto_clean_loop, daemon=True, name="autoclean").start()
 
     # ------------------------------------------------------------ updates
     def on_update_ready(self, version, allow_auto=True):
@@ -557,6 +630,7 @@ class Api:
             "game": clip.get("game", ""),
             "recorded_at": clip.get("created", ""),
             "thumbnail_url": a.media.url("thumb", clip["id"]) if clip.get("thumb") else "",
+            **caption_info(clip, a.library.matches.get(clip.get("match") or "")),
         }
 
     def clip_published(self, clip_id, url=""):
@@ -565,6 +639,7 @@ class Api:
             return None
         a = self._app
         a.library.mark_posted(str(clip_id), str(url or ""))
+        a.library.bump_stat("posts")
         try:
             os.remove(a.library.export_path(str(clip_id)))
         except OSError:
@@ -670,14 +745,15 @@ class Api:
         if self._from_library():
             threading.Timer(0.05, self._app.open_verse, args=(path,)).start()
 
-    def publish_clip(self, clip_id, start, end):
+    def publish_clip(self, clip_id, start, end, remove_voice=False):
         """Makes the trimmed copy, then opens Verse's Upload screen with the clip handed over."""
         if not self._from_library():
             return None
         a = self._app
         try:
             info = a.library.export(clip_id, start, end, a.rec.encoder if a.rec else "libx264",
-                                    a.cfg.get("max_post_seconds", 60), watermark=a.cfg.get("clip_watermark", True))
+                                    a.cfg.get("max_post_seconds", 60), watermark=a.cfg.get("clip_watermark", True),
+                                    remove_voice=bool(remove_voice))
         except ExportError as e:
             return {"error": str(e)}
         except Exception as e:
@@ -710,6 +786,7 @@ class Api:
             "running_apps": running,
             "version": APP_VERSION,
             "highlight_defaults": DEFAULT_EVENTS,
+            "controller_combos": {k: v[0] for k, v in COMBOS.items()},
         }
 
     def set_setting(self, key, value):
@@ -730,7 +807,89 @@ class Api:
             return {"message": "Saved. Recording restarted with the new setting"}
         if key == "hotkey":
             return {"message": f"Shortcut is now {pretty_hotkey(value)}"}
+        if key == "voice_command":
+            if value and not a.voice.start():
+                a.cfg[key] = False
+                save_config(a.cfg)
+                return {"message": a.voice.error or "Voice command couldn't start"}
+            if not value:
+                a.voice.stop()
+            return {"message": 'Say "clip that" to save a clip' if value else "Voice command off"}
         return {}
+
+    # ---- clip tools
+    def clip_tracks(self, clip_id):
+        """How many sound tracks a clip has (2 = it was recorded with a mic, so the voice can be removed)."""
+        if not self._from_library():
+            return None
+        from library import probe_audio_tracks
+        c = self._app.library.get(clip_id)
+        return probe_audio_tracks(self._app.ff, self._app.library.abs_path(c)) if c else 0
+
+    def export_vertical(self, clip_id, start, end, mode="blur", remove_voice=False):
+        if not self._from_library():
+            return None
+        a = self._app
+        try:
+            c = a.library.export_vertical(clip_id, start, end, mode if mode in ("blur", "crop") else "blur",
+                                          a.rec.encoder if a.rec else "libx264",
+                                          watermark=a.cfg.get("clip_watermark", True), remove_voice=bool(remove_voice))
+        except ExportError as e:
+            return {"error": str(e)}
+        except Exception as e:
+            log.exception("Vertical export failed")
+            return {"error": f"Couldn't make the vertical clip ({e})"}
+        a.bump()
+        return {"ok": True, "id": c["id"], "title": c["title"]}
+
+    def recap_preview(self):
+        if not self._from_library():
+            return None
+        parts = self._app.library.recap_candidates()
+        return {"count": len(parts), "seconds": round(sum(p["length"] for p in parts)),
+                "titles": [p["clip"].get("title") for p in parts]}
+
+    def make_recap(self):
+        if not self._from_library():
+            return None
+        a = self._app
+        try:
+            c = a.library.make_recap(a.rec.encoder if a.rec else "libx264")
+        except ExportError as e:
+            return {"error": str(e)}
+        except Exception as e:
+            log.exception("Recap failed")
+            return {"error": f"Couldn't make the recap ({e})"}
+        if a.cfg.get("clip_watermark", True):
+            a.wm_queue.put(c["id"])
+        a.bump()
+        return {"ok": True, "id": c["id"], "title": c["title"]}
+
+    def set_star(self, clip_id, on):
+        if self._from_library():
+            self._app.library.set_star(clip_id, on)
+            self._app.bump()
+            return True
+
+    def storage_info(self):
+        if not self._from_library():
+            return None
+        a = self._app
+        info = a.library.storage_info(int(a.cfg.get("auto_clean_days") or 0))
+        info["folder"] = a.cfg["clips_folder"]
+        return info
+
+    def clean_now(self):
+        if not self._from_library():
+            return None
+        a = self._app
+        days = int(a.cfg.get("auto_clean_days") or 0)
+        if not days:
+            return {"message": "Pick how old clips should be first"}
+        old = a.library.old_clips(days)
+        n, failed = a.library.delete_many([c["id"] for c in old], permanent=bool(a.cfg.get("auto_clean_permanent")))
+        a.bump()
+        return {"message": f"Removed {n} old clip{'s' if n != 1 else ''}" + (f", {failed} were in use" if failed else "")}
 
     def set_autostart(self, on):
         if self._from_library():

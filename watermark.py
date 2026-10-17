@@ -30,9 +30,10 @@ def inputs(png):
     return ["-loop", "1", "-framerate", "30", "-t", f"{SECONDS:.1f}", "-i", png]
 
 
-def filter_graph(pix_fmt="yuv420p"):
-    """Overlay input 1 on input 0 for the first 2 seconds. Output label: [vo]."""
+def filter_graph(pix_fmt="yuv420p", base="[0:v]"):
+    """Overlay input 1 on the video (input 0, or another filter's output) for the first 2 seconds.
+    Output label: [vo]."""
     return ("[1:v]format=rgba,fade=t=in:st=0:d=0.25:alpha=1,"
             f"fade=t=out:st={SECONDS - 0.3:.2f}:d=0.3:alpha=1[wm];"
-            "[0:v][wm]overlay=x='W*0.022-max(0\\,1-t/0.3)*H*0.03':y='H*0.035':eval=frame:eof_action=pass,"
+            f"{base}[wm]overlay=x='W*0.022-max(0\\,1-t/0.3)*H*0.03':y='H*0.035':eval=frame:eof_action=pass,"
             f"format={pix_fmt}[vo]")

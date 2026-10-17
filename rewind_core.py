@@ -34,7 +34,7 @@ import threading
 import time
 
 APP_NAME = "Verse Platform"
-APP_VERSION = "1.0.10"
+APP_VERSION = "1.1.0"
 VERSE_URL = "https://verseplatform.gg"
 # GitHub repo the app updates itself from ("owner/repo"). Release.bat fills this in. Blank = no auto update.
 UPDATE_REPO = "stonejames1996-cell/verse-platform-desktop"
@@ -82,7 +82,11 @@ DEFAULT_CONFIG = {
     "ffmpeg_path": "",             # blank = find ffmpeg automatically
     "play_sound_on_save": True,
     "show_save_overlay": True,
-    "clip_watermark": True,        # "Clipped by Verse Platform" in the first 2 seconds of every clip     # "Last 60s saved by Verse Platform" pop-up over the game
+    "clip_watermark": True,
+    "voice_command": False,        # say "clip that" to save a clip (Windows speech recognition, offline)
+    "controller_combo": "view_rb", # controller buttons that save a clip, blank = off (see triggers.COMBOS)
+    "auto_clean_days": 0,          # remove unstarred, unposted clips older than this, 0 = never
+    "auto_clean_permanent": False, # skip the Recycle Bin when cleaning up        # "Clipped by Verse Platform" in the first 2 seconds of every clip     # "Last 60s saved by Verse Platform" pop-up over the game
     "auto_highlights": True,       # clip big plays by themselves (League of Legends)
     "highlight_events": {},        # which moments count, see highlights.DEFAULT_EVENTS (blank = defaults)
     "highlight_before": 5,         # seconds kept before the first moment of a play
@@ -345,14 +349,25 @@ class Recorder:
             vf.append(f"scale=-2:{int(c['output_height'])}")
         vf.append("format=yuv420p" if self.encoder == "libx264" else "format=nv12")
         graph = f"[0:v]{','.join(vf)}[v]"
+        two_tracks = len(audio_labels) == 2 and bool(self.audio_info)
         if audio_labels:
-            if len(audio_labels) == 2:
+            if two_tracks:
+                # track 1: game + mic (what you hear when you play the clip)
+                # track 2: game only, so your voice can be taken out before posting
+                desk, mic = audio_labels
+                graph += (f";{desk}aresample=48000:async=1000,asplit=2[d1][d2]"
+                          f";{mic}aresample=48000:async=1000[m]"
+                          f";[d1][m]amix=inputs=2:duration=longest:normalize=0[a];[d2]anull[g]")
+            elif len(audio_labels) == 2:
                 graph += f";{''.join(audio_labels)}amix=inputs=2:duration=longest:normalize=0,aresample=48000:async=1000[a]"
             else:
                 graph += f";{audio_labels[0]}aresample=48000:async=1000[a]"
         cmd += ["-filter_complex", graph, "-map", "[v]"]
         if audio_labels:
-            cmd += ["-map", "[a]", "-c:a", "aac", "-b:a", "192k", "-ac", "2"]
+            cmd += ["-map", "[a]"]
+            if two_tracks:
+                cmd += ["-map", "[g]", "-metadata:s:a:0", "title=Game and mic", "-metadata:s:a:1", "title=Game only"]
+            cmd += ["-c:a", "aac", "-b:a", "192k", "-ac", "2"]
         cmd += encoder_args(self.encoder, c["bitrate"], c["fps"])
         cmd += ["-f", "segment", "-segment_time", str(SEGMENT_SECONDS), "-segment_format", "mpegts",
                 "-reset_timestamps", "0", os.path.join(self.seg_dir, f"seg_{self.run:05d}_%07d.ts")]

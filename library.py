@@ -11,6 +11,7 @@ import json
 import logging
 import os
 import secrets
+import shutil
 import socketserver
 import subprocess
 import threading
@@ -51,6 +52,26 @@ def probe_height(ff, path):
     return 1080
 
 
+def probe_audio_tracks(ff, path):
+    try:
+        r = subprocess.run([ff, "-hide_banner", "-i", path], stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                           timeout=20, creationflags=NO_WINDOW)
+        return len(re.findall(rb"Stream #0:\d+.*?: Audio:", r.stderr))
+    except Exception:
+        return 0
+
+
+# how good each auto highlight is, used to pick the best clips for weekly recaps
+HIGHLIGHT_RANK = [("penta", 10), ("quadra", 9), ("steal", 8), ("triple", 6), ("ace", 5.8), ("victory", 5.5),
+                  ("baron", 5), ("elder", 5), ("double", 4), ("teamfight", 3.5), ("first blood", 3),
+                  ("dragon", 2.5), ("inhibitor", 2), ("tower", 1.5), ("kill", 1), ("defeat", 0.5), ("death", 0.5)]
+
+
+def highlight_score(label):
+    label = (label or "").lower()
+    return max([r for k, r in HIGHLIGHT_RANK if k in label] or [0])
+
+
 LOW_PRIORITY = 0x00004000 if os.name == "nt" else 0   # BELOW_NORMAL_PRIORITY_CLASS, so games stay smooth
 
 
@@ -81,6 +102,10 @@ def recycle(paths):
         log.warning("Recycle Bin move returned %s", r)
 
 
+def safe_file(text):
+    return "".join(ch for ch in (text or "") if ch not in '<>:"/\\|?*').strip()[:80] or "Clip"
+
+
 class ExportError(Exception):
     pass
 
@@ -96,6 +121,14 @@ class ClipLibrary:
         os.makedirs(self.thumb_dir, exist_ok=True)
         self.lock = threading.RLock()
         self.clips = {}
+        self.stats_path = os.path.join(data_dir, "stats.json")
+        self.stats = {"clips_saved": 0, "highlights": {}, "vertical_exports": 0, "recaps": 0, "posts": 0,
+                      "first_seen": datetime.datetime.now().isoformat(timespec="seconds")}
+        try:
+            with open(self.stats_path, encoding="utf-8") as f:
+                self.stats.update(json.load(f))
+        except Exception:
+            pass
         self.matches_path = os.path.join(data_dir, "matches.json")
         self.matches = {}   # one entry per League match: mode, champion, result, K/D/A...
         try:
@@ -118,6 +151,23 @@ class ClipLibrary:
         with open(tmp, "w", encoding="utf-8") as f:
             json.dump(list(self.clips.values()), f, indent=1)
         os.replace(tmp, self.index_path)
+
+    def bump_stat(self, key, label=""):
+        """Counts things for Verse badges: clips saved, each highlight type, exports, recaps, posts."""
+        with self.lock:
+            if label:
+                h = self.stats.setdefault("highlights", {})
+                for part in label.split(" + "):
+                    part = part.strip().lower()
+                    if part:
+                        h[part] = h.get(part, 0) + 1
+            if key:
+                self.stats[key] = self.stats.get(key, 0) + 1
+            try:
+                with open(self.stats_path, "w", encoding="utf-8") as f:
+                    json.dump(self.stats, f, indent=1)
+            except OSError:
+                pass
 
     def save_match(self, match):
         with self.lock:
@@ -234,14 +284,21 @@ class ClipLibrary:
     def delete(self, clip_id):
         return self.delete_many([clip_id])
 
-    def delete_many(self, clip_ids):
+    def delete_many(self, clip_ids, permanent=False):
         """Sends the clips' videos to the Recycle Bin (so a mistake can be undone) and forgets them.
         Returns (deleted, failed) counts. A clip whose file can't be moved (open somewhere) is kept."""
         with self.lock:
             picked = [(cid, self.clips[cid]) for cid in dict.fromkeys(clip_ids) if cid in self.clips]
         videos = [self.abs_path(c) for _, c in picked if os.path.exists(self.abs_path(c))]
         if videos:
-            recycle(videos)
+            if permanent:
+                for v in videos:
+                    try:
+                        os.remove(v)
+                    except OSError:
+                        pass
+            else:
+                recycle(videos)
         deleted = failed = 0
         folders = set()
         with self.lock:
@@ -274,7 +331,7 @@ class ClipLibrary:
     def export_path(self, clip_id):
         return os.path.join(self.export_dir, f"{clip_id}.mp4")
 
-    def export(self, clip_id, start, end, encoder="libx264", max_seconds=60, watermark=False):
+    def export(self, clip_id, start, end, encoder="libx264", max_seconds=60, watermark=False, remove_voice=False):
         """Makes the copy that gets posted: the part between start and end (seconds),
         at most max_seconds long. Cutting on the 2 second keyframes is instant and lossless;
         any other cut point is re-encoded (fast on the GPU)."""
@@ -290,6 +347,7 @@ class ClipLibrary:
         if end - start < 1:
             raise ExportError("Pick at least 1 second of the clip")
         out = self.export_path(clip_id)
+        track = self.audio_track(src, remove_voice)
         whole = start < 0.05 and (not dur or end > dur - 0.05)
         on_keyframes = abs(start / 2 - round(start / 2)) < 0.01
         # the saved clip already starts with the watermark. If the start was trimmed off, add it again
@@ -297,33 +355,51 @@ class ClipLibrary:
         if wm:
             on_keyframes = False
         if whole:
-            cmd = [self.ff, "-hide_banner", "-loglevel", "error", "-y", "-i", src, "-map", "0", "-c", "copy",
-                   "-movflags", "+faststart", out]
+            cmd = [self.ff, "-hide_banner", "-loglevel", "error", "-y", "-i", src, "-map", "0:v:0",
+                   "-map", f"0:a:{track}?", "-c", "copy", "-movflags", "+faststart", out]
         elif on_keyframes:
             cmd = [self.ff, "-hide_banner", "-loglevel", "error", "-y", "-ss", f"{start:.3f}", "-i", src,
-                   "-t", f"{end - start:.3f}", "-map", "0", "-c", "copy", "-avoid_negative_ts", "make_zero",
+                   "-t", f"{end - start:.3f}", "-map", "0:v:0", "-map", f"0:a:{track}?", "-c", "copy",
+                   "-avoid_negative_ts", "make_zero",
                    "-movflags", "+faststart", out]
         else:
-            cmd = self._encode_cmd(src, start, end, out, encoder, wm)
+            cmd = self._encode_cmd(src, start, end, out, encoder, wm, audio=track)
         r = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=600, creationflags=NO_WINDOW)
         if r.returncode != 0 and encoder != "libx264" and not whole and not on_keyframes:
             log.warning("GPU trim failed, using CPU: %s", r.stderr.decode(errors="replace")[-200:])
-            r = subprocess.run(self._encode_cmd(src, start, end, out, "libx264", wm), stdout=subprocess.PIPE,
+            r = subprocess.run(self._encode_cmd(src, start, end, out, "libx264", wm, audio=track), stdout=subprocess.PIPE,
                                stderr=subprocess.PIPE, timeout=900, creationflags=NO_WINDOW)
         if r.returncode != 0 or not os.path.exists(out):
             raise ExportError("Couldn't prepare the clip: " + r.stderr.decode(errors="replace").strip()[-200:])
         return {"path": out, "duration": round(probe_duration(self.ff, out) or (end - start), 2),
                 "size": os.path.getsize(out)}
 
-    def _encode_cmd(self, src, start, end, out, encoder, wm=False):
+    def audio_track(self, src, remove_voice=False):
+        """Clips recorded with a mic have 2 sound tracks: 0 = game and mic, 1 = game only."""
+        return 1 if remove_voice and probe_audio_tracks(self.ff, src) >= 2 else 0
+
+    def _encode_cmd(self, src, start, end, out, encoder, wm=False, audio=None, vertical=""):
+        """audio: None keeps every sound track, a number keeps just that one.
+        vertical: "" (as recorded), "blur" (9:16 with a blurred copy behind) or "crop" (9:16 centre crop)."""
         cmd = [self.ff, "-hide_banner", "-loglevel", "error", "-y", "-ss", f"{start:.3f}", "-i", src]
+        graph, vlabel = "", "0:v:0"
+        if vertical == "blur":
+            graph = ("[0:v]split=2[b1][b2];[b1]scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,"
+                     "boxblur=24:3,eq=brightness=-0.08[bg];[b2]scale=1080:-2[fg];[bg][fg]overlay=(W-w)/2:(H-h)/2[vv]")
+            vlabel = "[vv]"
+        elif vertical == "crop":
+            graph = "[0:v]scale=-2:1920,crop=1080:1920[vv]"
+            vlabel = "[vv]"
         if wm:
             import watermark
-            cmd += watermark.inputs(watermark.png_for(probe_height(self.ff, src)))
-            cmd += ["-t", f"{end - start:.3f}", "-filter_complex", watermark.filter_graph(),
-                    "-map", "[vo]", "-map", "0:a?", "-c:v", encoder]
-        else:
-            cmd += ["-t", f"{end - start:.3f}", "-map", "0:v:0", "-map", "0:a?", "-c:v", encoder]
+            cmd += watermark.inputs(watermark.png_for(1080 if vertical else probe_height(self.ff, src)))
+            base = vlabel if vertical else "[0:v]"
+            graph = (graph + ";" if graph else "") + watermark.filter_graph(base=base)
+            vlabel = "[vo]"
+        cmd += ["-t", f"{end - start:.3f}"]
+        if graph:
+            cmd += ["-filter_complex", graph]
+        cmd += ["-map", vlabel, "-map", "0:a?" if audio is None else f"0:a:{audio}?", "-c:v", encoder]
         if "nvenc" in encoder:
             cmd += ["-preset", "p5", "-rc", "vbr", "-cq", "21", "-b:v", "0"]
         elif "amf" in encoder:
@@ -333,6 +409,169 @@ class ClipLibrary:
         else:
             cmd += ["-preset", "veryfast", "-crf", "20"]
         return cmd + ["-pix_fmt", "yuv420p", "-c:a", "aac", "-b:a", "192k", "-movflags", "+faststart", out]
+
+    def _run_encode(self, make_cmd, encoder, timeout=900):
+        """Runs an encode on the GPU, falling back to the CPU if that fails."""
+        last = None
+        for enc in ([encoder, "libx264"] if encoder != "libx264" else ["libx264"]):
+            r = subprocess.run(make_cmd(enc), stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=timeout,
+                               creationflags=NO_WINDOW | LOW_PRIORITY)
+            if r.returncode == 0:
+                return True, ""
+            last = r.stderr.decode(errors="replace").strip()[-300:]
+            log.warning("Encode with %s failed: %s", enc, last)
+        return False, last or "unknown error"
+
+    def _new_clip_path(self, clip_like, suffix):
+        game = clip_like.get("game") or ""
+        folder = os.path.join(self.clips_folder, safe_file(game)) if game else self.clips_folder
+        folder = os.path.join(folder, "Exports")
+        os.makedirs(folder, exist_ok=True)
+        stamp = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+        return os.path.join(folder, f"{safe_file(clip_like.get('title') or 'Clip')} {suffix} {stamp}.mp4")
+
+    # ---- vertical (9:16) copies for TikTok, Shorts and Reels
+    def export_vertical(self, clip_id, start, end, mode="blur", encoder="libx264", watermark=True, remove_voice=False):
+        clip = self.get(clip_id)
+        if not clip:
+            raise ExportError("That clip isn't on this PC any more")
+        src = self.abs_path(clip)
+        dur = clip.get("duration") or probe_duration(self.ff, src)
+        start = max(0.0, float(start or 0))
+        end = min(float(end or dur), dur) if dur else float(end or 0)
+        if end - start < 1:
+            raise ExportError("Pick at least 1 second of the clip")
+        out = self._new_clip_path(clip, "(vertical)")
+        track = self.audio_track(src, remove_voice)
+        ok, err = self._run_encode(lambda enc: self._encode_cmd(src, start, end, out, enc, wm=watermark,
+                                                                audio=track, vertical=mode), encoder)
+        if not ok or not os.path.exists(out):
+            raise ExportError("Couldn't make the vertical clip: " + err)
+        new = self.add(out, game=clip.get("game", ""), highlight=clip.get("highlight", ""), match=clip.get("match"))
+        with self.lock:
+            c = self.clips.get(new["id"])
+            if c:
+                c["title"] = f"{clip.get('title') or 'Clip'} (vertical)"
+                c["vertical"] = True
+                c["watermarked"] = True
+                self._save()
+        self.bump_stat("vertical_exports")
+        return self.get(new["id"])
+
+    # ---- weekly recap
+    def recap_candidates(self, days=7, max_seconds=60):
+        """Best clips of the last few days, in the order they happened, trimmed to fit max_seconds."""
+        since = (datetime.datetime.now() - datetime.timedelta(days=days)).isoformat(timespec="seconds")
+        pool = []
+        for c in self.list():
+            if c.get("created", "") < since or c.get("vertical") or c.get("recap"):
+                continue
+            score = highlight_score(c.get("highlight")) if c.get("highlight") else 3
+            score += 3 if c.get("starred") else 0
+            score += 1 if (c.get("posted") or {}).get("at") else 0
+            pool.append((score, c))
+        pool.sort(key=lambda x: (-x[0], x[1].get("created", "")))
+        picked, total = [], 0.0
+        for score, c in pool:
+            dur = float(c.get("duration") or 0)
+            if dur < 2:
+                continue
+            # auto highlights are already short; for key-saved clips the moment is at the end
+            length = min(dur, 14.0) if c.get("highlight") else min(dur, 10.0)
+            start = 0.0 if c.get("highlight") and dur <= 14 else dur - length
+            if total + length > max_seconds:
+                length = max_seconds - total
+                if length < 4:
+                    continue
+                start = max(0.0, dur - length) if not c.get("highlight") else 0.0
+            picked.append({"clip": c, "start": round(start, 2), "length": round(length, 2)})
+            total += length
+            if total >= max_seconds - 3:
+                break
+        picked.sort(key=lambda p: p["clip"].get("created", ""))
+        return picked
+
+    def make_recap(self, encoder="libx264", days=7, max_seconds=60):
+        parts = self.recap_candidates(days, max_seconds)
+        if len(parts) < 2:
+            raise ExportError("Not enough clips from the last week for a recap yet. Save a few more!")
+        now = datetime.datetime.now()
+        first = now - datetime.timedelta(days=days - 1)
+        title = f"Weekly recap {first.day} {first.strftime('%b')} to {now.day} {now.strftime('%b')}"
+        out = self._new_clip_path({"title": title}, "")
+        fade = 0.25
+
+        def cmd(enc):
+            c = [self.ff, "-hide_banner", "-loglevel", "error", "-y"]
+            graph = []
+            for i, p in enumerate(parts):
+                src = self.abs_path(p["clip"])
+                c += ["-ss", f"{p['start']:.2f}", "-t", f"{p['length']:.2f}", "-i", src]
+            n = len(parts)
+            for i, p in enumerate(parts):
+                c += ["-f", "lavfi", "-t", f"{p['length']:.2f}", "-i", "anullsrc=r=48000:cl=stereo"]
+            for i, p in enumerate(parts):
+                L = p["length"]
+                has_audio = probe_audio_tracks(self.ff, self.abs_path(p["clip"])) > 0
+                graph.append(f"[{i}:v]scale=1920:1080:force_original_aspect_ratio=decrease,pad=1920:1080:(ow-iw)/2:(oh-ih)/2,"
+                             f"fps=60,setsar=1,format=yuv420p,fade=t=in:st=0:d={fade},fade=t=out:st={max(0, L - fade):.2f}:d={fade}[v{i}]")
+                asrc = f"[{i}:a:0]" if has_audio else f"[{n + i}:a]"
+                graph.append(f"{asrc}aresample=48000,aformat=channel_layouts=stereo,"
+                             f"afade=t=in:st=0:d={fade},afade=t=out:st={max(0, L - fade):.2f}:d={fade}[a{i}]")
+            graph.append("".join(f"[v{i}][a{i}]" for i in range(n)) + f"concat=n={n}:v=1:a=1[v][a]")
+            c += ["-filter_complex", ";".join(graph), "-map", "[v]", "-map", "[a]", "-c:v", enc]
+            if "nvenc" in enc:
+                c += ["-preset", "p5", "-rc", "vbr", "-cq", "21", "-b:v", "0"]
+            elif "amf" in enc:
+                c += ["-quality", "quality", "-rc", "cqp", "-qp_i", "20", "-qp_p", "22"]
+            elif "qsv" in enc:
+                c += ["-global_quality", "21"]
+            else:
+                c += ["-preset", "veryfast", "-crf", "21"]
+            return c + ["-c:a", "aac", "-b:a", "192k", "-movflags", "+faststart", out]
+
+        ok, err = self._run_encode(cmd, encoder, timeout=1800)
+        if not ok or not os.path.exists(out):
+            raise ExportError("Couldn't make the recap: " + err)
+        games = {p["clip"].get("game") for p in parts if p["clip"].get("game")}
+        new = self.add(out, game=games.pop() if len(games) == 1 else "")
+        with self.lock:
+            c = self.clips.get(new["id"])
+            if c:
+                c["title"] = title
+                c["recap"] = True
+                self._save()
+        self.bump_stat("recaps")
+        return self.get(new["id"])
+
+    # ---- stars and storage
+    def set_star(self, clip_id, on):
+        with self.lock:
+            if clip_id in self.clips:
+                self.clips[clip_id]["starred"] = bool(on)
+                self._save()
+
+    def old_clips(self, days):
+        """Clips older than `days` that aren't starred or posted: what auto clean would remove."""
+        if not days:
+            return []
+        cutoff = (datetime.datetime.now() - datetime.timedelta(days=int(days))).isoformat(timespec="seconds")
+        return [c for c in self.list() if c.get("created", "") < cutoff and not c.get("starred")
+                and not (c.get("posted") or {}).get("at")]
+
+    def storage_info(self, days=0):
+        used = 0
+        with self.lock:
+            for c in self.clips.values():
+                used += c.get("size") or 0
+        try:
+            du = shutil.disk_usage(self.clips_folder if os.path.isdir(self.clips_folder) else os.path.expanduser("~"))
+            free, total = du.free, du.total
+        except OSError:
+            free = total = 0
+        old = self.old_clips(days)
+        return {"used": used, "count": len(self.clips), "free": free, "total": total,
+                "old_count": len(old), "old_bytes": sum(c.get("size") or 0 for c in old)}
 
     def add_watermark(self, clip_id, encoder):
         """Burns "Clipped by Verse Platform" into the first 2 seconds of a saved clip, in place.
