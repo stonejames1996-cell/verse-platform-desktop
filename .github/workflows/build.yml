@@ -64,6 +64,36 @@ jobs:
           files: Output/VersePlatformSetup.exe
           make_latest: true
 
+      # Posts the patch notes to Discord's #platform-updates. Needs the repository secret
+      # DISCORD_WEBHOOK_URL (Discord: channel settings, Integrations, Webhooks, Copy Webhook URL).
+      # Optional secret DISCORD_PING_ROLE_ID pings the Update Pings role.
+      - name: Post patch notes to Discord
+        if: steps.ver.outputs.new == 'true' && github.ref == 'refs/heads/main'
+        shell: pwsh
+        env:
+          HOOK: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          ROLE: ${{ secrets.DISCORD_PING_ROLE_ID }}
+        run: |
+          if (-not $env:HOOK) { Write-Host "No DISCORD_WEBHOOK_URL secret, skipping"; exit 0 }
+          $v = "${{ steps.ver.outputs.num }}"
+          $notes = Get-Content "release-notes/$v.md" -Raw
+          $body = @{
+            username = "Verse Platform Updates"
+            avatar_url = "https://raw.githubusercontent.com/${{ github.repository }}/main/assets/logo.png"
+            content = $(if ($env:ROLE) { "<@&$($env:ROLE)>" } else { "" })
+            allowed_mentions = @{ roles = @($(if ($env:ROLE) { $env:ROLE })) }
+            embeds = @(@{
+              title = "Verse Platform for Windows $v"
+              url = "https://verseplatform.gg/PatchNotes"
+              description = $notes.Trim()
+              color = 440020
+              footer = @{ text = "The app updates itself. New here? Download at verseplatform.gg/Download" }
+              timestamp = (Get-Date).ToUniversalTime().ToString("o")
+            })
+          } | ConvertTo-Json -Depth 6
+          Invoke-RestMethod -Uri $env:HOOK -Method Post -ContentType "application/json; charset=utf-8" -Body ([Text.Encoding]::UTF8.GetBytes($body))
+          Write-Host "Posted $v to Discord"
+
   # Keeps every GitHub release's notes the same as release-notes/<version>.md, so fixing a typo
   # there fixes it on GitHub, the website's Patch notes page and the app's What's new.
   notes:
