@@ -235,6 +235,7 @@ class AudioFeeder:
     def _writer(self, sink):
         buf = bytearray()
         written = 0
+        last_warn = -999.0
         start = time.perf_counter()
         while not self.stop_event.is_set():
             time.sleep(0.01)
@@ -257,11 +258,16 @@ class AudioFeeder:
             del buf[:take]
             if take < need_bytes:               # nothing playing: pad with silence
                 chunk += b"\x00" * (need_bytes - take)
+            t0 = time.perf_counter()
             try:
                 sink.write(chunk)
                 sink.flush()
             except (BrokenPipeError, OSError, ValueError):
                 return
+            stalled = time.perf_counter() - t0
+            if stalled > 1.0 and time.perf_counter() - last_warn > 30:
+                last_warn = time.perf_counter()
+                log.warning("Sound was held up for %.1fs (the recorder wasn't taking it)", stalled)
             written += need
 
 
@@ -325,6 +331,8 @@ class Recorder:
         self.freeze_path = ""
         self.last_freeze = 0.0
         self.freezes = 0
+        self.unfreeze_path = ""
+        self._fallback = None
         self.save_lock = threading.Lock()
         self.on_saved = None  # callback(path or None, message)
         self.encoder = pick_encoder(ff, cfg["encoder"])
@@ -338,6 +346,13 @@ class Recorder:
             return (["-f", "lavfi", "-i",
                      f"ddagrab=output_idx={c['monitor']}:framerate={c['fps']}:draw_mouse={int(c['draw_mouse'])}"],
                     "hwdownload,format=bgra")
+        if self.capture == "gfxcapture":
+            # Windows Graphics Capture: the newer capture path, which keeps working while Discord
+            # (or OBS) is sharing the screen. It only sends a frame when something changes, so fps
+            # turns it back into a steady frame rate
+            return (["-f", "lavfi", "-i",
+                     f"gfxcapture=monitor_idx={c['monitor']}:max_framerate={c['fps']}:capture_cursor={int(c['draw_mouse'])}"],
+                    f"hwdownload,format=bgra,fps={c['fps']}")
         if self.capture == "gdigrab":
             return (["-f", "gdigrab", "-framerate", str(c["fps"]),
                      "-draw_mouse", str(int(c["draw_mouse"])), "-i", "desktop"], "")
@@ -366,26 +381,34 @@ class Recorder:
         if c["output_height"]:
             vf.append(f"scale=-2:{int(c['output_height'])}")
         vf.append("format=yuv420p" if self.encoder == "libx264" else "format=nv12")
-        # a small copy of the picture goes through freezedetect: if the screen stops updating for 8s
-        # (Windows' screen capture can silently go stale and repeat one frame forever) it writes to
-        # freeze_<run>.txt, and the watchdog restarts capture
+        # a small copy of the picture goes through freezedetect. Every time the picture stops changing
+        # for 2s it notes the start (and later the end) in two small files the watchdog reads:
+        #  * one freeze that lasts 8s: Windows' screen capture went stale -> restart it
+        #  * lots of short freezes: capture is being starved, which Discord screen share does to the
+        #    old capture method -> switch to Windows Graphics Capture
         self.freeze_path = os.path.join(self.seg_dir, f"freeze_{self.run:05d}.txt")
-        fz = self.freeze_path.replace("\\", "/").replace(":", "\\:")
-        graph = (f"[0:v]{','.join(vf)},split=2[v][fz];[fz]scale=160:-2,freezedetect=n=0.001:d={FREEZE_SECONDS},"
-                 f"metadata=mode=print:key=lavfi.freezedetect.freeze_start:file='{fz}':direct=1,nullsink")
+        self.unfreeze_path = os.path.join(self.seg_dir, f"unfreeze_{self.run:05d}.txt")
+        esc = lambda p: p.replace("\\", "/").replace(":", "\\:")
+        graph = (f"[0:v]{','.join(vf)},split=2[v][fz];[fz]scale=160:-2,freezedetect=n=0.001:d=2,"
+                 f"metadata=mode=print:key=lavfi.freezedetect.freeze_start:file='{esc(self.freeze_path)}':direct=1,"
+                 f"metadata=mode=print:key=lavfi.freezedetect.freeze_end:file='{esc(self.unfreeze_path)}':direct=1,nullsink")
+        # sound gets its own filter graph so a slow picture can never hold up the sound (or the other way)
+        agraph = ""
         two_tracks = len(audio_labels) == 2 and bool(self.audio_info)
         if audio_labels:
             if two_tracks:
                 # track 1: game + mic (what you hear when you play the clip)
                 # track 2: game only, so your voice can be taken out before posting
                 desk, mic = audio_labels
-                graph += (f";{desk}aresample=48000:async=1000,asplit=2[d1][d2]"
+                agraph = (f"{desk}aresample=48000:async=1000,asplit=2[d1][d2]"
                           f";{mic}aresample=48000:async=1000[m]"
                           f";[d1][m]amix=inputs=2:duration=longest:normalize=0[a];[d2]anull[g]")
             elif len(audio_labels) == 2:
-                graph += f";{''.join(audio_labels)}amix=inputs=2:duration=longest:normalize=0,aresample=48000:async=1000[a]"
+                agraph = f"{''.join(audio_labels)}amix=inputs=2:duration=longest:normalize=0,aresample=48000:async=1000[a]"
             else:
-                graph += f";{audio_labels[0]}aresample=48000:async=1000[a]"
+                agraph = f"{audio_labels[0]}aresample=48000:async=1000[a]"
+        if agraph:
+            cmd += ["-filter_complex", agraph]
         cmd += ["-filter_complex", graph, "-map", "[v]"]
         if audio_labels:
             cmd += ["-map", "[a]"]
@@ -472,29 +495,65 @@ class Recorder:
                 continue
             started = time.time()
             self._launch()
-            frozen = False
-            while self.running and self.capturing and self.proc and self.proc.poll() is None:
-                time.sleep(0.2)
-                if _size(self.freeze_path) > 0 and time.time() - self.last_freeze > 30:
-                    frozen = True
-                    break
+            problem = self._watch_picture(started)
             code = self.proc.returncode if self.proc else None
             self._kill()
             if not (self.running and self.capturing):
                 continue  # stopped on purpose
-            if frozen:
-                self.last_freeze = time.time()
+            if problem:
                 self.freezes += 1
-                log.warning("Capture froze (the screen stopped updating for %ss), restarting it", FREEZE_SECONDS)
-                try:
-                    os.remove(self.freeze_path)
-                except OSError:
-                    pass
+                self.last_freeze = time.time()
+                alt = self.fallback_capture() if problem == "starved" or self.freezes >= 2 else None
+                if alt and alt != self.capture:
+                    log.warning("Screen capture is being starved (%s). Switching from %s to %s for this session",
+                                "Discord screen share does this" if problem == "starved" else "it froze again",
+                                self.capture, alt)
+                    self.capture = alt
+                else:
+                    log.warning("Capture froze (the screen stopped updating for %ss), restarting it", FREEZE_SECONDS)
                 time.sleep(0.3)
                 continue
             failures = failures + 1 if time.time() - started < 10 else 0
             log.warning("Capture stopped (exit code %s), restarting...", code)
             time.sleep(min(30, 1 + failures * 2))
+
+    def _watch_picture(self, started):
+        """Waits while ffmpeg runs. Returns "frozen", "starved" or None (ffmpeg stopped / capture stopped)."""
+        starts_seen, open_since, recent = 0, None, []
+        while self.running and self.capturing and self.proc and self.proc.poll() is None:
+            time.sleep(0.25)
+            starts = _count(self.freeze_path, "freeze_start=")
+            ends = _count(self.unfreeze_path, "freeze_end=")
+            now = time.time()
+            if starts > starts_seen:
+                recent += [now] * (starts - starts_seen)
+                starts_seen = starts
+            recent = [t for t in recent if now - t < 40]
+            open_since = (open_since or now) if starts > ends else None
+            if now - self.last_freeze < 30:
+                continue          # just restarted, give it a moment
+            if open_since and now - open_since > FREEZE_SECONDS - 2:
+                return "frozen"   # one picture for 8s straight
+            # loading screens can be still for a while, so only judge after the first 2 minutes
+            if len(recent) >= 4 and now - started > 120 and self.capture in ("ddagrab", "gdigrab"):
+                return "starved"  # the picture keeps stalling: capture is being starved
+        return None
+
+    def fallback_capture(self):
+        """The capture method to switch to when the current one gets starved or keeps freezing."""
+        if self._fallback is None:
+            self._fallback = ""
+            if IS_WINDOWS and self.capture != "gfxcapture":
+                code, err = run_quiet([self.ff, "-hide_banner", "-f", "lavfi", "-i",
+                                       f"gfxcapture=monitor_idx={self.cfg['monitor']}:max_framerate=30",
+                                       "-frames:v", "2", "-vf", "hwdownload,format=bgra", "-f", "null", "-"], timeout=20)
+                if code == 0:
+                    self._fallback = "gfxcapture"
+                else:
+                    log.info("Windows Graphics Capture isn't available here: %s", (err or "").strip()[-200:])
+            if not self._fallback and IS_WINDOWS and self.capture != "gdigrab":
+                self._fallback = "gdigrab"
+        return self._fallback
 
     def segments(self):
         return sorted(glob.glob(os.path.join(self.seg_dir, "seg_*.ts")))
@@ -812,6 +871,14 @@ def _mtime(path):
         return os.path.getmtime(path)
     except OSError:
         return 0.0
+
+
+def _count(path, text):
+    try:
+        with open(path, "r", encoding="utf-8", errors="replace") as f:
+            return f.read().count(text)
+    except OSError:
+        return 0
 
 
 def _size(path):
