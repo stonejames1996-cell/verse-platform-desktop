@@ -72,7 +72,12 @@ DOCK_JS = r"""
     d.onclick = function () { window.pywebview.api.open_library(); };
     document.body.appendChild(d);
     function tick() {
-      if (document.getElementById('verse-desktop-nav')) { d.style.display = 'none'; return; }
+      // hide this tab only while Verse's own My clips button is actually on screen
+      var nav = document.getElementById('verse-desktop-nav'), r = nav && nav.getBoundingClientRect();
+      var shown = r && r.width > 0 && r.height > 0 && r.bottom > 0 && r.top < innerHeight &&
+                  getComputedStyle(nav).visibility !== 'hidden';
+      d.style.display = shown ? 'none' : 'flex';
+      if (shown) return;
       window.pywebview.api.dock_state().then(function (s) {
         if (!s) return;
         d.classList.toggle('rec', !!s.capturing);
@@ -81,7 +86,7 @@ DOCK_JS = r"""
       }).catch(function () {});
     }
     tick();
-    setInterval(tick, 2500);
+    setInterval(tick, 1500);
   });
 })();
 """
