@@ -7,6 +7,10 @@ let api = null;
 let S = {};               // last state from Python
 let settings = {};
 let clips = [];
+let selecting = false;      // select mode for deleting several clips
+const selected = new Set();
+let lastPicked = null;      // for shift-click ranges
+let order = [];             // clip ids in the order they're shown
 let matches = {};           // League match details by id
 const openMatches = new Set();
 const closedMatches = new Set();
@@ -81,6 +85,7 @@ function show(v) {
   }
   for (const s of $$(".view")) s.hidden = s.id !== "view-" + v;
   if (v === "settings") loadSettings();
+  if (v !== "clips" && selecting) setSelecting(false);
 }
 
 // ---------------------------------------------------------------- deck (live status + tape)
@@ -134,6 +139,8 @@ function renderClips() {
     )
   );
   const shown = clips.filter((c) => filter === "All" || (c.game || "Other") === filter);
+  order = [];
+  document.body.classList.toggle("selecting", selecting);
   $("#clips-empty").hidden = clips.length > 0;
   const groups = new Map();
   for (const c of shown) {
@@ -151,12 +158,18 @@ function renderClips() {
           byMatch.get(c.match).push(c);
         } else loose.push(c);
       }
-      const order = [...byMatch.keys()].sort((a, b) => (matches[b].started || "").localeCompare(matches[a].started || ""));
+      const mOrder = [...byMatch.keys()].sort((a, b) => (matches[b].started || "").localeCompare(matches[a].started || ""));
+      for (const id of mOrder) byMatch.get(id).sort((a, b) => (a.created || "").localeCompare(b.created || ""));
+      for (const id of mOrder) order.push(...byMatch.get(id).map((c) => c.id));
+      order.push(...loose.map((c) => c.id));
       const n = byMatch.size;
+      const ids = list.map((c) => c.id);
       return el("section", { class: "group" },
         el("div", { class: "group-head" }, el("h3", {}, g),
-          el("span", {}, (n ? `${n} game${n > 1 ? "s" : ""} · ` : "") + `${list.length} clip${list.length > 1 ? "s" : ""}`)),
-        ...order.map((id, i) => matchCard(matches[id], byMatch.get(id), i === 0)),
+          el("span", {}, (n ? `${n} game${n > 1 ? "s" : ""} · ` : "") + `${list.length} clip${list.length > 1 ? "s" : ""}`),
+          selecting ? el("button", { class: "link-btn", onclick: () => selectMany(ids) },
+            ids.every((i) => selected.has(i)) ? "Unselect all" : `Select all ${list.length}`) : null),
+        ...mOrder.map((id, i) => matchCard(matches[id], byMatch.get(id), i === 0)),
         loose.length && n ? el("div", { class: "loose-head" }, "Other clips") : null,
         loose.length ? el("div", { class: "grid" }, loose.map(clipCard)) : null
       );
@@ -201,21 +214,109 @@ function matchCard(m, list, latest) {
       c.thumb_url ? el("img", { src: c.thumb_url, alt: "", loading: "lazy" }) : el("span"))),
     el("span", { class: "m-chev", "aria-hidden": "true" })
   );
-  return el("div", { class: "match" + (open ? " open" : "") }, head,
-    open ? el("div", { class: "grid m-grid" }, list.slice().sort((a, b) => (a.created || "").localeCompare(b.created || "")).map(clipCard)) : null);
+  const ids = list.map((c) => c.id);
+  const all = ids.every((i) => selected.has(i));
+  const pick = selecting ? el("button", { class: "m-sel" + (all ? " on" : ""), "aria-pressed": String(all),
+    title: all ? "Unselect this game's clips" : "Select this game's clips", onclick: () => selectMany(ids) },
+    el("span", { class: "tick" }), all ? "Selected" : "Select game") : null;
+  return el("div", { class: "match" + (open ? " open" : "") + (all && selecting ? " picked" : "") },
+    el("div", { class: "m-top" }, head, pick),
+    open ? el("div", { class: "grid m-grid" }, list.map(clipCard)) : null);
 }
 function clipCard(c) {
   const posted = isPosted(c);
-  return el("button", { class: "clip", onclick: () => openPlayer(c.id), "aria-label": `${c.title}, ${fmtDur(c.duration)}` },
-    el("div", { class: "clip-thumb" },
-      c.thumb_url ? el("img", { src: c.thumb_url, alt: "", loading: "lazy" }) : null,
-      posted ? el("span", { class: "up uploaded" }, icon("i-check"), "Posted") : null,
-      c.highlight && !posted ? el("span", { class: "up auto" }, "Auto") : null,
-      el("span", { class: "dur" }, fmtDur(c.duration))
+  const on = selected.has(c.id);
+  return el("div", { class: "clip-wrap" + (on ? " sel" : "") },
+    el("button", { class: "clip", onclick: (e) => (selecting ? pickClip(c.id, e.shiftKey) : openPlayer(c.id)),
+        "aria-label": `${c.title}, ${fmtDur(c.duration)}`, "aria-pressed": selecting ? String(on) : null },
+      el("div", { class: "clip-thumb" },
+        c.thumb_url ? el("img", { src: c.thumb_url, alt: "", loading: "lazy" }) : null,
+        posted ? el("span", { class: "up uploaded" }, icon("i-check"), "Posted") : null,
+        c.highlight && !posted ? el("span", { class: "up auto" }, "Auto") : null,
+        el("span", { class: "dur" }, fmtDur(c.duration))
+      ),
+      el("div", { class: "clip-name" }, c.title),
+      el("div", { class: "clip-when" }, c.match ? (c.highlight ? "Auto clip" : "Saved with your shortcut") : fmtWhen(c.created))
     ),
-    el("div", { class: "clip-name" }, c.title),
-    el("div", { class: "clip-when" }, c.match ? (c.highlight ? "Auto clip" : "Saved with your shortcut") : fmtWhen(c.created))
+    el("button", { class: "c-check", "aria-label": on ? `Unselect ${c.title}` : `Select ${c.title}`, title: "Select",
+      onclick: (e) => pickClip(c.id, e.shiftKey) }, el("span", { class: "tick" })),
+    selecting ? null : el("button", { class: "c-del", "aria-label": `Delete ${c.title}`, title: "Delete",
+      onclick: () => confirmDelete([c.id]) }, icon("i-trash"))
   );
+}
+
+// ---------------------------------------------------------------- selecting and deleting
+function setSelecting(on) {
+  selecting = on;
+  if (!on) { selected.clear(); lastPicked = null; }
+  renderSelectBar();
+  renderClips();
+}
+function renderSelectBar() {
+  $("#select-bar").hidden = !selecting;
+  $("#select-btn").classList.toggle("on", selecting);
+  $("#select-count").textContent = selected.size ? `${selected.size} selected` : "Pick clips to delete";
+  $("#select-delete").disabled = !selected.size;
+  const all = order.length && order.every((i) => selected.has(i));
+  $("#select-all").textContent = all ? "Unselect all" : "Select all";
+}
+function pickClip(id, range) {
+  if (!selecting) selecting = true;
+  if (range && lastPicked && order.includes(lastPicked)) {
+    const a = order.indexOf(lastPicked), b = order.indexOf(id);
+    for (const i of order.slice(Math.min(a, b), Math.max(a, b) + 1)) selected.add(i);
+  } else if (selected.has(id)) selected.delete(id);
+  else selected.add(id);
+  lastPicked = id;
+  renderSelectBar();
+  renderClips();
+}
+function selectMany(ids) {
+  selecting = true;
+  const all = ids.every((i) => selected.has(i));
+  for (const i of ids) all ? selected.delete(i) : selected.add(i);
+  renderSelectBar();
+  renderClips();
+}
+function askConfirm(title, text, yes) {
+  return new Promise((resolve) => {
+    const box = $("#confirm");
+    $("#confirm-title").textContent = title;
+    $("#confirm-text").textContent = text;
+    $("#confirm-yes").lastChild.textContent = yes;
+    box.hidden = false;
+    const done = (v) => { box.hidden = true; box.onclick = null; window.removeEventListener("keydown", key, true); resolve(v); };
+    const key = (e) => {
+      if (e.key === "Escape") { e.stopPropagation(); done(false); }
+      if (e.key === "Enter") { e.stopPropagation(); e.preventDefault(); done(true); }
+    };
+    window.addEventListener("keydown", key, true);
+    $("#confirm-yes").onclick = () => done(true);
+    $("#confirm-no").onclick = () => done(false);
+    box.onclick = (e) => { if (e.target === box) done(false); };
+    $("#confirm-yes").focus();
+  });
+}
+async function confirmDelete(ids) {
+  ids = ids.filter((i) => clips.some((c) => c.id === i));
+  if (!ids.length) return;
+  const list = clips.filter((c) => ids.includes(c.id));
+  const n = ids.length;
+  const posted = list.filter(isPosted).length;
+  const title = n === 1 ? `Delete "${list[0].title}"?` : `Delete ${n} clips?`;
+  let text = `${n === 1 ? "It goes" : "They go"} to your Recycle Bin, so you can get ${n === 1 ? "it" : "them"} back from there if you change your mind.`;
+  if (posted) text += ` ${posted === n ? (n === 1 ? "It's" : "They're") : `${posted} of them ${posted === 1 ? "is" : "are"}`} already posted on Verse and will stay there.`;
+  if (!(await askConfirm(title, text, n === 1 ? "Delete" : `Delete ${n} clips`))) return;
+  if (openClipId && ids.includes(openClipId)) closePlayer();
+  const r = await call("delete_clips", ids);
+  if (r) {
+    let msg = r.deleted === 1 ? "Clip moved to the Recycle Bin" : `${r.deleted} clips moved to the Recycle Bin`;
+    if (r.failed) msg += `. ${r.failed} couldn't be deleted because ${r.failed === 1 ? "it's" : "they're"} open in another app`;
+    toast(msg);
+  }
+  for (const i of ids) selected.delete(i);
+  if (selecting) setSelecting(false);
+  await loadClips();
 }
 
 // ---------------------------------------------------------------- preview, trim, publish
@@ -469,23 +570,19 @@ function wire() {
   });
   for (const id of ["#go-verse", "#go-verse-logo"]) $(id).addEventListener("click", () => call("go_verse", "/Home"));
   $("#player-folder").addEventListener("click", () => call("show_in_folder", openClipId));
-  $("#player-delete").addEventListener("click", async () => {
-    const b = $("#player-delete");
-    if (b.dataset.armed !== "1") {
-      b.dataset.armed = "1";
-      b.lastChild.textContent = "Click again to delete";
-      setTimeout(() => { b.dataset.armed = ""; b.lastChild.textContent = "Delete"; }, 3000);
-      return;
-    }
-    b.dataset.armed = "";
-    b.lastChild.textContent = "Delete";
-    const id = openClipId;
-    closePlayer();
-    await call("delete_clip", id);
-    toast("Clip deleted");
-    loadClips();
+  $("#player-delete").addEventListener("click", () => confirmDelete([openClipId]));
+  $("#select-btn").addEventListener("click", () => setSelecting(!selecting));
+  $("#select-cancel").addEventListener("click", () => setSelecting(false));
+  $("#select-all").addEventListener("click", () => selectMany(order));
+  $("#select-delete").addEventListener("click", () => confirmDelete([...selected]));
+  window.addEventListener("keydown", (e) => {
+    if (!$("#confirm").hidden || e.target.matches("input, textarea, select")) return;
+    if (selecting) {
+      if (e.key === "Escape") setSelecting(false);
+      else if ((e.key === "Delete" || e.key === "Backspace") && selected.size) confirmDelete([...selected]);
+      else if (e.key.toLowerCase() === "a" && (e.ctrlKey || e.metaKey)) { e.preventDefault(); selectMany(order); }
+    } else if (e.key === "Delete" && openClipId) confirmDelete([openClipId]);
   });
-
 }
 
 async function startUpdate() {

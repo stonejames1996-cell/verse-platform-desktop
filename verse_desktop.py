@@ -591,9 +591,14 @@ class Api:
             self._app.bump()
 
     def delete_clip(self, clip_id):
-        if self._from_library():
-            self._app.library.delete(clip_id)
-            self._app.bump()
+        return self.delete_clips([clip_id])
+
+    def delete_clips(self, clip_ids):
+        if not self._from_library():
+            return None
+        deleted, failed = self._app.library.delete_many(list(clip_ids or []))
+        self._app.bump()
+        return {"deleted": deleted, "failed": failed}
 
     def show_in_folder(self, clip_id):
         if not self._from_library():

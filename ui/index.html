@@ -55,6 +55,7 @@
       <div class="view-head">
         <h2>My clips</h2>
         <div class="filters" id="filters" role="tablist" aria-label="Filter by game"></div>
+        <button class="btn btn-quiet" id="select-btn"><svg><use href="#i-check"/></svg>Select</button>
         <button class="btn btn-quiet" id="open-folder"><svg><use href="#i-folder"/></svg>Open folder</button>
       </div>
       <div id="clip-groups"></div>
@@ -262,6 +263,24 @@
         <button class="btn btn-danger" id="player-delete"><svg><use href="#i-trash"/></svg>Delete</button>
         <button class="btn btn-primary" id="publish-btn"><svg><use href="#i-send"/></svg>Publish to Verse</button>
       </div>
+    </div>
+  </div>
+</div>
+
+<div class="select-bar" id="select-bar" hidden role="toolbar" aria-label="Selected clips">
+  <span id="select-count">0 selected</span>
+  <button class="btn btn-quiet" id="select-all">Select all</button>
+  <button class="btn btn-danger-solid" id="select-delete"><svg><use href="#i-trash"/></svg>Delete</button>
+  <button class="btn btn-quiet" id="select-cancel">Cancel</button>
+</div>
+
+<div class="confirm" id="confirm" hidden role="alertdialog" aria-modal="true" aria-labelledby="confirm-title" aria-describedby="confirm-text">
+  <div class="confirm-box">
+    <h3 id="confirm-title"></h3>
+    <p id="confirm-text"></p>
+    <div class="confirm-actions">
+      <button class="btn btn-quiet" id="confirm-no">Cancel</button>
+      <button class="btn btn-danger-solid" id="confirm-yes">Delete</button>
     </div>
   </div>
 </div>

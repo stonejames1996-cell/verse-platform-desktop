@@ -1,6 +1,6 @@
-## What's new in 1.0.8
+## What's new in 1.0.9
 
-* **Match folders for League of Legends:** My clips now groups your League clips by match. Each match shows the mode and your champion (like "ARAM as Brand"), win or loss, your K/D/A, game length and when you played. Your latest match opens up, older ones fold away with a preview strip. Click to open or close.
-* Every clip from that match goes in its folder, auto highlights and the ones you save with your shortcut.
-* The files on your PC follow the same layout: `Videos\Verse Platform\League of Legends\<date time mode - champion>\`.
-* Clips from before this update stay where they were, under "Other clips".
+* **Quick delete:** hover over any clip and click the bin icon in its corner.
+* **Delete lots at once:** click **Select** in My clips, then tick clips, or use **Select game** to grab a whole match and **Select all** for everything. Shift-click picks a range. Press Delete on your keyboard or the red Delete button.
+* Deleted clips go to your **Recycle Bin**, so you can get them back if you change your mind. Clips already posted stay on Verse.
+* Deleting from the clip player now asks once in a clear pop-up instead of "click again to delete".

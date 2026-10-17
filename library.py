@@ -54,6 +54,33 @@ def probe_height(ff, path):
 LOW_PRIORITY = 0x00004000 if os.name == "nt" else 0   # BELOW_NORMAL_PRIORITY_CLASS, so games stay smooth
 
 
+def recycle(paths):
+    """Moves files to the Windows Recycle Bin. Elsewhere (testing on Linux) just deletes them."""
+    if os.name != "nt":
+        for p in paths:
+            try:
+                os.remove(p)
+            except OSError:
+                pass
+        return
+    import ctypes
+    from ctypes import wintypes as wt
+
+    class SHFILEOPSTRUCTW(ctypes.Structure):
+        _fields_ = [("hwnd", wt.HWND), ("wFunc", wt.UINT), ("pFrom", ctypes.c_void_p), ("pTo", ctypes.c_void_p),
+                    ("fFlags", wt.WORD), ("fAnyOperationsAborted", wt.BOOL), ("hNameMappings", ctypes.c_void_p),
+                    ("lpszProgressTitle", wt.LPCWSTR)]
+    text = "\0".join(os.path.abspath(p) for p in paths) + "\0\0"   # list ends with a double null
+    buf = (ctypes.c_wchar * len(text))(*text)
+    op = SHFILEOPSTRUCTW(None, 3, ctypes.cast(buf, ctypes.c_void_p), None,
+                         0x0004 | 0x0010 | 0x0040 | 0x0400, 0, None, None)  # silent, no prompts, allow undo, no error UI
+    sh = ctypes.WinDLL("shell32")
+    sh.SHFileOperationW.argtypes = [ctypes.POINTER(SHFILEOPSTRUCTW)]
+    r = sh.SHFileOperationW(ctypes.byref(op))
+    if r:
+        log.warning("Recycle Bin move returned %s", r)
+
+
 class ExportError(Exception):
     pass
 
@@ -205,18 +232,43 @@ class ClipLibrary:
                 self._save()
 
     def delete(self, clip_id):
+        return self.delete_many([clip_id])
+
+    def delete_many(self, clip_ids):
+        """Sends the clips' videos to the Recycle Bin (so a mistake can be undone) and forgets them.
+        Returns (deleted, failed) counts. A clip whose file can't be moved (open somewhere) is kept."""
         with self.lock:
-            c = self.clips.get(clip_id)
-            if not c:
-                return
-            for p in (self.abs_path(c), self.thumb_path(c), self.export_path(clip_id)):
-                try:
-                    if p:
-                        os.remove(p)
-                except OSError:
-                    pass
-            self.clips.pop(clip_id, None)
-            self._save()
+            picked = [(cid, self.clips[cid]) for cid in dict.fromkeys(clip_ids) if cid in self.clips]
+        videos = [self.abs_path(c) for _, c in picked if os.path.exists(self.abs_path(c))]
+        if videos:
+            recycle(videos)
+        deleted = failed = 0
+        folders = set()
+        with self.lock:
+            for cid, c in picked:
+                path = self.abs_path(c)
+                if os.path.exists(path):
+                    failed += 1
+                    continue
+                for p in (self.thumb_path(c), self.export_path(cid), path + ".wm.mp4"):
+                    try:
+                        if p and os.path.exists(p):
+                            os.remove(p)
+                    except OSError:
+                        pass
+                self.clips.pop(cid, None)
+                folders.add(os.path.dirname(path))
+                deleted += 1
+            if deleted:
+                self._save()
+        for d in folders:  # tidy up a match folder that's now empty (never the main clips folder)
+            try:
+                if os.path.normcase(os.path.abspath(d)) != os.path.normcase(os.path.abspath(self.clips_folder)) \
+                        and os.path.isdir(d) and not os.listdir(d):
+                    os.rmdir(d)
+            except OSError:
+                pass
+        return deleted, failed
 
     # ---- posting
     def export_path(self, clip_id):
