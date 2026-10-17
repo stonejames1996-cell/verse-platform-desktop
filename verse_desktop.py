@@ -1037,10 +1037,55 @@ def main():
     app.window.events.restored += on_restored
     app.window.events.maximized += on_restored
     app.window.events.shown += lambda: setattr(app, "win_hidden", False)
+    app.window.events.shown += lambda: dark_title_bar(app.window)
+    app.window.events.loaded += lambda: dark_title_bar(app.window)
     threading.Thread(target=app.boot, daemon=True).start()
     webview.start(gui="edgechromium" if IS_WINDOWS else None, private_mode=False,
                   storage_path=os.path.join(DATA_DIR, "webview"))
     app.quit()
+
+
+def _hwnd(window):
+    try:
+        return int(window.native.Handle.ToInt64())
+    except Exception:
+        pass
+    try:  # fallback: our own top level window with this title
+        import ctypes
+        from ctypes import wintypes
+        u32 = ctypes.windll.user32
+        u32.FindWindowW.restype = wintypes.HWND
+        return u32.FindWindowW(None, APP_NAME) or 0
+    except Exception:
+        return 0
+
+
+def dark_title_bar(window):
+    """Black title bar with white text instead of Windows' default white one, so it matches
+    the app and the logo stands out. Windows 11 takes the exact colour; Windows 10 gets dark mode."""
+    if not IS_WINDOWS:
+        return
+    try:
+        import ctypes
+        from ctypes import wintypes
+        hwnd = _hwnd(window)
+        if not hwnd:
+            return
+        dwm = ctypes.windll.dwmapi
+        dwm.DwmSetWindowAttribute.argtypes = [wintypes.HWND, wintypes.DWORD, ctypes.c_void_p, wintypes.DWORD]
+
+        def put(attr, value):
+            v = ctypes.c_int(value)
+            return dwm.DwmSetWindowAttribute(hwnd, attr, ctypes.byref(v), ctypes.sizeof(v))
+
+        if put(20, 1) != 0:   # DWMWA_USE_IMMERSIVE_DARK_MODE (older Windows 10 builds used 19)
+            put(19, 1)
+        bgr = lambda r, g, b: r | (g << 8) | (b << 16)  # COLORREF
+        put(35, bgr(0x0A, 0x0A, 0x0A))   # DWMWA_CAPTION_COLOR, same black as the app
+        put(36, bgr(0xFF, 0xFF, 0xFF))   # DWMWA_TEXT_COLOR
+        put(34, bgr(0x1A, 0x1A, 0x1A))   # DWMWA_BORDER_COLOR, a soft edge instead of a bright line
+    except Exception:
+        log.debug("dark title bar", exc_info=True)
 
 
 if __name__ == "__main__":
