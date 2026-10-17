@@ -35,7 +35,7 @@ import time
 import uuid
 
 APP_NAME = "Verse Platform"
-APP_VERSION = "1.2.2"
+APP_VERSION = "1.2.3"
 VERSE_URL = "https://verseplatform.gg"
 # GitHub repo the app updates itself from ("owner/repo"). Release.bat fills this in. Blank = no auto update.
 UPDATE_REPO = "stonejames1996-cell/verse-platform-desktop"
@@ -174,11 +174,27 @@ def pick_encoder(ff, wanted):
     return "libx264"
 
 
+def windows_build():
+    try:
+        return sys.getwindowsversion().build
+    except AttributeError:
+        return 0
+
+
 def pick_capture(ff, wanted, monitor):
     if wanted and wanted != "auto":
         return wanted
     if not IS_WINDOWS:
         return "x11grab"
+    # Windows 11: Windows Graphics Capture. It shares the screen nicely with Discord, OBS and other
+    # recorders. (Windows 10 draws a yellow border around the screen while it records, so not there.)
+    if windows_build() >= 22000:
+        code, err = run_quiet([ff, "-hide_banner", "-f", "lavfi", "-i",
+                               f"gfxcapture=monitor_idx={monitor}:max_framerate=30", "-frames:v", "2",
+                               "-vf", "hwdownload,format=bgra", "-f", "null", "-"])
+        if code == 0:
+            return "gfxcapture"
+        log.warning("Windows Graphics Capture didn't start, using Desktop Duplication: %s", (err or "").strip()[-200:])
     code, _ = run_quiet([ff, "-hide_banner", "-f", "lavfi", "-i",
                          f"ddagrab=output_idx={monitor}:framerate=30", "-frames:v", "2",
                          "-vf", "hwdownload,format=bgra", "-f", "null", "-"])
@@ -332,7 +348,7 @@ class Recorder:
         self.last_freeze = 0.0
         self.freezes = 0
         self.unfreeze_path = ""
-        self._fallback = None
+        self._tried = set()
         self.save_lock = threading.Lock()
         self.on_saved = None  # callback(path or None, message)
         self.encoder = pick_encoder(ff, cfg["encoder"])
@@ -506,8 +522,9 @@ class Recorder:
                 alt = self.fallback_capture() if problem == "starved" or self.freezes >= 2 else None
                 if alt and alt != self.capture:
                     log.warning("Screen capture is being starved (%s). Switching from %s to %s for this session",
-                                "Discord screen share does this" if problem == "starved" else "it froze again",
+                                "the picture keeps stalling" if problem == "starved" else "it froze again",
                                 self.capture, alt)
+                    self._tried.add(self.capture)
                     self.capture = alt
                 else:
                     log.warning("Capture froze (the screen stopped updating for %ss), restarting it", FREEZE_SECONDS)
@@ -515,6 +532,13 @@ class Recorder:
                 continue
             failures = failures + 1 if time.time() - started < 10 else 0
             log.warning("Capture stopped (exit code %s), restarting...", code)
+            if failures >= 3:
+                alt = self.fallback_capture()
+                if alt:
+                    log.warning("%s keeps stopping, switching to %s for this session", self.capture, alt)
+                    self._tried.add(self.capture)
+                    self.capture = alt
+                    failures = 0
             time.sleep(min(30, 1 + failures * 2))
 
     def _watch_picture(self, started):
@@ -535,25 +559,30 @@ class Recorder:
             if open_since and now - open_since > FREEZE_SECONDS - 2:
                 return "frozen"   # one picture for 8s straight
             # loading screens can be still for a while, so only judge after the first 2 minutes
-            if len(recent) >= 4 and now - started > 120 and self.capture in ("ddagrab", "gdigrab"):
+            if len(recent) >= 4 and now - started > 120 and self.capture != "gdigrab":
                 return "starved"  # the picture keeps stalling: capture is being starved
         return None
 
     def fallback_capture(self):
-        """The capture method to switch to when the current one gets starved or keeps freezing."""
-        if self._fallback is None:
-            self._fallback = ""
-            if IS_WINDOWS and self.capture != "gfxcapture":
-                code, err = run_quiet([self.ff, "-hide_banner", "-f", "lavfi", "-i",
-                                       f"gfxcapture=monitor_idx={self.cfg['monitor']}:max_framerate=30",
-                                       "-frames:v", "2", "-vf", "hwdownload,format=bgra", "-f", "null", "-"], timeout=20)
-                if code == 0:
-                    self._fallback = "gfxcapture"
-                else:
-                    log.info("Windows Graphics Capture isn't available here: %s", (err or "").strip()[-200:])
-            if not self._fallback and IS_WINDOWS and self.capture != "gdigrab":
-                self._fallback = "gdigrab"
-        return self._fallback
+        """The capture method to switch to when the current one gets starved or keeps freezing:
+        Windows Graphics Capture <-> Desktop Duplication, then the old GDI capture as a last resort."""
+        if not IS_WINDOWS:
+            return ""
+        order = ["gfxcapture", "ddagrab", "gdigrab"] if windows_build() >= 22000 else ["ddagrab", "gfxcapture", "gdigrab"]
+        for alt in order:
+            if alt == self.capture or alt in self._tried:
+                continue
+            self._tried.add(alt)
+            if alt == "gdigrab":
+                return alt
+            src = (f"gfxcapture=monitor_idx={self.cfg['monitor']}:max_framerate=30" if alt == "gfxcapture"
+                   else f"ddagrab=output_idx={self.cfg['monitor']}:framerate=30")
+            code, err = run_quiet([self.ff, "-hide_banner", "-f", "lavfi", "-i", src, "-frames:v", "2",
+                                   "-vf", "hwdownload,format=bgra", "-f", "null", "-"], timeout=20)
+            if code == 0:
+                return alt
+            log.info("%s isn't available here: %s", alt, (err or "").strip()[-200:])
+        return ""
 
     def segments(self):
         return sorted(glob.glob(os.path.join(self.seg_dir, "seg_*.ts")))
