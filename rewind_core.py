@@ -34,7 +34,7 @@ import threading
 import time
 
 APP_NAME = "Verse Platform"
-APP_VERSION = "1.0.2"
+APP_VERSION = "1.0.3"
 VERSE_URL = "https://verseplatform.gg"
 # GitHub repo the app updates itself from ("owner/repo"). Release.bat fills this in. Blank = no auto update.
 UPDATE_REPO = "stonejames1996-cell/verse-platform-desktop"
@@ -81,6 +81,9 @@ DEFAULT_CONFIG = {
     "ignored_apps": [],            # exe names that should never trigger recording
     "ffmpeg_path": "",             # blank = find ffmpeg automatically
     "play_sound_on_save": True,
+    "show_save_overlay": True,     # "Last 60s saved by Verse Platform" pop-up over the game
+    "auto_highlights": True,       # clip big plays by themselves (League of Legends)
+    "highlight_level": "big",      # big = multikills, aces, steals | all = every kill too
     "max_post_seconds": 60,        # Verse posts are 60 seconds max
     "verse_url": "",               # blank = https://verseplatform.gg
 }
@@ -292,6 +295,8 @@ class Recorder:
         self.capturing = False    # ffmpeg should be recording right now
         self.run = 0              # bumps every time ffmpeg (re)starts, keeps chunk names in order
         self.label = ""           # what's being recorded (game name), used in clip names
+        self.last_tag = ""        # highlight name of the clip being saved, if any
+        self.last_seconds = 0
         self.save_lock = threading.Lock()
         self.on_saved = None  # callback(path or None, message)
         self.encoder = pick_encoder(ff, cfg["encoder"])
@@ -447,10 +452,11 @@ class Recorder:
                 except OSError:
                     pass
 
-    def save_clip(self, seconds=None):
+    def save_clip(self, seconds=None, tag=""):
         if not self.save_lock.acquire(blocking=False):
             return None  # already saving, ignore button mashing
         try:
+            self.last_tag = tag   # e.g. "Triple kill" when an auto highlight saved it
             seconds = seconds or self.cfg["buffer_seconds"]
             segs = self.segments()
             if segs and self.capturing:
@@ -468,6 +474,7 @@ class Recorder:
             if not self.capturing:
                 count += 1  # the last chunk was cut short when capture stopped, so take one more
             pick = segs[-count:]
+            self.last_seconds = min(seconds, len(pick) * SEGMENT_SECONDS)
             if not pick:
                 self._notify(None, "Nothing recorded yet" if self.capturing else
                              "Not recording right now. Start a game, or switch to Always record")
@@ -504,7 +511,8 @@ class Recorder:
                 folder = os.path.join(folder, safe_name(self.label))
             os.makedirs(folder, exist_ok=True)
             stamp = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-            out = os.path.join(folder, f"{safe_name(self.label) or 'Verse Platform'} {stamp}.mp4")
+            name = " ".join(x for x in (safe_name(self.label) or "Verse Platform", safe_name(tag), stamp) if x)
+            out = os.path.join(folder, f"{name}.mp4")
             cmd = [self.ff, "-hide_banner", "-loglevel", "error", "-y"] + inputs + [
                    "-map", "0", "-c", "copy", "-avoid_negative_ts", "make_zero", "-movflags", "+faststart", out]
             code, err = run_quiet(cmd, timeout=120)

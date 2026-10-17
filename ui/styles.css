@@ -231,3 +231,4 @@ video { display: block; width: 100%; aspect-ratio: 16 / 9; max-height: calc(100v
 .btn-update { background: transparent; color: var(--signal); border: 1px solid var(--cerulean); }
 .btn-update:hover { background: rgba(6, 182, 212, .12); }
 .btn-update[hidden] { display: none; }
+.up.auto { background: rgba(10, 10, 10, .82); color: var(--signal); }

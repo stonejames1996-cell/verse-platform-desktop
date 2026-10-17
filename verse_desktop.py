@@ -27,6 +27,8 @@ from rewind_core import (APP_NAME, APP_VERSION, DATA_DIR, IS_WINDOWS, KNOWN_GAME
                          save_config, set_autostart, visible_windows, _size)
 from library import ALLOWED_ORIGINS, ClipLibrary, ExportError, MediaServer
 from updater import Updater
+from overlay import Overlay, secs_text
+from highlights import LeagueHighlights
 
 log = logging.getLogger(APP_NAME)
 INSTANCE_FILE = os.path.join(DATA_DIR, "instance.json")
@@ -35,7 +37,8 @@ INSTANCE_FILE = os.path.join(DATA_DIR, "instance.json")
 RESTART_KEYS = {"fps", "bitrate", "output_height", "monitor", "record_desktop_audio", "mic_device",
                 "encoder", "capture", "draw_mouse", "audio_offset_ms"}
 LIVE_KEYS = {"hotkey", "buffer_seconds", "record_mode", "detect_fullscreen_apps", "stop_delay_seconds",
-             "custom_games", "ignored_apps", "play_sound_on_save", "sort_clips_by_game"}
+             "custom_games", "ignored_apps", "play_sound_on_save", "sort_clips_by_game",
+             "show_save_overlay", "auto_highlights", "highlight_level"}
 
 # A small "Clips" tab added to the left edge of Verse pages inside the app, so the clip library
 # is always one click away. Verse can render its own button instead: if the page has an element
@@ -118,6 +121,8 @@ class App:
         self.library = ClipLibrary(self.cfg["clips_folder"], DATA_DIR, ff)
         self.media = MediaServer(self.library, os.path.join(RES, "ui"), self.on_command)
         self.updater = Updater(self.on_update_ready)
+        self.overlay = Overlay(lambda: self.cfg.get("monitor", 0))
+        self.highlights = LeagueHighlights(lambda: self.cfg, self.is_playing, self.save_highlight)
         try:
             with open(INSTANCE_FILE, "w", encoding="utf-8") as f:
                 json.dump({"port": self.media.port, "secret": self.media.secret}, f)
@@ -216,19 +221,41 @@ class App:
         if self.rec:
             threading.Thread(target=self.rec.save_clip, daemon=True).start()
 
+    def is_playing(self, game):
+        return bool(self.rec and self.rec.capturing and self.rec.label == game)
+
+    def save_highlight(self, label):
+        if self.rec and self.rec.capturing:
+            self.rec.save_clip(tag=label)
+
     def on_saved(self, path, msg):
         if self.cfg.get("play_sound_on_save") and IS_WINDOWS:
             import winsound
             winsound.MessageBeep(winsound.MB_OK if path else winsound.MB_ICONHAND)
+        overlay = self.cfg.get("show_save_overlay", True)
         if not path:
             self.notice(msg)
+            if overlay:
+                self.overlay.show(msg, accent="", ok=False)
             self.notify(APP_NAME, msg)
             return
         game = self.rec.label if self.rec else ""
-        self.library.add(path, game=game)
+        tag = getattr(self.rec, "last_tag", "") if self.rec else ""
+        secs = secs_text(getattr(self.rec, "last_seconds", 0) or self.cfg["buffer_seconds"])
+        self.library.add(path, game=game, highlight=tag)
         self.bump()
+        if tag:
+            self.notice(f"Highlight saved: {tag}")
+            if overlay:
+                self.overlay.show(tag, accent="", sub=f"{game}  \u00b7  last {secs} saved by Verse Platform")
+            else:
+                self.notify(f"Highlight saved: {tag}", f"{game} clip saved on this PC.")
+            return
         self.notice("Clip saved to your library")
-        self.notify("Clip saved", f"{game or 'Clip'} saved on this PC. Open Clips to post it to Verse.")
+        if overlay:
+            self.overlay.show(f"Last {secs} saved by")
+        else:
+            self.notify("Clip saved", f"{game or 'Clip'} saved on this PC. Open Clips to post it to Verse.")
 
     def watch_loop(self):
         """Every 2 seconds: is a game running? Start or stop recording to match."""
@@ -304,6 +331,7 @@ class App:
         threading.Thread(target=self._scan_library, daemon=True).start()
         self.mics = list_mics(self.ff) if IS_WINDOWS else []
         self.updater.start()
+        self.highlights.start()
 
     # ------------------------------------------------------------ updates
     def on_update_ready(self, version):

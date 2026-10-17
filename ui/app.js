@@ -150,6 +150,7 @@ function clipCard(c) {
     el("div", { class: "clip-thumb" },
       c.thumb_url ? el("img", { src: c.thumb_url, alt: "", loading: "lazy" }) : null,
       posted ? el("span", { class: "up uploaded" }, icon("i-check"), "Posted") : null,
+      c.highlight && !posted ? el("span", { class: "up auto" }, "Auto") : null,
       el("span", { class: "dur" }, fmtDur(c.duration))
     ),
     el("div", { class: "clip-name" }, c.title),

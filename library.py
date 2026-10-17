@@ -85,7 +85,7 @@ class ClipLibrary:
             return dict(c) if c else None
 
     # ---- adding clips
-    def add(self, path, game=""):
+    def add(self, path, game="", highlight=""):
         rel = os.path.relpath(path, self.clips_folder)
         with self.lock:
             for c in self.clips.values():
@@ -96,8 +96,9 @@ class ClipLibrary:
         clip = {
             "id": uuid.uuid4().hex[:12],
             "path": rel,
-            "title": f"{game or 'Clip'} #{number}",
+            "title": highlight or f"{game or 'Clip'} #{number}",
             "game": game,
+            "highlight": highlight,
             "created": datetime.datetime.fromtimestamp(os.path.getmtime(path)).isoformat(timespec="seconds"),
             "duration": round(probe_duration(self.ff, path), 1),
             "size": os.path.getsize(path),

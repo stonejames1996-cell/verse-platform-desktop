@@ -131,6 +131,17 @@
               <button class="btn" id="add-game">Add</button>
             </div>
           </div>
+          <div class="row">
+            <div class="row-text"><strong>Auto clip highlights</strong><span>Saves your big plays by itself in League of Legends, no key needed</span></div>
+            <label class="switch"><input type="checkbox" data-set="auto_highlights"><span></span></label>
+          </div>
+          <div class="row">
+            <div class="row-text"><strong>What counts as a highlight</strong></div>
+            <select data-set="highlight_level" aria-label="What counts as a highlight">
+              <option value="big">Multi kills, aces and steals</option>
+              <option value="all">Every kill</option>
+            </select>
+          </div>
           <ul class="chips" id="custom-games" aria-label="Your games"></ul>
           <p class="hint" id="known-games-hint"></p>
         </section>
@@ -160,6 +171,10 @@
           <div class="row">
             <div class="row-text"><strong>Sound when a clip saves</strong></div>
             <label class="switch"><input type="checkbox" data-set="play_sound_on_save"><span></span></label>
+          </div>
+          <div class="row">
+            <div class="row-text"><strong>Pop-up when a clip saves</strong><span>"Last 60s saved by Verse Platform" over your game. It never shows up in your clips.</span></div>
+            <label class="switch"><input type="checkbox" data-set="show_save_overlay"><span></span></label>
           </div>
           <p class="hint" id="version"></p>
         </section>
