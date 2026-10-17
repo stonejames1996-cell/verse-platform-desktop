@@ -34,7 +34,7 @@ import threading
 import time
 
 APP_NAME = "Verse Platform"
-APP_VERSION = "1.1.0"
+APP_VERSION = "1.1.1"
 VERSE_URL = "https://verseplatform.gg"
 # GitHub repo the app updates itself from ("owner/repo"). Release.bat fills this in. Blank = no auto update.
 UPDATE_REPO = "stonejames1996-cell/verse-platform-desktop"
@@ -525,13 +525,16 @@ class Recorder:
                 # a piece cut off by a capture crash can be too broken to read, so drop those
                 parts = [p for p in parts if run_quiet([self.ff, "-v", "error", "-i", p, "-t", "0.2",
                                                         "-f", "null", "-"], timeout=20)[0] == 0] or parts[-1:]
+            # read the whole clip when working out its streams, not just the first 5 seconds. Late in a
+            # long game the first audio packet can sit further in than that ("sample rate not set")
+            probe = ["-fflags", "+genpts+discardcorrupt", "-analyzeduration", "120M", "-probesize", "200M"]
             if len(parts) == 1:
-                inputs = ["-fflags", "+genpts+discardcorrupt", "-i", parts[0]]
+                inputs = probe + ["-i", parts[0]]
             else:  # capture restarted mid-clip: let the concat demuxer line the pieces up
                 lst = os.path.join(snap, "list.txt")
                 with open(lst, "w", encoding="utf-8") as f:
                     f.writelines(f"file '{p.replace(chr(92), '/')}'\n" for p in parts)
-                inputs = ["-fflags", "+genpts+discardcorrupt", "-f", "concat", "-safe", "0", "-i", lst]
+                inputs = probe + ["-f", "concat", "-safe", "0", "-i", lst]
             folder = self.cfg["clips_folder"]
             if self.label and self.cfg.get("sort_clips_by_game", True):
                 folder = os.path.join(folder, safe_name(self.label))
@@ -545,16 +548,39 @@ class Recorder:
                 stamp = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
                 name = " ".join(x for x in (safe_name(self.label) or "Verse Platform", safe_name(tag), stamp) if x)
             out = os.path.join(folder, f"{name}.mp4")
-            cmd = [self.ff, "-hide_banner", "-loglevel", "error", "-y"] + inputs + [
-                   "-map", "0", "-c", "copy", "-avoid_negative_ts", "make_zero", "-movflags", "+faststart", out]
-            code, err = run_quiet(cmd, timeout=120)
+            base = [self.ff, "-hide_banner", "-loglevel", "error", "-y"] + inputs
+            tail = ["-avoid_negative_ts", "make_zero", "-movflags", "+faststart", out]
+            attempts = [
+                ("normal", ["-map", "0", "-c", "copy"]),
+                # sound is damaged: rebuild it, keep the picture as is
+                ("fixed audio", ["-map", "0:v", "-map", "0:a?", "-c:v", "copy", "-c:a", "aac", "-b:a", "192k",
+                                 "-ar", "48000", "-ac", "2"]),
+                # last resort: keep the moment, even without sound
+                ("no audio", ["-map", "0:v", "-c", "copy", "-an"]),
+            ]
+            msg = "Clip saved"
+            code, err, first_err = 1, "", ""
+            for how, args in attempts:
+                code, err = run_quiet(base + args + tail, timeout=180)
+                if code == 0 and os.path.exists(out) and _size(out) > 4096:
+                    if how != "normal":
+                        log.warning("Saved with %s after: %s", how, first_err.strip()[-300:])
+                        if how == "no audio":
+                            msg = "Clip saved (no sound this time)"
+                    break
+                if how == "normal":
+                    first_err = err
+                try:
+                    os.remove(out)
+                except OSError:
+                    pass
             shutil.rmtree(snap, ignore_errors=True)
-            if code != 0 or not os.path.exists(out):
+            if not os.path.exists(out):
                 log.error("Saving clip failed: %s", err.strip()[-500:])
                 self._notify(None, "Saving the clip failed, check the log")
                 return None
             log.info("Saved %s", out)
-            self._notify(out, "Clip saved")
+            self._notify(out, msg)
             return out
         finally:
             self.save_lock.release()

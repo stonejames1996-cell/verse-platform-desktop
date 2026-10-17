@@ -28,6 +28,29 @@ COMBOS = {
 }
 
 
+SPEECH_FULL_NAME = "System.Speech, Version=4.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35"
+
+
+def _load_speech(clr):
+    """System.Speech lives in Windows' shared .NET folder (the GAC). Asking for it by its short
+    name doesn't look there, so use its full name, then the file itself as a fallback."""
+    import glob
+    import os
+    tries = [SPEECH_FULL_NAME, "System.Speech"]
+    windir = os.environ.get("WINDIR", r"C:\Windows")
+    tries += glob.glob(os.path.join(windir, "Microsoft.NET", "assembly", "GAC_MSIL", "System.Speech", "*", "System.Speech.dll"))
+    tries += [os.path.join(windir, "Microsoft.NET", fw, "v4.0.30319", "WPF", "System.Speech.dll")
+              for fw in ("Framework64", "Framework")]
+    last = None
+    for t in tries:
+        try:
+            clr.AddReference(t)
+            return
+        except Exception as e:
+            last = e
+    raise last
+
+
 class VoiceTrigger:
     def __init__(self, on_trigger):
         self.on_trigger = on_trigger
@@ -44,7 +67,7 @@ class VoiceTrigger:
             return self.running
         try:
             import clr  # pythonnet, already used by the app window
-            clr.AddReference("System.Speech")
+            _load_speech(clr)
             from System.Globalization import CultureInfo
             from System.Speech.Recognition import (Choices, Grammar, GrammarBuilder, RecognizeMode,
                                                    SpeechRecognitionEngine)
