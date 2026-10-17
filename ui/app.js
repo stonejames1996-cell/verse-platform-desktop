@@ -278,6 +278,9 @@ async function loadSettings() {
     else if (b.type === "checkbox") b.checked = !!val;
     else b.value = String(val ?? "");
   }
+  const hl = Object.assign({}, r.highlight_defaults || {}, r.config.highlight_events || {});
+  for (const c of $$("[data-hl]")) c.checked = !!hl[c.dataset.hl];
+  $("#hl-body").classList.toggle("off", !r.config.auto_highlights);
   $("#autostart").checked = r.autostart;
   $("#hotkey-btn").textContent = r.config.hotkey.toUpperCase().replace(/\+/g, " + ");
   $("#folder-path").textContent = r.config.clips_folder;
@@ -335,6 +338,13 @@ function wire() {
     if (!t.dataset || !t.dataset.set) return;
     const v = t.type === "checkbox" ? t.checked : "num" in t.dataset ? Number(t.value) : t.value;
     setSetting(t.dataset.set, v);
+  });
+  document.addEventListener("change", (e) => {
+    const c = e.target;
+    if (!c.dataset || !c.dataset.hl) return;
+    const ev = Object.assign({}, settings.highlight_defaults || {}, settings.config.highlight_events || {});
+    ev[c.dataset.hl] = c.checked;
+    setSetting("highlight_events", ev);
   });
   $("#autostart").addEventListener("change", (e) => call("set_autostart", e.target.checked));
   $("#change-folder").addEventListener("click", async () => {

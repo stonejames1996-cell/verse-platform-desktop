@@ -34,7 +34,7 @@ import threading
 import time
 
 APP_NAME = "Verse Platform"
-APP_VERSION = "1.0.4"
+APP_VERSION = "1.0.5"
 VERSE_URL = "https://verseplatform.gg"
 # GitHub repo the app updates itself from ("owner/repo"). Release.bat fills this in. Blank = no auto update.
 UPDATE_REPO = "stonejames1996-cell/verse-platform-desktop"
@@ -83,7 +83,10 @@ DEFAULT_CONFIG = {
     "play_sound_on_save": True,
     "show_save_overlay": True,     # "Last 60s saved by Verse Platform" pop-up over the game
     "auto_highlights": True,       # clip big plays by themselves (League of Legends)
-    "highlight_level": "big",      # big = multikills, aces, steals | all = every kill too
+    "highlight_events": {},        # which moments count, see highlights.DEFAULT_EVENTS (blank = defaults)
+    "highlight_before": 5,         # seconds kept before the first moment of a play
+    "highlight_after": 5,          # seconds kept after the last moment
+    "highlight_max_per_game": 10,  # 0 = no limit
     "max_post_seconds": 60,        # Verse posts are 60 seconds max
     "verse_url": "",               # blank = https://verseplatform.gg
 }
@@ -452,7 +455,8 @@ class Recorder:
                 except OSError:
                     pass
 
-    def save_clip(self, seconds=None, tag=""):
+    def save_clip(self, seconds=None, tag="", window=None):
+        """Saves the last 'seconds', or with window=(start, end) (time.time() values) just that stretch."""
         if not self.save_lock.acquire(blocking=False):
             return None  # already saving, ignore button mashing
         try:
@@ -474,7 +478,11 @@ class Recorder:
             if not self.capturing:
                 count += 1  # the last chunk was cut short when capture stopped, so take one more
             pick = segs[-count:]
-            self.last_seconds = min(seconds, len(pick) * SEGMENT_SECONDS)
+            if window:
+                # each chunk's file time is when it finished, so it covers [time - 2s, time]
+                start, end = window
+                pick = [x for x in segs if _mtime(x) > start and _mtime(x) - SEGMENT_SECONDS < end]
+            self.last_seconds = len(pick) * SEGMENT_SECONDS if window else min(seconds, len(pick) * SEGMENT_SECONDS)
             if not pick:
                 self._notify(None, "Nothing recorded yet" if self.capturing else
                              "Not recording right now. Start a game, or switch to Always record")
@@ -696,6 +704,13 @@ class GameWatcher:
                     self.last_fullscreen_app = w
                     return w.title.strip() or os.path.splitext(w.exe)[0]
         return None
+
+
+def _mtime(path):
+    try:
+        return os.path.getmtime(path)
+    except OSError:
+        return 0.0
 
 
 def _size(path):

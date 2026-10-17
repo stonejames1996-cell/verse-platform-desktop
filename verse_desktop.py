@@ -28,7 +28,7 @@ from rewind_core import (APP_NAME, APP_VERSION, DATA_DIR, IS_WINDOWS, KNOWN_GAME
 from library import ALLOWED_ORIGINS, ClipLibrary, ExportError, MediaServer
 from updater import Updater
 from overlay import Overlay, secs_text
-from highlights import LeagueHighlights
+from highlights import DEFAULT_EVENTS, LeagueHighlights
 
 log = logging.getLogger(APP_NAME)
 INSTANCE_FILE = os.path.join(DATA_DIR, "instance.json")
@@ -38,7 +38,8 @@ RESTART_KEYS = {"fps", "bitrate", "output_height", "monitor", "record_desktop_au
                 "encoder", "capture", "draw_mouse", "audio_offset_ms"}
 LIVE_KEYS = {"hotkey", "buffer_seconds", "record_mode", "detect_fullscreen_apps", "stop_delay_seconds",
              "custom_games", "ignored_apps", "play_sound_on_save", "sort_clips_by_game",
-             "show_save_overlay", "auto_highlights", "highlight_level"}
+             "show_save_overlay", "auto_highlights", "highlight_events", "highlight_before",
+             "highlight_after", "highlight_max_per_game"}
 
 # A small "Clips" tab added to the left edge of Verse pages inside the app, so the clip library
 # is always one click away. Verse can render its own button instead: if the page has an element
@@ -229,9 +230,9 @@ class App:
     def is_playing(self, game):
         return bool(self.rec and self.rec.capturing and self.rec.label == game)
 
-    def save_highlight(self, label):
-        if self.rec and self.rec.capturing:
-            self.rec.save_clip(tag=label)
+    def save_highlight(self, label, start, end):
+        if self.rec and (self.rec.capturing or self.rec.segments()):
+            self.rec.save_clip(tag=label, window=(start, end))
 
     def on_saved(self, path, msg):
         if self.cfg.get("play_sound_on_save") and IS_WINDOWS:
@@ -588,6 +589,7 @@ class Api:
             "known_games": sorted(set(KNOWN_GAMES.values())),
             "running_apps": running,
             "version": APP_VERSION,
+            "highlight_defaults": DEFAULT_EVENTS,
         }
 
     def set_setting(self, key, value):

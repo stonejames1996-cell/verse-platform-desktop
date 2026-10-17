@@ -153,11 +153,10 @@ select {
 .empty p { max-width: 380px; }
 
 /* ---------- settings */
-.settings { display: grid; gap: 20px; grid-template-columns: 1fr; align-items: start; max-width: 1500px; }
+.settings { max-width: 1500px; column-gap: 20px; }
+.settings > .set-group { break-inside: avoid; margin-bottom: 20px; }
 @media (min-width: 1180px) {
-  /* wide window: Recording on the left, Games / Audio / General stacked on the right */
-  .settings { grid-template-columns: 1fr 1fr; }
-  .settings > .set-group:first-child { grid-row: span 3; }
+  .settings { column-count: 2; }
 }
 .set-group { background: var(--deck); border: 1px solid var(--seam); border-radius: var(--r-md); padding: 18px 22px 8px; }
 .set-group .row:last-of-type { border-bottom: 0; }
@@ -232,3 +231,11 @@ video { display: block; width: 100%; aspect-ratio: 16 / 9; max-height: calc(100v
 .btn-update:hover { background: rgba(6, 182, 212, .12); }
 .btn-update[hidden] { display: none; }
 .up.auto { background: rgba(10, 10, 10, .82); color: var(--signal); }
+
+.hl-body.off { opacity: .45; pointer-events: none; }
+.hl-list { border-top: 1px solid var(--seam); padding: 12px 0 12px; display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 8px 16px; }
+.hl-head { grid-column: 1 / -1; font-size: 12px; font-weight: 600; color: var(--haze); text-transform: uppercase; letter-spacing: .06em; padding-bottom: 2px; }
+.hl-body .inline select { width: 130px; }
+.hl-list label { display: flex; align-items: baseline; gap: 8px; font-size: 14px; cursor: pointer; line-height: 1.35; }
+.hl-list label small { color: var(--haze); font-size: 12px; }
+.hl-list input { accent-color: var(--cerulean); width: 16px; height: 16px; flex: none; transform: translateY(2px); }

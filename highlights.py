@@ -1,14 +1,14 @@
 """
-Auto highlights: saves a clip by itself when you make a play.
+Auto highlights: saves a short clip by itself when something worth posting happens.
 
 League of Legends: uses Riot's official Live Client Data API, which the game itself serves on
 https://127.0.0.1:2999 during a match. It's read only, made by Riot for tools like this, and
-doesn't touch the game, so it's safe with Vanguard. The app reads the match's event feed
-(kills, multikills, aces, objective steals) once a second and clips the ones you made.
+doesn't touch the game, so it's safe with Vanguard. The app reads the match's event feed once a
+second and clips the moments ticked in Settings.
 
-A fight often has several events in a row (kill, then double, then triple), so the app waits
-until 6 seconds pass with no new play from you, then saves one clip named after the best moment.
-That wait also catches the moment after the play.
+Clip length: from a few seconds before the first moment of a play to a few seconds after the last
+one (5 and 5 by default). A fight with a kill, then a double, then a triple becomes ONE clip that
+covers all of it, named after the best bits, e.g. "Triple kill + Ace".
 """
 
 import json
@@ -21,10 +21,20 @@ import urllib.request
 log = logging.getLogger("verse.highlights")
 
 LOL_API = "https://127.0.0.1:2999/liveclientdata"
-SETTLE_SECONDS = 6
-MULTI = {2: "Double kill", 3: "Triple kill", 4: "Quadra kill", 5: "Pentakill"}
-OBJECTIVES = {"BaronKill": "Baron", "DragonKill": "Dragon", "HeraldKill": "Herald", "HordeKill": "Voidgrubs",
-              "AtakhanKill": "Atakhan"}
+TEAMFIGHT_WINDOW = 10   # 3 kills or assists within this many seconds counts as a teamfight
+SEGMENT_SLACK = 2.5     # the recorder writes 2 second chunks, wait for the last one to finish
+
+# what can be ticked in Settings, with defaults
+DEFAULT_EVENTS = {
+    "double": True, "triple": True, "quadra": True, "penta": True,
+    "first_blood": True, "ace": True, "teamfight": True, "every_kill": False,
+    "steal": True, "baron_elder": True, "dragon": False, "structure": False,
+    "victory": True, "defeat": False, "death": False,
+}
+MULTI = {2: ("double", "Double kill", 4), 3: ("triple", "Triple kill", 6),
+         4: ("quadra", "Quadra kill", 9), 5: ("penta", "Pentakill", 10)}
+OBJECTIVES = {"BaronKill": "Baron", "DragonKill": "Dragon", "HeraldKill": "Herald",
+              "HordeKill": "Voidgrubs", "AtakhanKill": "Atakhan"}
 
 # Riot's local game API uses its own certificate, so skip verification for this one localhost address
 _ctx = ssl.create_default_context()
@@ -48,20 +58,29 @@ def _names(*vals):
     return out
 
 
+def events_config(cfg):
+    ev = dict(DEFAULT_EVENTS)
+    ev.update(cfg.get("highlight_events") or {})
+    return ev
+
+
 class LeagueHighlights:
-    """Watches the League match and calls save(label) after a highlight."""
+    """Watches the League match and calls save(label, start_time, end_time) after a highlight."""
 
     GAME = "League of Legends"
 
-    def __init__(self, get_cfg, is_playing, save):
-        self.get_cfg, self.is_playing, self.save = get_cfg, is_playing, save
+    def __init__(self, get_cfg, is_playing, save, clock=time.time):
+        self.get_cfg, self.is_playing, self.save, self.clock = get_cfg, is_playing, save, clock
         self._reset()
 
     def _reset(self):
         self.me = set()
         self.last_id = None
-        self.pending = None   # (rank, label)
-        self.deadline = 0.0
+        self.play = None        # {"labels": {key: (rank, text)}, "first": t, "last": t}
+        self.involved = []      # wall times of my kills and assists, for teamfights
+        self.my_kills = []      # wall times of my kills, so a multi kill clip starts at the first one
+        self.saved = 0
+        self.offset = None      # wall clock minus game clock
 
     def start(self):
         threading.Thread(target=self._loop, daemon=True, name="highlights").start()
@@ -72,14 +91,15 @@ class LeagueHighlights:
                 cfg = self.get_cfg()
                 if cfg.get("auto_highlights", True) and self.is_playing(self.GAME):
                     self._tick(cfg)
-                else:
-                    if self.pending:
-                        self._fire()
-                    self._reset()
+                elif self.me or self.play:
+                    self._check_fire(cfg, force_after_game=True)
+                    if not self.play:
+                        self._reset()
             except Exception:
                 log.debug("highlight poll", exc_info=True)
             time.sleep(1)
 
+    # ---------------------------------------------------------------- polling
     def _tick(self, cfg):
         if not self.me:
             try:
@@ -91,50 +111,114 @@ class LeagueHighlights:
             self.me = _names(me, *[x for p in mine for x in (p.get("riotId"), p.get("riotIdGameName"), p.get("summonerName"))])
             log.info("Watching League highlights for %s", me)
         try:
+            game_time = float(_get("/gamestats").get("gameTime", 0))
             events = _get("/eventdata").get("Events", [])
+            self.offset = self.clock() - game_time
         except Exception:
             events = []
-        if self.last_id is None:
+        if self.last_id is None and self.offset is not None:
             # first look at this match: skip anything that happened before we started watching
             self.last_id = max((e.get("EventID", -1) for e in events), default=-1)
         for e in events:
-            if e.get("EventID", -1) > self.last_id:
+            if self.last_id is not None and e.get("EventID", -1) > self.last_id:
                 self.last_id = e["EventID"]
                 self._event(e, cfg)
-        if self.pending and time.time() >= self.deadline:
-            self._fire()
+        self._check_fire(cfg)
 
     def _is_me(self, name):
         return bool(name) and bool(_names(name) & self.me)
 
+    # ---------------------------------------------------------------- what counts
     def _event(self, e, cfg):
-        every_kill = cfg.get("highlight_level", "big") == "all"
+        on = events_config(cfg)
+        t = self.offset + float(e.get("EventTime", 0)) if self.offset is not None else self.clock()
         name = e.get("EventName")
-        hit = None
-        if name == "Multikill" and self._is_me(e.get("KillerName")):
-            n = int(e.get("KillStreak", 2))
-            hit = (n, MULTI.get(n, "Pentakill" if n > 5 else "Multi kill"))
-        elif name == "Ace" and self._is_me(e.get("Acer")):
-            hit = (3, "Ace")
-        elif name in OBJECTIVES and self._is_me(e.get("KillerName")) and str(e.get("Stolen")).lower() == "true":
-            hit = (4, f"{OBJECTIVES[name]} steal")
-        elif name == "ChampionKill" and self._is_me(e.get("KillerName")):
-            if every_kill:
-                hit = (1, "Kill")
-            elif self.pending:  # part of a fight we're already clipping: keep waiting for it to finish
-                self.deadline = time.time() + SETTLE_SECONDS
-        elif name == "FirstBlood" and self._is_me(e.get("Recipient")) and every_kill:
-            hit = (1.5, "First blood")
-        if hit:
-            if not self.pending or hit[0] >= self.pending[0]:
-                self.pending = hit
-            self.deadline = time.time() + SETTLE_SECONDS
-            log.info("Highlight: %s", hit[1])
+        hits = []   # (key, text, rank)
+        mine_fight = False
+        streak_start = t
 
-    def _fire(self):
-        label = self.pending[1]
-        self.pending = None
+        if name == "ChampionKill":
+            killer = self._is_me(e.get("KillerName"))
+            assist = any(self._is_me(a) for a in e.get("Assisters") or [])
+            if killer or assist:
+                mine_fight = True
+                self.involved = [x for x in self.involved if t - x <= TEAMFIGHT_WINDOW] + [t]
+                if len(self.involved) >= 3:
+                    hits.append(("teamfight", "Teamfight", 3.5))
+            if killer:
+                self.my_kills = self.my_kills[-4:] + [t]
+                hits.append(("every_kill", "Kill", 1))
+            if self._is_me(e.get("VictimName")):
+                hits.append(("death", "Death", 0.5))
+        elif name == "Multikill" and self._is_me(e.get("KillerName")):
+            n = min(5, int(e.get("KillStreak", 2)))
+            hits.append(MULTI.get(n, MULTI[2]))
+            streak_start = self.my_kills[-n] if len(self.my_kills) >= n else t
+        elif name == "FirstBlood" and self._is_me(e.get("Recipient")):
+            hits.append(("first_blood", "First blood", 3))
+        elif name == "Ace" and self._is_me(e.get("Acer")):
+            hits.append(("ace", "Ace", 5.8))
+        elif name in OBJECTIVES and self._is_me(e.get("KillerName")):
+            what = OBJECTIVES[name]
+            if name == "DragonKill" and str(e.get("DragonType", "")).lower() == "elder":
+                what = "Elder Dragon"
+            if str(e.get("Stolen")).lower() == "true":
+                hits.append(("steal", f"{what} steal", 8))
+            elif what in ("Baron", "Elder Dragon"):
+                hits.append(("baron_elder", what, 5))
+            elif name == "DragonKill":
+                hits.append(("dragon", "Dragon", 2.5))
+        elif name in ("TurretKilled", "InhibKilled") and self._is_me(e.get("KillerName")):
+            hits.append(("structure", "Tower" if name == "TurretKilled" else "Inhibitor", 1.5 if name == "TurretKilled" else 2))
+        elif name == "GameEnd":
+            win = str(e.get("Result", "")).lower() == "win"
+            hits.append(("victory", "Victory", 5.5) if win else ("defeat", "Defeat", 1))
+
+        hits = [h for h in hits if on.get(h[0])]
+        if hits:
+            start = min(t, streak_start)
+            if not self.play:
+                self.play = {"labels": {}, "first": start, "last": t}
+            self.play["first"] = min(self.play["first"], start)
+            for key, text, rank in hits:
+                group = "multi" if key in ("double", "triple", "quadra", "penta") else key
+                if group not in self.play["labels"] or rank > self.play["labels"][group][0]:
+                    self.play["labels"][group] = (rank, text)
+            self.play["last"] = max(self.play["last"], t)
+            log.info("Highlight moment: %s", ", ".join(h[1] for h in hits))
+        elif mine_fight and self.play:
+            self.play["last"] = max(self.play["last"], t)   # keep the clean-up in the same clip
+
+    def label(self):
+        items = sorted(self.play["labels"].values(), reverse=True)
+        names = [txt for _, txt in items]
+        if len(names) > 1:  # "Kill" and "Teamfight" are only worth naming on their own
+            names = [n for n in names if n not in ("Kill", "Teamfight", "Death")] or names[:1]
+        return " + ".join(names[:2])
+
+    # ---------------------------------------------------------------- saving
+    def _check_fire(self, cfg, force_after_game=False):
+        if not self.play:
+            return
+        before = float(cfg.get("highlight_before", 5))
+        after = float(cfg.get("highlight_after", 5))
+        if self.clock() < self.play["last"] + after + SEGMENT_SLACK:
+            return
+        play, self.play = self.play, None
+        cap = int(cfg.get("highlight_max_per_game", 10) or 0)
+        label = self.label_for(play)
+        if cap and self.saved >= cap:
+            log.info("Skipped highlight %s, already saved %d this game", label, self.saved)
+            return
+        self.saved += 1
         try:
-            self.save(label)
+            self.save(label, play["first"] - before, play["last"] + after)
         except Exception:
             log.exception("Saving highlight failed")
+
+    def label_for(self, play):
+        keep, self.play = self.play, play
+        try:
+            return self.label()
+        finally:
+            self.play = keep

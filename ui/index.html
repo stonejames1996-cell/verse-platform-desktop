@@ -131,17 +131,6 @@
               <button class="btn" id="add-game">Add</button>
             </div>
           </div>
-          <div class="row">
-            <div class="row-text"><strong>Auto clip highlights</strong><span>Saves your big plays by itself in League of Legends, no key needed</span></div>
-            <label class="switch"><input type="checkbox" data-set="auto_highlights"><span></span></label>
-          </div>
-          <div class="row">
-            <div class="row-text"><strong>What counts as a highlight</strong></div>
-            <select data-set="highlight_level" aria-label="What counts as a highlight">
-              <option value="big">Multi kills, aces and steals</option>
-              <option value="all">Every kill</option>
-            </select>
-          </div>
           <ul class="chips" id="custom-games" aria-label="Your games"></ul>
           <p class="hint" id="known-games-hint"></p>
         </section>
@@ -155,6 +144,59 @@
           <div class="row">
             <div class="row-text"><strong>Microphone</strong></div>
             <select data-set="mic_device" id="mic-select" aria-label="Microphone"><option value="">No microphone</option></select>
+          </div>
+        </section>
+
+        <section class="set-group" id="hl-group">
+          <h3>League of Legends highlights</h3>
+          <div class="row">
+            <div class="row-text"><strong>Auto clip highlights</strong><span>Saves short clips of your plays by itself, no key needed</span></div>
+            <label class="switch"><input type="checkbox" data-set="auto_highlights"><span></span></label>
+          </div>
+          <div class="hl-body" id="hl-body">
+            <div class="hl-list" role="group" aria-label="Kills">
+              <div class="hl-head">Kills</div>
+              <label><input type="checkbox" data-hl="double"> Double kill</label>
+              <label><input type="checkbox" data-hl="triple"> Triple kill</label>
+              <label><input type="checkbox" data-hl="quadra"> Quadra kill</label>
+              <label><input type="checkbox" data-hl="penta"> Pentakill</label>
+              <label><input type="checkbox" data-hl="first_blood"> First blood</label>
+              <label><input type="checkbox" data-hl="ace"> Ace <small>you got the last kill</small></label>
+              <label><input type="checkbox" data-hl="teamfight"> Teamfight <small>3+ kills or assists in 10s</small></label>
+              <label><input type="checkbox" data-hl="every_kill"> Every kill</label>
+            </div>
+            <div class="hl-list" role="group" aria-label="Objectives">
+              <div class="hl-head">Objectives</div>
+              <label><input type="checkbox" data-hl="steal"> Steals <small>Baron, Dragon, Herald, Voidgrubs, Atakhan</small></label>
+              <label><input type="checkbox" data-hl="baron_elder"> Baron or Elder Dragon <small>your last hit</small></label>
+              <label><input type="checkbox" data-hl="dragon"> Any Dragon <small>your last hit</small></label>
+              <label><input type="checkbox" data-hl="structure"> Tower or inhibitor <small>your last hit</small></label>
+            </div>
+            <div class="hl-list" role="group" aria-label="Game">
+              <div class="hl-head">Game</div>
+              <label><input type="checkbox" data-hl="victory"> Victory <small>the Nexus falling</small></label>
+              <label><input type="checkbox" data-hl="defeat"> Defeat</label>
+              <label><input type="checkbox" data-hl="death"> Your deaths <small>blooper reel</small></label>
+            </div>
+            <div class="row">
+              <div class="row-text"><strong>Clip length</strong><span>Around the whole play, so a fight is one clip</span></div>
+              <div class="inline">
+                <select data-set="highlight_before" data-num aria-label="Seconds before">
+                  <option value="3">3s before</option><option value="5">5s before</option><option value="8">8s before</option>
+                  <option value="10">10s before</option><option value="15">15s before</option>
+                </select>
+                <select data-set="highlight_after" data-num aria-label="Seconds after">
+                  <option value="3">3s after</option><option value="5">5s after</option><option value="8">8s after</option>
+                  <option value="10">10s after</option>
+                </select>
+              </div>
+            </div>
+            <div class="row">
+              <div class="row-text"><strong>Most auto clips per game</strong></div>
+              <select data-set="highlight_max_per_game" data-num aria-label="Most auto clips per game">
+                <option value="5">5</option><option value="10">10</option><option value="20">20</option><option value="0">No limit</option>
+              </select>
+            </div>
           </div>
         </section>
 
