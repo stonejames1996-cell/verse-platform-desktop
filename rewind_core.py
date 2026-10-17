@@ -119,6 +119,7 @@ def load_config():
                 cfg.update(json.load(f))
         except Exception as e:  # broken json shouldn't brick the app
             log.error("config.json could not be read (%s), using defaults", e)
+    cfg["clip_watermark"] = True  # "Clipped by Verse Platform" is always on, it isn't a setting any more
     save_config(cfg)  # write back so new options show up for the user
     cfg["clips_folder"] = os.path.abspath(os.path.expanduser(cfg["clips_folder"]))
     return cfg

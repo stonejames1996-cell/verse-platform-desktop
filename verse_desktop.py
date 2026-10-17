@@ -42,7 +42,7 @@ RESTART_KEYS = {"fps", "bitrate", "output_height", "monitor", "record_desktop_au
 LIVE_KEYS = {"hotkey", "buffer_seconds", "record_mode", "detect_fullscreen_apps", "stop_delay_seconds",
              "custom_games", "ignored_apps", "play_sound_on_save", "sort_clips_by_game",
              "show_save_overlay", "auto_highlights", "highlight_events", "highlight_before",
-             "highlight_after", "highlight_max_per_game", "clip_watermark", "voice_command",
+             "highlight_after", "highlight_max_per_game", "voice_command",
              "controller_combo", "auto_clean_days", "auto_clean_permanent"}
 
 # A small "Clips" tab added to the left edge of Verse pages inside the app, so the clip library
