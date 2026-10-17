@@ -34,6 +34,19 @@ POV_HEIGHT = 540        # the copy sent to the squad is small: 960x540
 POV_BITRATE = "1500k"
 
 
+def relay_secret():
+    """Key that lets the app use Verse's squadRelay. The GitHub build bakes it into the installer
+    from a repo secret (it's never in the public code). VERSE_SQUAD_SECRET overrides it for testing."""
+    if os.environ.get("VERSE_SQUAD_SECRET"):
+        return os.environ["VERSE_SQUAD_SECRET"]
+    from rewind_core import RES
+    try:
+        with open(os.path.join(RES, "squad_secret.txt"), encoding="ascii") as f:
+            return f.read().strip()
+    except OSError:
+        return ""
+
+
 def make_code():
     import secrets
     alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"   # no 0/O or 1/I mix ups
@@ -143,7 +156,8 @@ class Squad:
         return (me.split("#")[0] or os.environ.get("USERNAME") or "Squad mate")[:24]
 
     def endpoint(self):
-        return self.app.verse + "/functions/squadRelay"
+        from urllib.parse import quote
+        return self.app.verse + "/functions/squadRelay?secret=" + quote(relay_secret())
 
     def _post(self, payload, timeout=15):
         payload = dict(payload, squad=self.code, device=self.cfg.get("device_id", ""), name=self.name())

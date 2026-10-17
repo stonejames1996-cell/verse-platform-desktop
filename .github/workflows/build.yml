@@ -40,6 +40,15 @@ jobs:
           else { "new=true" >> $env:GITHUB_OUTPUT; Write-Host "v$v is new, it will be released" }
           $global:LASTEXITCODE = 0
 
+      - name: Squad POV key
+        shell: pwsh
+        env:
+          SQUAD_RELAY_SECRET: ${{ secrets.SQUAD_RELAY_SECRET }}
+        run: |
+          # baked into the installer only, never committed (the repo is public)
+          if ($env:SQUAD_RELAY_SECRET) { Set-Content squad_secret.txt $env:SQUAD_RELAY_SECRET -NoNewline -Encoding ascii }
+          else { Write-Host "No SQUAD_RELAY_SECRET set, Squad POV won't be able to reach Verse" }
+
       - name: Build
         shell: pwsh
         run: ./build.ps1 -CI
