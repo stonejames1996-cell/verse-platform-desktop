@@ -46,6 +46,7 @@ if ($core -notmatch "UPDATE_REPO = `"$([regex]::Escape($repo))`"") {
 # --- Version ------------------------------------------------------------------------
 $current = ([regex]::Match($core, 'APP_VERSION = "(.+?)"')).Groups[1].Value
 $p = $current.Split("."); $next = "$($p[0]).$($p[1]).$([int]$p[2] + 1)"
+git fetch --tags --quiet 2>$null
 $tags = @(git tag --list "v*" 2>$null)
 if ($tags -notcontains "v$current") { $next = $current }   # this version hasn't been released yet
 Write-Host "`nCurrent version: $current" -ForegroundColor Green
@@ -66,9 +67,7 @@ Step "Sending v$version to GitHub (a browser window may ask you to sign in the f
 Git add -A
 git diff --cached --quiet
 if ($LASTEXITCODE -ne 0) { Git commit -m "Release v$version" --quiet }
-Git tag -a "v$version" -m "Verse Platform $version"
-Git push -u origin main
-Git push origin "v$version"
+Git push -u origin main   # GitHub sees the new version number and publishes the release
 
 $actions = "https://github.com/$repo/actions"
 Write-Host "`nDONE! GitHub is building v$version now (about 10 minutes)." -ForegroundColor Green
