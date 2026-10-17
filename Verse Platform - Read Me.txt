@@ -1,0 +1,32 @@
+VERSE PLATFORM FOR WINDOWS - QUICK START
+========================================
+
+INSTALL
+1. Double click "Verse Platform Setup 1.0.1.exe".
+2. If Windows says "Windows protected your PC", click More info, then Run anyway.
+3. Click through the installer and leave "Launch Verse Platform now" ticked.
+4. Verse opens in its own window. Log in like you do on the website.
+   Closing the window keeps it running in your system tray (bottom right, click ^ if you can't see it).
+
+HOW IT WORKS
+Play  >  it captures  >  save locally  >  preview and trim  >  publish to Verse
+
+- It starts recording by itself when you're in a game. (League: it waits in the lobby
+  and kicks in when the match loads.)
+- Press ALT + F10 to save the last 60 seconds. You'll hear a ding.
+- Clips stay on your PC. Nothing goes online unless you publish it.
+
+POST A CLIP
+1. Click the CLIPS tab on the left edge of Verse (or My clips).
+2. Open a clip and drag the handles to pick the part to post (up to 60 seconds).
+3. Click Publish to Verse. Verse's Upload screen opens with your clip loaded and the game picked.
+4. Add your caption and hashtags, then post like normal.
+
+WHERE CLIPS ARE SAVED
+C:\Users\<your name>\Videos\Verse Platform\<game name>
+
+TIPS
+- Change the shortcut or clip length: My clips, then the gear icon.
+- Game not detected? With the game open: Settings, Games, Add a game.
+- Play in borderless windowed mode, or clips may come out black.
+- Record your mic: Settings, Audio, Microphone.

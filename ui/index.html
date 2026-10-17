@@ -1,0 +1,208 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Verse Platform</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-clips" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2.5" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M10 9.2v5.6l4.6-2.8z" fill="currentColor"/></symbol>
+  <symbol id="i-gear" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3.2" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M12 2.8v2.6M12 18.6v2.6M21.2 12h-2.6M5.4 12H2.8M18.5 5.5l-1.8 1.8M7.3 16.7l-1.8 1.8M18.5 18.5l-1.8-1.8M7.3 7.3 5.5 5.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
+  <symbol id="i-user" viewBox="0 0 24 24"><circle cx="12" cy="8.5" r="3.8" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M4.5 20c1.3-3.6 4.2-5.4 7.5-5.4s6.2 1.8 7.5 5.4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
+  <symbol id="i-cloud" viewBox="0 0 24 24"><path d="M7 18.5h10.2a4 4 0 0 0 .5-8 6 6 0 0 0-11.5 1.6A3.3 3.3 0 0 0 7 18.5z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></symbol>
+  <symbol id="i-cloud-up" viewBox="0 0 24 24"><path d="M7 18.5h10.2a4 4 0 0 0 .5-8 6 6 0 0 0-11.5 1.6A3.3 3.3 0 0 0 7 18.5z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M12 16v-5.5m-2.4 2.3L12 10.4l2.4 2.4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-cloud-ok" viewBox="0 0 24 24"><path d="M7 18.5h10.2a4 4 0 0 0 .5-8 6 6 0 0 0-11.5 1.6A3.3 3.3 0 0 0 7 18.5z" fill="currentColor" opacity=".18"/><path d="M7 18.5h10.2a4 4 0 0 0 .5-8 6 6 0 0 0-11.5 1.6A3.3 3.3 0 0 0 7 18.5z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="m9.4 13.6 1.9 1.9 3.6-3.7" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-alert" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M12 7.8v5M12 16.2v.1" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+  <symbol id="i-folder" viewBox="0 0 24 24"><path d="M3.5 7.5a2 2 0 0 1 2-2h4l2 2.2h7a2 2 0 0 1 2 2v7.8a2 2 0 0 1-2 2h-13a2 2 0 0 1-2-2z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></symbol>
+  <symbol id="i-trash" viewBox="0 0 24 24"><path d="M4.5 7h15M9.5 7V4.8h5V7M6.5 7l.9 12.2h9.2L17.5 7" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-close" viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+  <symbol id="i-home" viewBox="0 0 24 24"><path d="M4 10.5 12 4l8 6.5V19a1.5 1.5 0 0 1-1.5 1.5H15v-5.5H9v5.5H5.5A1.5 1.5 0 0 1 4 19z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></symbol>
+  <symbol id="i-send" viewBox="0 0 24 24"><path d="M12 16V5m-4.5 4.5L12 5l4.5 4.5M5 19h14" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7.5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-play" viewBox="0 0 24 24"><path d="M8 5.5v13l10.5-6.5z" fill="currentColor"/></symbol>
+  <symbol id="i-rewind" viewBox="0 0 24 24"><path d="M11.5 6.5 4 12l7.5 5.5zM20 6.5 12.5 12 20 17.5z" fill="currentColor"/></symbol>
+</svg>
+
+<div class="shell">
+  <nav class="rail" aria-label="Main">
+    <button class="rail-logo-btn" id="go-verse-logo" aria-label="Back to Verse" title="Back to Verse"><img class="rail-logo" src="logo.png" alt="" width="40" height="40"></button>
+    <button class="rail-btn" id="go-verse" aria-label="Verse feed" title="Verse feed"><svg><use href="#i-home"/></svg></button>
+    <button class="rail-btn" data-view="clips" aria-label="My clips" title="My clips"><svg><use href="#i-clips"/></svg></button>
+    <button class="rail-btn" data-view="settings" aria-label="Settings" title="Settings"><svg><use href="#i-gear"/></svg></button>
+  </nav>
+
+  <main class="main">
+    <header class="deck" id="deck">
+      <div class="deck-state">
+        <span class="live-dot" id="live-dot" aria-hidden="true"></span>
+        <div>
+          <h1 class="deck-title" id="deck-title">Starting up</h1>
+          <p class="deck-sub" id="deck-sub">Getting capture ready</p>
+        </div>
+      </div>
+      <div class="tape" id="tape" role="img" aria-label="Recorded footage ready to save"></div>
+      <div class="deck-actions">
+        <button class="btn btn-update" id="update-btn" hidden>Update to <span id="update-ver"></span></button>
+        <span class="keycap" id="deck-hotkey">ALT + F10</span>
+        <button class="btn btn-primary" id="save-btn"><svg><use href="#i-rewind"/></svg>Save clip</button>
+      </div>
+    </header>
+
+    <!-- CLIPS -->
+    <section class="view" id="view-clips" aria-label="Clips">
+      <div class="view-head">
+        <h2>My clips</h2>
+        <div class="filters" id="filters" role="tablist" aria-label="Filter by game"></div>
+        <button class="btn btn-quiet" id="open-folder"><svg><use href="#i-folder"/></svg>Open folder</button>
+      </div>
+      <div id="clip-groups"></div>
+      <div class="empty" id="clips-empty" hidden>
+        <img src="logo.png" alt="" width="64" height="64">
+        <h3>No clips yet</h3>
+        <p>Start a game, then press <span class="keycap keycap-sm" data-hotkey>ALT + F10</span> after a good play. Clips are saved on this PC and show up here. Post the good ones to Verse.</p>
+      </div>
+    </section>
+
+    <!-- SETTINGS -->
+    <section class="view" id="view-settings" aria-label="Settings" hidden>
+      <div class="view-head"><h2>Settings</h2></div>
+      <div class="settings">
+        <section class="set-group">
+          <h3>Recording</h3>
+          <div class="row">
+            <div class="row-text"><strong>Save clip shortcut</strong><span>Click, then press the keys you want</span></div>
+            <button class="keycap keycap-btn" id="hotkey-btn">ALT + F10</button>
+          </div>
+          <div class="row">
+            <div class="row-text"><strong>Clip length</strong><span>How far back each clip goes</span></div>
+            <div class="seg" id="len-seg" role="radiogroup" aria-label="Clip length"></div>
+          </div>
+          <div class="row">
+            <div class="row-text"><strong>When to record</strong><span>Auto starts when a game opens and stops when it closes</span></div>
+            <div class="seg" role="radiogroup" aria-label="When to record">
+              <button role="radio" data-set="record_mode" data-value="games">Auto (games)</button>
+              <button role="radio" data-set="record_mode" data-value="always">Always</button>
+            </div>
+          </div>
+          <div class="row">
+            <div class="row-text"><strong>Quality</strong><span>Higher looks sharper, makes bigger files</span></div>
+            <select data-set="bitrate" aria-label="Quality">
+              <option value="10M">Good (10 Mbps)</option>
+              <option value="20M">Great (20 Mbps)</option>
+              <option value="40M">Best (40 Mbps)</option>
+            </select>
+          </div>
+          <div class="row">
+            <div class="row-text"><strong>Resolution</strong></div>
+            <select data-set="output_height" data-num aria-label="Resolution">
+              <option value="0">Same as screen</option>
+              <option value="1440">1440p</option>
+              <option value="1080">1080p</option>
+              <option value="720">720p</option>
+            </select>
+          </div>
+          <div class="row">
+            <div class="row-text"><strong>Frame rate</strong></div>
+            <div class="seg" role="radiogroup" aria-label="Frame rate">
+              <button role="radio" data-set="fps" data-value="30" data-num>30 fps</button>
+              <button role="radio" data-set="fps" data-value="60" data-num>60 fps</button>
+            </div>
+          </div>
+          <div class="row">
+            <div class="row-text"><strong>Screen</strong><span>Which monitor to record</span></div>
+            <select data-set="monitor" data-num aria-label="Screen">
+              <option value="0">Main screen</option><option value="1">Screen 2</option><option value="2">Screen 3</option>
+            </select>
+          </div>
+        </section>
+
+        <section class="set-group">
+          <h3>Games</h3>
+          <div class="row">
+            <div class="row-text"><strong>Record any fullscreen app</strong><span>Catches games that aren't on the list. Browsers and video apps are skipped.</span></div>
+            <label class="switch"><input type="checkbox" data-set="detect_fullscreen_apps"><span></span></label>
+          </div>
+          <div class="row">
+            <div class="row-text"><strong>Add a game</strong><span>Open the game first, then pick it here</span></div>
+            <div class="inline">
+              <select id="running-apps" aria-label="Running apps"><option value="">Choose a running app</option></select>
+              <button class="btn" id="add-game">Add</button>
+            </div>
+          </div>
+          <ul class="chips" id="custom-games" aria-label="Your games"></ul>
+          <p class="hint" id="known-games-hint"></p>
+        </section>
+
+        <section class="set-group">
+          <h3>Audio</h3>
+          <div class="row">
+            <div class="row-text"><strong>Game and PC sound</strong></div>
+            <label class="switch"><input type="checkbox" data-set="record_desktop_audio"><span></span></label>
+          </div>
+          <div class="row">
+            <div class="row-text"><strong>Microphone</strong></div>
+            <select data-set="mic_device" id="mic-select" aria-label="Microphone"><option value="">No microphone</option></select>
+          </div>
+        </section>
+
+        <section class="set-group">
+          <h3>General</h3>
+          <div class="row">
+            <div class="row-text"><strong>Start with Windows</strong><span>Opens quietly in the tray</span></div>
+            <label class="switch"><input type="checkbox" id="autostart"><span></span></label>
+          </div>
+          <div class="row">
+            <div class="row-text"><strong>Clips folder</strong><span id="folder-path"></span></div>
+            <button class="btn" id="change-folder">Change</button>
+          </div>
+          <div class="row">
+            <div class="row-text"><strong>Sound when a clip saves</strong></div>
+            <label class="switch"><input type="checkbox" data-set="play_sound_on_save"><span></span></label>
+          </div>
+          <p class="hint" id="version"></p>
+        </section>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<!-- PREVIEW, TRIM, PUBLISH -->
+<div class="player" id="player" hidden role="dialog" aria-modal="true" aria-labelledby="player-title">
+  <div class="player-box">
+    <div class="player-top">
+      <input class="player-title" id="player-title" aria-label="Clip name" maxlength="120">
+      <button class="icon-btn" id="player-close" aria-label="Close"><svg><use href="#i-close"/></svg></button>
+    </div>
+    <video id="player-video" controls preload="metadata"></video>
+    <div class="trim" id="trim">
+      <div class="trim-head">
+        <strong>Choose the part to post</strong>
+        <span class="muted" id="trim-label"></span>
+        <button class="btn btn-quiet btn-sm" id="trim-play"><svg><use href="#i-play"/></svg>Play selection</button>
+      </div>
+      <div class="trim-track" id="trim-track">
+        <div class="trim-fill" id="trim-fill"></div>
+        <input type="range" id="trim-start" min="0" max="60" step="0.1" value="0" aria-label="Start of the part to post">
+        <input type="range" id="trim-end" min="0" max="60" step="0.1" value="60" aria-label="End of the part to post">
+      </div>
+      <p class="hint" id="trim-hint">Verse posts can be up to 60 seconds.</p>
+    </div>
+    <div class="player-bar">
+      <span class="muted" id="player-meta"></span>
+      <span class="posted" id="player-posted" hidden><svg><use href="#i-check"/></svg>Posted to Verse</span>
+      <div class="player-actions">
+        <button class="btn btn-quiet" id="player-folder"><svg><use href="#i-folder"/></svg>Show in folder</button>
+        <button class="btn btn-danger" id="player-delete"><svg><use href="#i-trash"/></svg>Delete</button>
+        <button class="btn btn-primary" id="publish-btn"><svg><use href="#i-send"/></svg>Publish to Verse</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+<script src="app.js"></script>
+</body>
+</html>

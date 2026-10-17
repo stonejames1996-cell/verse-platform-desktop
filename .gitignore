@@ -1,0 +1,14 @@
+.buildenv/
+build/
+dist/
+Output/
+build_deps/
+__pycache__/
+config.json
+*.log
+ffmpeg.exe
+instance.json
+clips.json
+exports/
+thumbnails/
+webview/

@@ -1,0 +1,54 @@
+# Builds the Windows installer on GitHub's servers.
+#   * Every push to main: a test installer under the Actions tab (nothing is published).
+#   * A version tag like v1.0.2 (Release.bat makes these): builds, then publishes a GitHub Release.
+#     Everyone's app sees the new release and updates itself, and the website's Download button
+#     always points at the newest one:
+#     https://github.com/<owner>/<repo>/releases/latest/download/VersePlatformSetup.exe
+name: Build installer
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Check the tag matches APP_VERSION
+        if: startsWith(github.ref, 'refs/tags/v')
+        shell: pwsh
+        run: |
+          $v = (Select-String -Path rewind_core.py -Pattern 'APP_VERSION = "(.+)"').Matches[0].Groups[1].Value
+          if ("v$v" -ne "${{ github.ref_name }}") { throw "Tag ${{ github.ref_name }} doesn't match APP_VERSION $v in rewind_core.py" }
+
+      - name: Build
+        shell: pwsh
+        run: ./build.ps1 -CI
+
+      - name: Name the installer for auto update
+        shell: pwsh
+        run: Copy-Item (Get-ChildItem "Output\Verse Platform Setup *.exe" | Select-Object -First 1).FullName "Output\VersePlatformSetup.exe"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Verse-Platform-Setup
+          path: Output/VersePlatformSetup.exe
+
+      - name: Publish release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          name: Verse Platform ${{ github.ref_name }}
+          body_path: RELEASE_NOTES.md
+          files: Output/VersePlatformSetup.exe
+          make_latest: true
