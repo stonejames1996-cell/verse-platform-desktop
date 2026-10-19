@@ -229,7 +229,7 @@ class Squad:
 
     def _waiting_for_povs(self):
         now = time.time()
-        self.mine = {k: v for k, v in self.mine.items() if now - v["at"] < 600}
+        self.mine = {k: v for k, v in self.mine.items() if now - v["at"] < 3600}   # mates send theirs after their game
         return bool(self.code and self.mine)
 
     def _fail(self, e):
@@ -277,6 +277,7 @@ class Squad:
         a.flash(f"Squad POV saved", sub=label)
         if not clip or not self.cfg.get("squad_share", True):
             return
+        a.wait_for_game_end()   # the small copy is made after the game, so it never costs frames
         tmp = os.path.join(tempfile.gettempdir(), f"verse_pov_{sid}.mp4")
         try:
             if small_copy(a.ff, path, tmp):
@@ -304,6 +305,7 @@ class Squad:
 
     def _combine(self, p, mine):
         a = self.app
+        a.wait_for_game_end()
         clip = a.library.get(mine["clip_id"])
         if not clip:
             return

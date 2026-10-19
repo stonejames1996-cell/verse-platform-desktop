@@ -419,6 +419,7 @@ class Recorder:
         self.freezes = 0
         self.unfreeze_path = ""
         self._tried = set()
+        self.zero_copy = True
         self._audio_reload = False   # the default speakers/headset changed: reopen desktop audio
         self._out_id = None
         self.save_lock = threading.Lock()
@@ -465,6 +466,12 @@ class Recorder:
             audio_labels.append(f"[{n_inputs}:a]")
             n_inputs += 1
 
+        # GPU only: the captured frames stay on the graphics card and go straight into its encoder, no
+        # copy to the processor and no conversion there. Only a 4 fps copy comes down for the freeze check.
+        zero = self.zero_copy_ok()
+        if zero:
+            keep_fps = f"fps={c['fps']}," if self.capture == "gfxcapture" else ""
+            graph = f"[0:v]{keep_fps}split=2[v][fz0];[fz0]fps=4,hwdownload,format=bgra,"
         vf = [f for f in (vpre,) if f]
         if c["output_height"]:
             vf.append(f"scale=-2:{int(c['output_height'])}")
@@ -477,7 +484,9 @@ class Recorder:
         self.freeze_path = os.path.join(self.seg_dir, f"freeze_{self.run:05d}.txt")
         self.unfreeze_path = os.path.join(self.seg_dir, f"unfreeze_{self.run:05d}.txt")
         esc = lambda p: p.replace("\\", "/").replace(":", "\\:")
-        graph = (f"[0:v]{','.join(vf)},split=2[v][fz];[fz]scale=160:-2,freezedetect=n=0.001:d=2,"
+        if not zero:
+            graph = f"[0:v]{','.join(vf)},split=2[v][fz];[fz]"
+        graph += (f"scale=160:-2,freezedetect=n=0.001:d=2,"
                  f"metadata=mode=print:key=lavfi.freezedetect.freeze_start:file='{esc(self.freeze_path)}':direct=1,"
                  f"metadata=mode=print:key=lavfi.freezedetect.freeze_end:file='{esc(self.unfreeze_path)}':direct=1,nullsink")
         # sound gets its own filter graph so a slow picture can never hold up the sound (or the other way)
@@ -519,8 +528,8 @@ class Recorder:
         threading.Thread(target=self._cleanup_loop, daemon=True).start()
         if self.cfg["record_desktop_audio"] and IS_WINDOWS:
             threading.Thread(target=self._device_loop, daemon=True, name="audio-device").start()
-        log.info("Ready. Encoder=%s Capture=%s Buffer=%ss Hotkey=%s",
-                 self.encoder, self.capture, self.cfg["buffer_seconds"], self.cfg["hotkey"])
+        log.info("Ready. Encoder=%s Capture=%s%s Buffer=%ss Hotkey=%s", self.encoder, self.capture,
+                 " (GPU only)" if self.zero_copy_ok() else "", self.cfg["buffer_seconds"], self.cfg["hotkey"])
         if capture:
             self.begin_capture()
 
@@ -545,6 +554,12 @@ class Recorder:
         if self.capturing:
             self.capturing = False
             log.info("Capture paused (buffer kept)")
+
+    def zero_copy_ok(self):
+        """Frames can stay on the GPU when Windows captures them there (ddagrab / gfxcapture), the
+        encoder is NVIDIA or AMD, and there's no resize. Turned off for good if it ever fails."""
+        return (self.zero_copy and self.capture in ("ddagrab", "gfxcapture") and not self.cfg["output_height"]
+                and ("nvenc" in self.encoder or "amf" in self.encoder))
 
     def _device_loop(self):
         """Follows Windows' default speakers/headset. Switch to your headset after the app started
@@ -638,6 +653,11 @@ class Recorder:
                 continue
             failures = failures + 1 if time.time() - started < 10 else 0
             log.warning("Capture stopped (exit code %s), restarting...", code)
+            if failures >= 2 and self.zero_copy_ok():
+                log.warning("GPU-only recording didn't work on this PC, using the standard path")
+                self.zero_copy = False
+                failures = 0
+                continue
             if failures >= 3:
                 alt = self.fallback_capture()
                 if alt:

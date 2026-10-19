@@ -327,9 +327,9 @@ class App:
             clip_id = self.wm_queue.get()
             try:
                 encoder = self.rec.encoder if self.rec else "libx264"
-                # no graphics card encoder: wait until the game's over rather than slow it down
-                while encoder == "libx264" and self.rec and self.rec.capturing and not self.quitting:
-                    time.sleep(5)
+                # never while a game is being recorded: re-encoding a clip mid-game costs frames
+                self.wait_for_game_end()
+                encoder = self.rec.encoder if self.rec else "libx264"
                 if self.library.add_watermark(clip_id, encoder):
                     self.bump()
             except Exception:
@@ -371,6 +371,11 @@ class App:
                 if self.quitting:
                     return
                 time.sleep(60)
+
+    def wait_for_game_end(self):
+        """Heavy work (watermarks, squad copies, side by sides) waits until no game is being recorded."""
+        while self.rec and self.rec.capturing and not self.quitting:
+            time.sleep(5)
 
     def is_playing(self, game):
         return bool(self.rec and self.rec.capturing and self.rec.label == game)
