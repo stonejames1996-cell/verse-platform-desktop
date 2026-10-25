@@ -291,6 +291,77 @@ class App:
             self.window.load_url(self.verse + path)
             self.show_window()
 
+    # ------------------------------------------------------------ sign-in pop-up (Link Xbox)
+    SIGN_IN_HOSTS = {"login.microsoftonline.com", "login.live.com"}
+
+    def open_sign_in(self, url):
+        """Microsoft's sign-in in a small pop-up inside the app (Link Xbox on a Verse profile).
+        When Microsoft sends the player back to Verse, the pop-up closes and the main window
+        loads that page, so the profile shows the new gamertag straight away. The pop-up gets
+        no js_api, so Microsoft's pages can't call into the app."""
+        p = urllib.parse.urlparse(url or "")
+        if p.scheme != "https" or p.hostname not in self.SIGN_IN_HOSTS:
+            log.warning("Sign-in pop-up refused for %s", p.hostname)
+            return False
+        import webview
+        old = getattr(self, "signin_win", None)
+        if old:
+            try:
+                old.destroy()
+            except Exception:
+                pass
+        win = webview.create_window("Link Xbox", url, width=520, height=720, min_size=(420, 560),
+                                    background_color="#0A0A0A")
+        self.signin_win = win
+        state = {"closed": False}
+
+        def on_closed():
+            state["closed"] = True
+            if getattr(self, "signin_win", None) is win:
+                self.signin_win = None
+
+        win.events.closed += on_closed
+        win.events.shown += lambda: dark_title_bar(win)
+        threading.Thread(target=self._watch_sign_in, args=(win, state), daemon=True, name="signin").start()
+        log.info("Sign-in pop-up opened")
+        return True
+
+    def _back_on_verse(self, url):
+        """The page Microsoft finally sends the player to, as a Verse address, or None while
+        they're still signing in. The /functions/ step is Verse working, not the end yet."""
+        p = urllib.parse.urlparse(url or "")
+        host = (p.hostname or "").lower()
+        verse_host = (urllib.parse.urlparse(self.verse).hostname or "").lower()
+        ours = self.on_verse(url) or host == verse_host or host.endswith(".base44.app")
+        if not ours or p.path.startswith("/functions/"):
+            return None
+        return self.verse + (p.path or "/") + (("?" + p.query) if p.query else "")
+
+    def _watch_sign_in(self, win, state):
+        deadline = time.time() + 15 * 60
+        while not state["closed"] and time.time() < deadline:
+            time.sleep(0.4)
+            try:
+                url = win.get_current_url() or ""
+            except Exception:
+                continue
+            back = self._back_on_verse(url)
+            if back:
+                log.info("Sign-in finished, refreshing Verse")
+                try:
+                    win.destroy()
+                except Exception:
+                    pass
+                if self.window:
+                    self.window.load_url(back)
+                    self.show_window()
+                return
+        if not state["closed"]:
+            try:
+                win.destroy()
+            except Exception:
+                pass
+
     # ------------------------------------------------------------ recording
     def start_recorder(self):
         with self.lock:
@@ -646,6 +717,14 @@ class Api:
         a = self._app
         return {"app": APP_NAME, "version": APP_VERSION, "platform": "windows",
                 "hotkey": a.cfg["hotkey"], "capturing": bool(a.rec and a.rec.capturing)}
+
+    def open_sign_in(self, url):
+        """Verse's Link Xbox button: Microsoft's sign-in opens in a pop-up inside the app,
+        then the profile refreshes when it's done. Returns False if it can't, so Verse
+        falls back to its normal way."""
+        if not self._app.on_verse():
+            return False
+        return bool(self._app.open_sign_in(url))
 
     def dock_state(self):
         if not self._from_trusted():

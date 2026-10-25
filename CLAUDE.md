@@ -43,6 +43,9 @@ saves clips on a hotkey or automatically on highlights, and hands clips to the w
 - `whatsnew.py` + `release-notes/*.md`: the in-app What's new pop-up.
 - `ui/`: the My clips / Settings screens (plain HTML/JS/CSS).
 - `base44/SETUP.md`: notes on the website side.
+- Xbox linking lives in Base44 (functions xboxLinkStart, xboxCallback, xboxUnlink; Azure app "Verse Platform",
+  client ID `1a850251-4883-4d41-8cdb-3576bd62b96d`, personal accounts). In the app, Link Xbox opens a sign-in pop-up via
+  `Api.open_sign_in` (Microsoft hosts only) that closes and refreshes Verse when done.
 
 ## Releases (fully automatic)
 1. Bump `APP_VERSION` in `rewind_core.py`.
@@ -64,6 +67,7 @@ The "Ready." line shows encoder, capture method and "(GPU only)". Useful lines: 
 - Squad POV end to end between two PCs (needs the Base44 squadRelay function published; the upload size limit is untested).
 - CS2 and Dota 2 highlights in real matches.
 - Mobile app iris launch intro on a real phone (lives in Base44).
+- Link Xbox pop-up in the app ("Sign-in pop-up opened" then "Sign-in finished, refreshing Verse"). Held in `NEXT_RELEASE.md`.
 
 ## Ideas not built yet
 Match summary pop-up after a game, slow-mo on the big moment, end card with K/D/A and verseplatform.gg,
