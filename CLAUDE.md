@@ -67,7 +67,7 @@ The "Ready." line shows encoder, capture method and "(GPU only)". Useful lines: 
 - Squad POV end to end between two PCs (needs the Base44 squadRelay function published; the upload size limit is untested).
 - CS2 and Dota 2 highlights in real matches.
 - Mobile app iris launch intro on a real phone (lives in Base44).
-- Link Xbox pop-up in the app ("Sign-in pop-up opened" then "Sign-in finished, refreshing Verse"). Held in `NEXT_RELEASE.md`.
+- Link Xbox pop-up in the app ("Sign-in pop-up opened" then "Sign-in finished, refreshing Verse"). Shipped in 1.2.6, Base44 side published.
 
 ## Ideas not built yet
 Match summary pop-up after a game, slow-mo on the big moment, end card with K/D/A and verseplatform.gg,
