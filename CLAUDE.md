@@ -47,6 +47,18 @@ saves clips on a hotkey or automatically on highlights, and hands clips to the w
   client ID `1a850251-4883-4d41-8cdb-3576bd62b96d`, personal accounts). In the app, Link Xbox opens a sign-in pop-up via
   `Api.open_sign_in` (Microsoft hosts only) that closes and refreshes Verse when done.
 
+## Website features added Oct 2026 (all in Base44, not this repo)
+- Account linking on profiles: Xbox (Azure app above), Steam (OpenID, `STEAM_WEB_API_KEY`), Battle.net
+  (Blizzard client "Verse Platform", `BATTLENET_CLIENT_ID/SECRET`). Records live in backend-only XboxLink, SteamLink,
+  BattlenetLink tables. Riot: production app 897128 pending review, verified via verseplatform.gg/riot.txt.
+  Typed Riot IDs do not count as linked; Riot tournaments show "Riot linking coming soon".
+- Verse Brackets (Events page, tabs Community / Verse Brackets): tournaments, sign-up, check-in, single elim bracket,
+  score reporting, disputes, champion badge, stats card. Hosting is locked to williamclark960@gmail.com.
+- Verse Teams (VerseTeam table, separate from the old pro-team "Team" table), invites, team check-in, Looking for team board.
+- Preview and live share ONE database. Test tournaments use is_test (host-only, never counted). A finished
+  "TEST CS2 Cup" exists for reference; ask the builder to "delete all is_test tournament data" to remove it.
+- Not yet tested with real accounts: disputes/30 min timeout, team invites, team sign-up and team check-in.
+
 ## Releases (fully automatic)
 1. Bump `APP_VERSION` in `rewind_core.py`.
 2. Add `release-notes/<version>.md` (plain bullets, user friendly).
