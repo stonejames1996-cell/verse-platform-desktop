@@ -81,7 +81,7 @@ Ask for `%APPDATA%\Verse Platform\verse_platform.log` (and `crash.log` if there 
 The "Ready." line shows encoder, capture method and "(GPU only)". Useful lines: "Capture froze", "Switching from",
 "Sound output changed", "Saved with no audio", "Told the squad".
 
-## Still to confirm on a real PC (as of 1.2.8)
+## Still to confirm on a real PC (as of 1.2.9)
 - GPU-only recording ("(GPU only)" in the log, lower FFmpeg CPU in Task Manager).
 - Default sound device following ("Sound output changed, recording follows it").
 - Squad POV end to end between two PCs (needs the Base44 squadRelay function published; the upload size limit is untested).
@@ -90,6 +90,8 @@ The "Ready." line shows encoder, capture method and "(GPU only)". Useful lines: 
 - Link Xbox pop-up in the app ("Sign-in pop-up opened" then "Sign-in finished, refreshing Verse"). Shipped in 1.2.6, Base44 side published.
 - New 3s "Clipped by" card and restyled save pop-up (1.2.7) in real clips and games.
 - Highlight card (e.g. "Double kill") landing at the right moment in real auto highlights (1.2.8).
+- League item ideas pop-up in a real match ("Item ideas shown: ..."), borderless mode, and that it shows in clips (1.2.9).
+- Recording follows the game to a second screen ("Recording the game's screen (DISPLAY2 ...)") (1.2.9).
 
 ## Ideas not built yet
 Match summary pop-up after a game, slow-mo on the big moment, end card with K/D/A and verseplatform.gg,
