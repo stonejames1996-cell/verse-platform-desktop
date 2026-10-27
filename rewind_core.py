@@ -99,6 +99,7 @@ DEFAULT_CONFIG = {
     "auto_highlights": True,       # clip big plays by themselves (League of Legends)
     "lol_item_ideas": True,        # League: while you're dead, your numbers, lane gold and counter item ideas
     "lol_objective_timers": True,  # League: Dragon, Baron and inhibitor respawn timers on the right
+    "lol_benchmarks": True,        # League: CS, gold, kill share, KDA and level vs your average, on the right
     "lol_match_summary": True,     # League: a summary card when the game ends
     "item_ideas_hotkey": "alt+shift+i",  # show the item ideas any time in a League match
     "highlight_events": {},        # which moments count, see highlights.DEFAULT_EVENTS (blank = defaults)

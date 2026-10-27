@@ -78,6 +78,13 @@ else:
         rows = timers.active(float(sample["gameData"]["gameTime"]))
         print("timers:", rows)
         lol_live.render_timers(rows, 1.5).save(os.path.join(OUT, "timers_1.5.png"))
+        for g in hist.games:
+            g.update({"gpm": 380.0, "kda": 2.8})
+        bench = lol_live.bench_rows(nums, hist.averages("BOTTOM", True),
+                                    lol_live.gold_per_min(gd, sample, me, nums["minutes"]), 9,
+                                    [5.1, 5.8, 6.2, 6.0, 6.9, 7.2, 7.5])
+        print("benchmarks:", bench)
+        lol_live.render_strip(bench, rows, 1.5).save(os.path.join(OUT, "strip_1.5.png"))
         summ = {"result": "Win", "champion": "Jinx", "champion_key": "Jinx", "kills": 9, "deaths": 3, "assists": 11,
                 "cs": 231, "cs_min": 7.7, "kp": 0.64, "vision": 31, "better": ["CS", "kill share"], "clips": 3}
         lol_live.render_summary(gd, summ, 1.5).save(os.path.join(OUT, "summary_1.5.png"))

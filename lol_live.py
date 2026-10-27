@@ -117,8 +117,41 @@ DOTS = {"dragon": (251, 146, 60), "elder": (94, 234, 212), "baron": (192, 132, 2
         "inhib": (148, 163, 184), "inhib_ours": (248, 113, 113)}
 
 
-def render_timers(rows, scale=1.0):
+def bench_rows(nums, avg, gpm, opp_level, spark):
+    """The benchmark lines, like "CSM +0.6 / 6.8": yours, then your average (or your lane opponent's level)."""
+    avg = avg or {}
+
+    def row(label, cur, base, fmt, diff=False, spark_pts=None):
+        if cur is None:
+            return None
+        state = None
+        if base:
+            state = "up" if cur > base * 1.04 else "down" if cur < base * 0.96 else None
+        if diff and base:
+            d = cur - base
+            value = f"{'+' if d >= 0 else '-'}{fmt(abs(d))}"
+        else:
+            value = fmt(cur)
+        return {"label": label, "value": value, "base": fmt(base) if base else "", "state": state, "spark": spark_pts}
+    rows = [
+        row("CSM", nums.get("cs_min"), avg.get("cs_min"), lambda v: f"{v:.1f}", diff=True, spark_pts=spark),
+        row("GPM", gpm, avg.get("gpm"), lambda v: f"{v:.0f}"),
+        row("KP%", None if nums.get("kp") is None else nums["kp"] * 100,
+            None if avg.get("kp") is None else avg["kp"] * 100, lambda v: f"{v:.0f}"),
+        row("KDA", nums.get("kda"), avg.get("kda"), lambda v: f"{v:.1f}"),
+        row("LVL", nums.get("level"), opp_level, lambda v: f"{v:.0f}"),
+    ]
+    return [r for r in rows if r]
+
+
+def render_strip(bench, rows, scale=1.0):
+    """The box on the right: your benchmarks on top (vs your own average), objective timers under them."""
+    return render_timers(rows, scale, bench)
+
+
+def render_timers(rows, scale=1.0, bench=None):
     """The small timers strip: a dot, the objective and its countdown on each line."""
+    bench = bench or []
     from overlay import HAZE, WHITE
     from watermark import _font, _spaced
     s = scale * 2
@@ -128,19 +161,58 @@ def render_timers(rows, scale=1.0):
     f_time = _font("InterDisplay-Bold.otf", int(11 * s))
     probe = ImageDraw.Draw(Image.new("RGBA", (1, 1)))
     lh = lambda f: sum(f.getmetrics())
-    name_w = max(probe.textlength(r[0], font=f_row) for r in rows)
-    time_w = max(probe.textlength(r[1], font=f_time) for r in rows)
+    name_w = max([probe.textlength(r[0], font=f_row) for r in rows] or [0])
+    time_w = max([probe.textlength(r[1], font=f_time) for r in rows] or [0])
     dot = int(6 * s)
     w = int(pad * 2 + dot + int(7 * s) + name_w + int(14 * s) + time_w)
-    w = max(w, int(130 * s))
-    h = pad + lh(f_label) + int(4 * s) + len(rows) * (lh(f_row) + gap) - gap + pad
+    w = max(w, int(150 * s))
+    spark_w = int(34 * s)
+    if bench:
+        lab_w = max(probe.textlength(b["label"], font=f_row) for b in bench)
+        val_w = max(probe.textlength(b["value"], font=f_time) for b in bench)
+        base_w = max(probe.textlength(("/ " + b["base"]) if b["base"] else "", font=f_row) for b in bench)
+        w = max(w, int(pad * 2 + lab_w + int(10 * s) + val_w + int(5 * s) + base_w + int(8 * s) + spark_w))
+    h = pad
+    if bench:
+        h += lh(f_label) + int(4 * s) + len(bench) * (lh(f_row) + gap) - gap + (int(12 * s) if rows else 0)
+    if rows:
+        h += lh(f_label) + int(4 * s) + len(rows) * (lh(f_row) + gap) - gap
+    h += pad
     r = int(10 * s)
     card = Image.new("RGBA", (w, h), (0, 0, 0, 0))
     d = ImageDraw.Draw(card)
     d.rounded_rectangle((0, 0, w - 1, h - 1), radius=r, fill=(16, 16, 20, 214), outline=(255, 255, 255, 30),
                         width=max(1, int(s)))
-    _spaced(d, (pad, pad), "OBJECTIVES", f_label, HAZE, 1.4 * s)
-    y = pad + lh(f_label) + int(4 * s)
+    y = pad
+    if bench:
+        UP, DOWN = (52, 211, 153, 255), (251, 191, 36, 255)
+        _spaced(d, (pad, y), "VERSE PLATFORM", f_label, HAZE, 1.4 * s)
+        y += lh(f_label) + int(4 * s)
+        lab_w = max(probe.textlength(b["label"], font=f_row) for b in bench)
+        val_w = max(probe.textlength(b["value"], font=f_time) for b in bench)
+        for b in bench:
+            d.text((pad, y), b["label"], font=f_row, fill=HAZE)
+            vx = pad + lab_w + int(10 * s)
+            col = UP if b["state"] == "up" else DOWN if b["state"] == "down" else WHITE
+            d.text((vx, y - int(1 * s)), b["value"], font=f_time, fill=col)
+            if b["base"]:
+                d.text((vx + val_w + int(5 * s), y), "/ " + b["base"], font=f_row, fill=(140, 144, 156, 255))
+            pts = b.get("spark") or []
+            if len(pts) >= 2:   # a tiny line of how it has gone this game
+                lo, hi = min(pts), max(pts)
+                span = (hi - lo) or 1
+                x1, y1, hh = w - pad - spark_w, y + int(2 * s), lh(f_row) - int(4 * s)
+                line = [(x1 + i * spark_w / (len(pts) - 1), y1 + hh - (v - lo) / span * hh) for i, v in enumerate(pts)]
+                d.line(line, fill=(34, 211, 238, 255), width=max(1, int(1.2 * s)), joint="curve")
+                ex, ey = line[-1]
+                d.ellipse((ex - 2 * s, ey - 2 * s, ex + 2 * s, ey + 2 * s), fill=(34, 211, 238, 255))
+            y += lh(f_row) + gap
+        y += -gap + (int(12 * s) if rows else 0)
+        if rows:
+            d.line([(pad, y - int(6 * s)), (w - pad, y - int(6 * s))], fill=(255, 255, 255, 26), width=max(1, int(s)))
+    if rows:
+        _spaced(d, (pad, y), "OBJECTIVES", f_label, HAZE, 1.4 * s)
+        y += lh(f_label) + int(4 * s)
     for label, text, kind in rows:
         cy = y + lh(f_row) // 2
         d.ellipse((pad, cy - dot // 2, pad + dot, cy + dot // 2), fill=DOTS.get(kind, (200, 200, 200)) + (255,))
@@ -173,7 +245,19 @@ def live_numbers(game, me):
             "vision_min": float(sc.get("wardScore", 0)) / minutes,
             "cs": sc.get("creepScore", 0), "minutes": minutes,
             "kills": sc.get("kills", 0), "deaths": sc.get("deaths", 0), "assists": sc.get("assists", 0),
+            "kda": involved / max(1, sc.get("deaths", 0)), "level": me.get("level", 0),
             "vision": float(sc.get("wardScore", 0))}
+
+
+def gold_per_min(gd, game, me, minutes):
+    """Rough gold per minute: what your items are worth plus the gold in your pocket. League doesn't share
+    gold earned, so selling items or using potions makes this read a little low."""
+    if not me or minutes < 3:
+        return None
+    items = sum(gd.gold(int(i.get("itemID", 0))) * max(1, int(i.get("count", 1) or 1))
+                for i in me.get("items") or [] if i.get("itemID"))
+    pocket = float((game.get("activePlayer") or {}).get("currentGold", 0) or 0)
+    return (items + pocket) / minutes
 
 
 class History:
@@ -210,7 +294,8 @@ class History:
         if len(pool) < 3:
             return None
         avg = lambda k: sum(g[k] for g in pool if g.get(k) is not None) / max(1, sum(1 for g in pool if g.get(k) is not None))
-        return {"cs_min": avg("cs_min"), "kp": avg("kp"), "vision_min": avg("vision_min"), "games": len(pool),
+        return {"cs_min": avg("cs_min"), "kp": avg("kp"), "vision_min": avg("vision_min"),
+                "gpm": avg("gpm"), "kda": avg("kda"), "games": len(pool),
                 "same_role": len(by_role) >= 5}
 
 
@@ -338,6 +423,10 @@ class LeagueCompanion:
         self.dead = False
         self.asked = 0.0
         self.strip_shown = ""
+        self.spark = []          # CS per minute, sampled once a game minute, for the little line
+        self.spark_min = -1
+        self.last_gpm = None
+        self.gd_tried = 0.0
         self.ended = set()
         self.last_game = None
 
@@ -369,15 +458,38 @@ class LeagueCompanion:
             self.last_game = None
             self.timers.reset()
 
-    def _strip(self, rows):
-        key = "|".join(f"{a}{b}" for a, b, _ in rows)
+    def _strip(self, rows, bench=None):
+        bench = bench or []
+        key = "|".join(f"{a}{b}" for a, b, _ in rows) + "#" + "|".join(
+            f"{b['label']}{b['value']}{b['base']}{len(b.get('spark') or [])}" for b in bench)
         if key == self.strip_shown:
             return
         self.strip_shown = key
-        if not rows:
+        if not rows and not bench:
             self.strip.hide_static()
         else:
-            self.strip.show_static(render_timers(rows, self.strip.scale()), place="right")
+            self.strip.show_static(render_strip(bench, rows, self.strip.scale()), place="right")
+
+    def _bench(self, game, me, now):
+        """Your benchmark lines for the box on the right (from 3 minutes in)."""
+        nums = live_numbers(game, me)
+        if not nums:
+            return []
+        minute = int(now // 60)
+        if minute < self.spark_min:
+            self.spark = []      # a new game
+        if minute != self.spark_min:
+            self.spark_min = minute
+            self.spark = (self.spark + [round(nums["cs_min"], 2)])[-30:]
+        gpm = gold_per_min(self.gd, game, me, nums["minutes"]) if self.gd.items else None
+        self.last_gpm = gpm
+        data = game.get("gameData") or {}
+        rift = str(data.get("gameMode", "")).upper() in RIFT_MODES
+        avg = self.history.averages((me.get("position") or "").upper(), rift)
+        pos = me.get("position") or ""
+        opp = next((p for p in game.get("allPlayers") or []
+                    if pos and p.get("team") != me.get("team") and p.get("position") == pos), None)
+        return bench_rows(nums, avg, gpm, (opp or {}).get("level"), self.spark)
 
     def _tick(self):
         try:
@@ -391,12 +503,18 @@ class LeagueCompanion:
         mode = str(data.get("gameMode", "")).upper()
         now = float(data.get("gameTime", 0))
 
-        # objective timers (not in Arena / TFT, which have no such objectives)
-        if self.cfg("lol_objective_timers") and mode not in lol_items.SKIP_MODES and me:
-            self.timers.update(game, me.get("team"))
-            self._strip(self.timers.active(now))
-        else:
-            self._strip([])
+        # the box on the right: benchmarks and objective timers (not in Arena / TFT)
+        rows, bench = [], []
+        if me and mode not in lol_items.SKIP_MODES:
+            if self.cfg("lol_objective_timers"):
+                self.timers.update(game, me.get("team"))
+                rows = self.timers.active(now)
+            if self.cfg("lol_benchmarks"):
+                if not self.gd.items and time.time() - self.gd_tried > 60:
+                    self.gd_tried = time.time()   # item prices for gold per minute, fetched in the background
+                    threading.Thread(target=self.gd.ensure, daemon=True).start()
+                bench = self._bench(game, me, now)
+        self._strip(rows, bench)
 
         # the panel while you're dead, or on the shortcut
         if self.cfg("lol_item_ideas"):
@@ -477,7 +595,9 @@ class LeagueCompanion:
             self.history.add({"id": match.get("id") or f"lol-{int(time.time())}", "at": time.strftime("%Y-%m-%dT%H:%M:%S"),
                               "rift": rift, "role": role, "champion": summary["champion"], "result": result,
                               "minutes": round(nums.get("minutes", 0), 1), "cs_min": summary["cs_min"],
-                              "kp": summary["kp"], "vision_min": summary["vision_min"]})
+                              "kp": summary["kp"], "vision_min": summary["vision_min"],
+                              "kda": round(nums.get("kda", 0), 2),
+                              "gpm": round(self.last_gpm, 1) if self.last_gpm else None})
         if match.get("id"):
             self.on_summary({"id": match["id"], "summary": summary})
         log.info("Match summary: %s %s/%s/%s, %.1f CS a min", result, summary["kills"], summary["deaths"],
