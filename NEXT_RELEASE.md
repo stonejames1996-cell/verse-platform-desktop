@@ -11,6 +11,11 @@ turn these into `release-notes/<version>.md`, then clear this list.
   building the same URL from the tier name for games saved on 1.3.0.
 
 
+## Next batch (agreed for tonight, not built yet)
+* Icons: objective timers (Dragon with its element, Baron, inhibitor) instead of dots; lane opponent's champion
+  picture on the benchmarks LVL line; your champion on the analysis score card and your rank crest on rank lines;
+  game logos on the My clips filter tabs.
+
 ## Still to confirm on a real PC
 * Link Xbox pop-up end to end (log lines: "Sign-in pop-up opened", "Sign-in finished, refreshing Verse").
 * New "Clipped by" tag and save pop-up look right in real clips and games (1.2.7).
