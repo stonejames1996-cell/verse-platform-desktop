@@ -26,7 +26,7 @@ INK = (12, 12, 14, 232)
 SEAM = (255, 255, 255, 30)
 WHITE = (245, 245, 247, 255)
 SIGNAL = (34, 211, 238, 255)
-HAZE = (160, 160, 170, 255)
+HAZE = (168, 172, 184, 255)
 SHOW_SECONDS = 3.2
 
 
@@ -57,37 +57,88 @@ def _logo(px):
 
 
 def render(lead, accent="Verse Platform", sub="", scale=1.0, ok=True):
-    """Draws the pop-up. 'lead' is e.g. 'Last 60s saved by', 'accent' is coloured. Returns an RGBA image."""
+    """Draws the pop-up in the same style as the "Clipped by Verse Platform" tag on clips: a glassy dark
+    card with a soft shadow, a cyan accent bar (amber if something went wrong), the logo and a divider.
+      * lead + accent, no sub ("Last 60s saved by" / "Verse Platform"): small spaced label over a big name
+      * a title with a sub line (highlights, squad): bold title over a grey detail line
+    Returns an RGBA image."""
+    from watermark import _font, _spaced  # same fonts as the clip tag
     s = scale * 2  # draw at 2x then shrink, for smooth edges
-    pad, gap, logo_px = int(14 * s), int(12 * s), int(30 * s)
-    f_main, f_sub = _font(int(15 * s), bold=True), _font(int(12 * s))
+    pad_x, pad_y, logo_px, gap = int(16 * s), int(12 * s), int(32 * s), int(12 * s)
+    f_label = _font("Inter-SemiBold.otf", int(9.5 * s))
+    f_big = _font("InterDisplay-Bold.otf", int(18 * s))
+    f_title = _font("InterDisplay-Bold.otf", int(16 * s))
+    f_sub = _font("Inter-SemiBold.otf", int(11.5 * s))
     probe = ImageDraw.Draw(Image.new("RGBA", (1, 1)))
-    w_lead = probe.textlength(lead + (" " if accent else ""), font=f_main)
-    w_acc = probe.textlength(accent, font=f_main) if accent else 0
-    w_sub = probe.textlength(sub, font=f_sub) if sub else 0
-    text_w = max(w_lead + w_acc, w_sub)
-    h = int((60 if sub else 50) * s)
-    w = int(pad + logo_px + gap + text_w + pad * 1.4)
-    img = Image.new("RGBA", (w, h), (0, 0, 0, 0))
-    d = ImageDraw.Draw(img)
-    r = int(12 * s)
-    d.rounded_rectangle((0, 0, w - 1, h - 1), radius=r, fill=INK, outline=SEAM, width=max(1, int(s)))
+    tracking = 2.0 * s
+    mode = "tag" if (accent and not sub) else "title"
+    if mode == "tag":
+        label = lead.upper()
+        w1 = sum(probe.textlength(c, font=f_label) for c in label) + tracking * max(0, len(label) - 1)
+        first, _, rest = accent.partition(" ")
+        w_first = probe.textlength(first + (" " if rest else ""), font=f_big)
+        w2 = w_first + (probe.textlength(rest, font=f_big) if rest else 0)
+        f1, f2 = f_label, f_big
+    else:
+        title = lead + (" " + accent if accent else "")
+        w1 = probe.textlength(title, font=f_title)
+        w2 = probe.textlength(sub, font=f_sub) if sub else 0
+        f1, f2 = f_title, f_sub
+    text_w = max(w1, w2)
+    w = int(pad_x + logo_px + gap + int(1.5 * s) + gap + text_w + pad_x * 1.15)
+    h = int(logo_px + pad_y * 2)
+    r = int(14 * s)
+    bar = SIGNAL[:3] if ok else (251, 191, 36)
+
+    card = Image.new("RGBA", (w, h), (0, 0, 0, 0))
+    body = Image.new("RGBA", (w, h))
+    bd = ImageDraw.Draw(body)
+    for yy in range(h):
+        c = int(26 - 12 * yy / max(1, h - 1))
+        bd.line([(0, yy), (w, yy)], fill=(c, c, c + 4, 240))
+    mask = Image.new("L", (w, h), 0)
+    ImageDraw.Draw(mask).rounded_rectangle((0, 0, w - 1, h - 1), radius=r, fill=255)
+    card.paste(body, (0, 0), mask)
+    d = ImageDraw.Draw(card)
+    d.rounded_rectangle((0, 0, w - 1, h - 1), radius=r, outline=(255, 255, 255, 34), width=max(1, int(s)))
+    d.line([(r, int(s)), (w - r, int(s))], fill=(255, 255, 255, 46), width=max(1, int(s)))
+    bar_h = h - r * 1.2
+    d.rounded_rectangle((int(5 * s), (h - bar_h) / 2, int(8 * s), (h + bar_h) / 2), radius=int(2 * s), fill=bar + (255,))
     lg = _logo(logo_px)
     if lg:
-        img.alpha_composite(lg, (pad, (h - lg.height) // 2))
-    x = pad + logo_px + gap
-    if sub:
-        y1, y2 = int(11 * s), int(33 * s)
+        card.alpha_composite(lg, (pad_x, (h - lg.height) // 2))
+    dx = pad_x + logo_px + gap
+    d.line([(dx, int(h * 0.26)), (dx, int(h * 0.74))], fill=(255, 255, 255, 40), width=max(1, int(1.5 * s)))
+    tx = dx + int(1.5 * s) + gap
+    a1, d1 = f1.getmetrics()
+    a2, d2 = f2.getmetrics()
+    two = mode == "tag" or bool(sub)
+    if two:
+        block = a1 + d1 + int(3 * s) + a2 + d2
+        y1 = (h - block) // 2 + int(1 * s)
+        y2 = y1 + a1 + d1 + int(3 * s)
     else:
-        asc, desc = f_main.getmetrics()
-        y1 = (h - (asc + desc)) // 2
-        y2 = 0
-    d.text((x, y1), lead + (" " if accent else ""), font=f_main, fill=WHITE if ok else HAZE)
-    if accent:
-        d.text((x + w_lead, y1), accent, font=f_main, fill=SIGNAL)
-    if sub:
-        d.text((x, y2), sub, font=f_sub, fill=HAZE)
-    return img.resize((max(1, w // 2), max(1, h // 2)), Image.LANCZOS)
+        y1 = (h - (a1 + d1)) // 2
+    if mode == "tag":
+        _spaced(d, (tx, y1), label, f_label, HAZE, tracking)
+        d.text((tx, y2), first + (" " if rest else ""), font=f_big, fill=WHITE)
+        if rest:
+            d.text((tx + w_first, y2), rest, font=f_big, fill=SIGNAL)
+    else:
+        d.text((tx, y1), lead + (" " if accent else ""), font=f_title, fill=WHITE)
+        if accent:
+            d.text((tx + probe.textlength(lead + " ", font=f_title), y1), accent, font=f_title, fill=SIGNAL)
+        if sub:
+            d.text((tx, y2), sub, font=f_sub, fill=HAZE)
+
+    m = int(12 * s)  # room for the soft shadow
+    full = Image.new("RGBA", (w + m * 2, h + m * 2), (0, 0, 0, 0))
+    sh = Image.new("L", full.size, 0)
+    ImageDraw.Draw(sh).rounded_rectangle((m, m + int(3 * s), m + w, m + h + int(3 * s)), radius=r, fill=130)
+    from PIL import ImageFilter
+    full.paste((0, 0, 0, 255), (0, 0), sh.filter(ImageFilter.GaussianBlur(int(7 * s))))
+    full.alpha_composite(card, (m, m))
+    return full.resize((max(1, full.width // 2), max(1, full.height // 2)), Image.LANCZOS)
 
 
 def secs_text(secs):

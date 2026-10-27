@@ -38,7 +38,8 @@ saves clips on a hotkey or automatically on highlights, and hands clips to the w
   `https://verseplatform.gg/functions/squadRelay?secret=...`, mates save their own POV, small copies come back and get
   combined side by side. Secret is baked in at build time from the `SQUAD_RELAY_SECRET` repo secret (`squad_secret.txt`, never committed).
 - `triggers.py`: "clip that" voice command (Windows System.Speech) and controller combos (XInput).
-- `overlay.py`: the "Last 60s saved by Verse Platform" pop-up. `watermark.py`: "Clipped by Verse Platform" for the first 2s (always on).
+- `overlay.py`: the "Last 60s saved by Verse Platform" pop-up. `watermark.py`: animated "Clipped by Verse Platform" card for the
+  first 3s (always on). Both use the bundled Inter fonts in `assets/fonts` (OFL).
 - `updater.py`: auto update from GitHub Releases (`VersePlatformSetup.exe`, sha256 checked, silent install, relaunch).
 - `whatsnew.py` + `release-notes/*.md`: the in-app What's new pop-up.
 - `ui/`: the My clips / Settings screens (plain HTML/JS/CSS).
@@ -73,13 +74,14 @@ Ask for `%APPDATA%\Verse Platform\verse_platform.log` (and `crash.log` if there 
 The "Ready." line shows encoder, capture method and "(GPU only)". Useful lines: "Capture froze", "Switching from",
 "Sound output changed", "Saved with no audio", "Told the squad".
 
-## Still to confirm on a real PC (as of 1.2.6)
+## Still to confirm on a real PC (as of 1.2.7)
 - GPU-only recording ("(GPU only)" in the log, lower FFmpeg CPU in Task Manager).
 - Default sound device following ("Sound output changed, recording follows it").
 - Squad POV end to end between two PCs (needs the Base44 squadRelay function published; the upload size limit is untested).
 - CS2 and Dota 2 highlights in real matches.
 - Mobile app iris launch intro on a real phone (lives in Base44).
 - Link Xbox pop-up in the app ("Sign-in pop-up opened" then "Sign-in finished, refreshing Verse"). Shipped in 1.2.6, Base44 side published.
+- New 3s "Clipped by" card and restyled save pop-up (1.2.7) in real clips and games.
 
 ## Ideas not built yet
 Match summary pop-up after a game, slow-mo on the big moment, end card with K/D/A and verseplatform.gg,
