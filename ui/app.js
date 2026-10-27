@@ -248,6 +248,14 @@ function bestClip(plays) {
   };
   return [...plays].filter((c) => !isPosted(c)).sort((a, b) => rank(a) - rank(b))[0];
 }
+// the lobby's average rank with its rank icon (OP.GG's medal for that tier)
+function lobbyStat(r) {
+  const tier = (r.lobby || "").split(" ")[0].toLowerCase();
+  const src = r.lobby_image || (tier ? `https://opgg-static.akamaized.net/images/medals_new/${tier}.png` : "");
+  return el("div", { class: "ms-stat ms-rank" },
+    src ? el("img", { src, alt: "", onerror: (e) => e.target.remove() }) : null,
+    el("div", {}, el("strong", {}, r.lobby), el("span", {}, "Lobby's average rank")));
+}
 // end of game numbers for a League match, vs the player's own average from past games
 function matchSummary(s, plays) {
   const avg = s.avg || {};
@@ -268,7 +276,7 @@ function matchSummary(s, plays) {
     stat((s.vision_min || 0).toFixed(2), `Vision per min (${Math.round(s.vision || 0)})`, s.vision_min, avg.vision_min, (v) => v.toFixed(2)),
     s.real && s.real.damage != null ? stat(Number(s.real.damage).toLocaleString(), `Damage to champions (${Math.round(s.real.dpm || 0)} a min)`) : null,
     s.real && s.real.gold != null ? stat(Number(s.real.gold).toLocaleString(), `Gold earned (${Math.round(s.real.gpm || 0)} a min)`) : null,
-    s.real && s.real.lobby ? stat(s.real.lobby, "Lobby's average rank") : null,
+    s.real && s.real.lobby ? lobbyStat(s.real) : null,
     best ? el("button", { class: "btn btn-primary ms-post", onclick: () => openPlayer(best.id) }, `Post ${best.title}`) : null);
 }
 // post match analysis: a few plain sentences, CS over the game (you, your lane opponent, your usual) and CS by phase

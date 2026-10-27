@@ -3,7 +3,13 @@
 Changes that are in `main` but not released yet. When it's time to release, bump `APP_VERSION`,
 turn these into `release-notes/<version>.md`, then clear this list.
 
-Nothing held right now. 1.3.0 shipped the big League update (benchmarks, timers, panel, summary, analysis, OP.GG).
+## For the release notes
+* **Rank icons:** the lobby's average rank in a League game's summary now shows its rank icon (like the Platinum crest), not just the name.
+
+## Behind the scenes
+* `opgg.recent_game` adds `lobby_image` (OP.GG medal `medals_new/<tier>.png`); `lobbyStat()` in ui/app.js shows it,
+  building the same URL from the tier name for games saved on 1.3.0.
+
 
 ## Still to confirm on a real PC
 * Link Xbox pop-up end to end (log lines: "Sign-in pop-up opened", "Sign-in finished, refreshing Verse").

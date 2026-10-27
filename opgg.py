@@ -35,6 +35,7 @@ REGIONS = {"OC1": "OCE", "NA1": "NA", "EUW1": "EUW", "EUN1": "EUNE", "KR": "KR",
            "LA2": "LAS", "JP1": "JP", "TR1": "TR", "RU": "RU", "PH2": "PH", "SG2": "SG", "TH2": "TH", "TW2": "TW",
            "VN2": "VN", "ME1": "ME"}
 POSITIONS = {"TOP": "top", "JUNGLE": "jungle", "MIDDLE": "mid", "BOTTOM": "adc", "UTILITY": "support"}
+MEDAL = "https://opgg-static.akamaized.net/images/medals_new/{}.png"   # OP.GG's rank icons, e.g. platinum.png
 TIERS = ["IRON", "BRONZE", "SILVER", "GOLD", "PLATINUM", "EMERALD", "DIAMOND", "MASTER", "GRANDMASTER", "CHALLENGER"]
 
 
@@ -324,5 +325,6 @@ class OPGG:
                     "damage": st.get("total_damage_dealt_to_champions"),
                     "dpm": round((st.get("total_damage_dealt_to_champions") or 0) / mins, 1),
                     "op_score": st.get("op_score"), "lobby": rank_text(avg.get("tier"), avg.get("division")),
+                    "lobby_image": MEDAL.format(str(avg["tier"]).lower()) if avg.get("tier") else "",
                     "game_id": g.get("id")}
         return None
