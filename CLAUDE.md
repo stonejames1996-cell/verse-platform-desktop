@@ -38,6 +38,8 @@ saves clips on a hotkey or automatically on highlights, and hands clips to the w
   `https://verseplatform.gg/functions/squadRelay?secret=...`, mates save their own POV, small copies come back and get
   combined side by side. Secret is baked in at build time from the `SQUAD_RELAY_SECRET` repo secret (`squad_secret.txt`, never committed).
 - `triggers.py`: "clip that" voice command (Windows System.Speech) and controller combos (XInput).
+- `lol_items.py`: League item ideas pop-up (counter items from enemy items on Tab, Data Dragon names/icons; shown while dead or Alt+Shift+I).
+  Keep it inside Riot policy: always 2+ choices with reasons, no win rates, only Tab info.
 - `overlay.py`: the "Last 60s saved by Verse Platform" pop-up. `watermark.py`: animated "Clipped by Verse Platform" card for the
   first 3s (always on). Both use the bundled Inter fonts in `assets/fonts` (OFL).
 - `updater.py`: auto update from GitHub Releases (`VersePlatformSetup.exe`, sha256 checked, silent install, relaunch).
@@ -68,6 +70,11 @@ GitHub Actions (`.github/workflows/build.yml`) builds the installer, creates rel
 Discord, and every user's app updates itself within ~2 hours. A push without a version bump builds nothing.
 Repo secrets used: `DISCORD_WEBHOOK_URL`, optional `DISCORD_PING_ROLE_ID`, `SQUAD_RELAY_SECRET`.
 `Release.bat` / `release.ps1` do the same from a Windows PC.
+
+## Windows checks in the build
+Every build runs `tools/win_checks.py` on the Windows runner and pushes its results to the `ci-checks` branch
+(`log.txt`, rendered item ideas pictures). Read it with `git fetch origin ci-checks` and `git show origin/ci-checks:log.txt`
+(the Actions log download is blocked from Claude's sandbox). The runner has no GPU, so actual capture fails there; that's expected.
 
 ## Debugging
 Ask for `%APPDATA%\Verse Platform\verse_platform.log` (and `crash.log` if there is one) plus a broken clip.

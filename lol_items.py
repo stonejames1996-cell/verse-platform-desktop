@@ -301,8 +301,8 @@ def ideas(gd, game, limit=3):
                 continue
             picks.append(item)
         picks = picks[:3]
-        if not picks:
-            continue
+        if len(picks) < 2:
+            continue   # always a real choice (Riot: highlight decisions, don't make them)
         used.update(picks)
         rows.append({"why": why, "items": picks})
         if len(rows) >= limit:
