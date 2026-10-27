@@ -3,15 +3,13 @@
 Changes that are in `main` but not released yet. When it's time to release, bump `APP_VERSION`,
 turn these into `release-notes/<version>.md`, then clear this list.
 
-## For the release notes
-* **Your highlight is now in the clip too:** when Verse saves a highlight like a Double kill or an Ace, the clip shows the "Clipped by Verse Platform" tag first, then a matching "Double kill" card right when the moment happens. It's part of the video, so it shows on Verse, Discord, TikTok and everywhere else.
-* Trimmed and vertical copies keep the card as long as the big moment is still in them.
+Nothing held right now. 1.2.8 shipped the highlight card.
 
-## Behind the scenes
-* Highlight clips now store `moment_from_end` (highlight_after + 0.5s), and `watermark.highlight_png_for`
-  draws a 2.6s card in the same style ("CS2 HIGHLIGHT" over the label, "+" in cyan for combos).
-* It's placed at the moment, but never on top of the Clipped by tag or cut off by the end of the clip.
-  Clips saved with the hotkey, death reviews and squad POVs don't get one.
+## Next batch (agreed, not built yet)
+* League item ideas pop-up: reads the enemy team's items from the Live Client Data feed (same info as Tab) and
+  suggests 2 or 3 counter items with a short reason (anti heal, MR, armour pen, Serpent's Fang, QSS...).
+  Shows while you're dead or on a hotkey. Riot policy: never "buy this now", always choices, no win rates,
+  only info the player can already see. Item names and icons from Data Dragon.
 
 ## Still to confirm on a real PC
 * Link Xbox pop-up end to end (log lines: "Sign-in pop-up opened", "Sign-in finished, refreshing Verse").
