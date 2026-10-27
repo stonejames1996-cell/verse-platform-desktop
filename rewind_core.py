@@ -101,6 +101,7 @@ DEFAULT_CONFIG = {
     "lol_objective_timers": True,  # League: Dragon, Baron and inhibitor respawn timers on the right
     "lol_benchmarks": True,        # League: CS, gold, kill share, KDA and level vs your average, on the right
     "lol_match_summary": True,     # League: a summary card when the game ends
+    "lol_opgg": True,              # League: your rank and rank / top player comparisons from OP.GG
     "item_ideas_hotkey": "alt+shift+i",  # show the item ideas any time in a League match
     "highlight_events": {},        # which moments count, see highlights.DEFAULT_EVENTS (blank = defaults)
     "highlight_before": 5,         # seconds kept before the first moment of a play

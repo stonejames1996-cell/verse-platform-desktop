@@ -266,6 +266,9 @@ function matchSummary(s, plays) {
     stat((s.cs_min || 0).toFixed(1), `CS per min (${s.cs} CS)`, s.cs_min, avg.cs_min, (v) => v.toFixed(1)),
     s.kp != null ? stat(`${Math.round(s.kp * 100)}%`, "Kill share", s.kp, avg.kp, (v) => `${Math.round(v * 100)}%`) : null,
     stat((s.vision_min || 0).toFixed(2), `Vision per min (${Math.round(s.vision || 0)})`, s.vision_min, avg.vision_min, (v) => v.toFixed(2)),
+    s.real && s.real.damage != null ? stat(Number(s.real.damage).toLocaleString(), `Damage to champions (${Math.round(s.real.dpm || 0)} a min)`) : null,
+    s.real && s.real.gold != null ? stat(Number(s.real.gold).toLocaleString(), `Gold earned (${Math.round(s.real.gpm || 0)} a min)`) : null,
+    s.real && s.real.lobby ? stat(s.real.lobby, "Lobby's average rank") : null,
     best ? el("button", { class: "btn btn-primary ms-post", onclick: () => openPlayer(best.id) }, `Post ${best.title}`) : null);
 }
 // post match analysis: a few plain sentences, CS over the game (you, your lane opponent, your usual) and CS by phase
@@ -342,7 +345,10 @@ function matchAnalysis(a, champ, id) {
   return el("section", { class: "m-analysis", "aria-label": "Match analysis" },
     el("div", { class: "ma-head" },
       el("h4", {}, "Match analysis"),
-      el("span", { class: "ma-vs" }, "Compared with ", el("b", {}, c.vs)),
+      el("span", { class: "ma-vs" }, "Compared with ", el("b", {}, c.vs_rank ? `${c.vs} and ${c.vs_rank} players` : c.vs)),
+      a.rank ? el("span", { class: "ma-rank" },
+        a.rank.image ? el("img", { src: a.rank.image, alt: "", onerror: (e) => e.target.remove() }) : null,
+        a.rank.text, a.rank.lp != null ? el("small", {}, ` ${a.rank.lp} LP`) : null) : null,
       el("div", { class: "ma-tabs", role: "tablist" }, keys.map((k) => el("button", {
         role: "tab", "aria-selected": String(k === tab), class: k === tab ? "on" : "",
         onclick: () => { analysisTab.set(id, k); renderClips(); } }, a.cats[k].title)))),

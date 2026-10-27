@@ -49,7 +49,7 @@ LIVE_KEYS = {"hotkey", "buffer_seconds", "record_mode", "detect_fullscreen_apps"
              "death_review", "death_review_before", "squad_code", "squad_name", "squad_share",
              "controller_combo", "auto_clean_days", "auto_clean_permanent", "follow_game_screen",
              "lol_item_ideas", "lol_objective_timers", "lol_match_summary",
-             "lol_benchmarks"}
+             "lol_benchmarks", "lol_opgg"}
 
 # A small "Clips" tab added to the left edge of Verse pages inside the app, so the clip library
 # is always one click away. Verse can render its own button instead: if the page has an element

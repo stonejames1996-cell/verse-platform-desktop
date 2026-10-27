@@ -274,6 +274,10 @@ video { display: block; width: 100%; aspect-ratio: 16 / 9; max-height: calc(100v
 .ma-head h4 { margin: 0; font-size: 15px; }
 .ma-vs { font-size: 13px; color: var(--haze); }
 .ma-vs b { color: #34d399; font-weight: 600; }
+.ma-rank { display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px 3px 4px; border-radius: 999px;
+  background: #11171e; border: 1px solid #1f2a33; font-size: 13px; font-weight: 600; }
+.ma-rank img { width: 22px; height: 22px; object-fit: contain; }
+.ma-rank small { color: var(--haze); font-weight: 500; }
 .ma-tabs { margin-left: auto; display: flex; gap: 4px; padding: 3px; border-radius: 10px; background: #0a0d11; border: 1px solid #1f2a33; }
 .ma-tabs button { background: none; border: 0; color: var(--haze); font: inherit; font-size: 13px; font-weight: 600;
   padding: 6px 14px; border-radius: 7px; cursor: pointer; }

@@ -94,5 +94,29 @@ else:
                       if not gd.in_shop(i, 11)})
     print("suggested items not in this patch's Summoner's Rift shop:", missing, [gd.name(i) for i in missing])
 
+# ---- OP.GG (rank comparisons in the match analysis)
+try:
+    import opgg
+    from datetime import datetime
+    o = opgg.OPGG(OUT)
+    prof = o.profile("Faker#KR1", "KR")
+    at = o.champion_at_tier("Jinx", "BOTTOM", (prof or {}).get("tier") or "EMERALD")
+    top = o.top_players("Jinx", "OCE")
+    print("opgg profile:", prof)
+    print("opgg Jinx at tier:", at)
+    print("opgg top Jinx OCE:", top)
+    hist = o.call("lol_list_summoner_matches", {"game_name": "Faker", "tag_line": "KR1", "region": "KR", "lang": "en_US",
+                  "limit": 5, "desired_output_fields": ["data.game_history[].{created_at,id}",
+                  "data.game_history[].participants[].{champion_name}"]}, 60)
+    g0 = (((hist or {}).get("data") or {}).get("game_history") or [None])[0]
+    if g0:
+        ts = datetime.fromisoformat(g0["created_at"]).timestamp()
+        champ = ((g0.get("participants") or [{}])[0]).get("champion_name")
+        print("opgg recent game:", o.recent_game("Faker#KR1", "KR", ts + 60, champ))
+    if not (prof and at and top):
+        problems.append("OP.GG answers missing (profile / champion at tier / top players)")
+except Exception as e:
+    problems.append(f"OP.GG check crashed: {e}")
+
 print("\nPROBLEMS:" if problems else "\nAll good", *problems, sep="\n  ")
 sys.exit(1 if problems else 0)

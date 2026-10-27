@@ -26,6 +26,7 @@ from PIL import Image, ImageDraw, ImageFilter
 
 import highlights
 import lol_items
+import opgg
 
 log = logging.getLogger("verse.lol")
 
@@ -501,6 +502,33 @@ def analyse(tl, deaths, avg, nums, opp_name, me_name):
     }
 
 
+def add_rank(analysis, nums, ctx, champ):
+    """Adds the OP.GG comparisons to the analysis: your rank, KDA vs players at your rank on this champion,
+    and CS / gold vs the top players on this champion."""
+    if not analysis or not ctx:
+        return analysis
+    cats = analysis.get("cats") or {}
+    rank, at_tier, top = ctx.get("rank"), ctx.get("at_tier"), ctx.get("top")
+    if rank:
+        analysis["rank"] = rank
+    tips = analysis.setdefault("tips", [])
+    kda = nums.get("kda")
+    if at_tier and kda is not None and "combat" in cats:
+        who = f"{at_tier['tier']} {champ}" if at_tier.get("tier") != "all ranks" else champ
+        cats["combat"]["bars"].append({"name": f"KDA vs {who}", "you": round(kda, 1), "usual": round(at_tier["kda"], 1), "fmt": "1"})
+        better = kda >= at_tier["kda"]
+        tips.append({"cat": "combat", "kind": "up" if better else "down",
+                     "text": f"Your KDA of {kda:.1f} was {'above' if better else 'below'} the {at_tier['kda']:.1f} average "
+                             f"for {who} players."})
+        cats["combat"]["vs_rank"] = who
+    if top and nums.get("cs_min") and "farming" in cats:
+        cats["farming"]["bars"].append({"name": f"Top {champ} players", "you": round(nums["cs_min"], 1),
+                                        "usual": round(top["cs_min"], 1), "fmt": "1"})
+        tips.append({"cat": "farming", "kind": "down" if nums["cs_min"] < top["cs_min"] * 0.85 else "up",
+                     "text": f"The top {champ} players average {top['cs_min']:.1f} CS a minute. You had {nums['cs_min']:.1f}."})
+    return analysis
+
+
 # ---------------------------------------------------------------- match summary card
 def render_summary(gd, s, scale=1.0):
     """End of game card: result, champion, K/D/A, the three numbers vs average, highlights saved."""
@@ -592,6 +620,9 @@ class LeagueCompanion:
         self.last_gpm = None
         self.gd_tried = 0.0
         self.tl = None           # this game, one sample a minute, for the post match analysis
+        self.opgg = opgg.OPGG(data_dir)
+        self.ctx = None          # OP.GG: your rank, your champion at your rank, top players (fetched at game start)
+        self.ctx_key = None
         self.ended = set()
         self.last_game = None
 
@@ -634,6 +665,52 @@ class LeagueCompanion:
             self.strip.hide_static()
         else:
             self.strip.show_static(render_strip(bench, rows, self.strip.scale()), place="right")
+
+    def _rank_context(self, game, me):
+        """Once a game, in the background: your rank and the OP.GG comparisons for your champion."""
+        if not self.cfg("lol_opgg"):
+            return
+        riot = (game.get("activePlayer") or {}).get("riotId") or me.get("riotId") or ""
+        key = (riot, me.get("championName"), me.get("position"))
+        if key == self.ctx_key:
+            return
+        self.ctx_key, self.ctx = key, {}
+        ctx = self.ctx
+
+        def fetch():
+            region = opgg.league_region()
+            ctx["region"] = region
+            champ, pos = me.get("championName", ""), me.get("position", "")
+            rank = self.opgg.profile(riot, region) if region else None
+            if rank:
+                ctx["rank"] = rank
+            at = self.opgg.champion_at_tier(champ, pos, rank["tier"] if rank else None)
+            if at:
+                ctx["at_tier"] = at
+            top = self.opgg.top_players(champ, region) if region else None
+            if top:
+                ctx["top"] = top
+            log.info("OP.GG: region %s, rank %s, %s", region or "unknown", (rank or {}).get("text", "unranked"),
+                     "champion stats ready" if at or top else "no champion stats")
+        threading.Thread(target=fetch, daemon=True, name="opgg").start()
+
+    def _real_numbers(self, match_id, summary, riot, started, champion):
+        """After the game: OP.GG's real gold and damage once it has the match (tries for about 20 minutes)."""
+        region = (self.ctx or {}).get("region")
+        if not (self.cfg("lol_opgg") and region and match_id):
+            return
+
+        def wait():
+            for delay in (90, 180, 300, 600):
+                time.sleep(delay)
+                real = self.opgg.recent_game(riot, region, started, champion)
+                if real:
+                    summary["real"] = real
+                    self.on_summary({"id": match_id, "summary": summary})
+                    log.info("OP.GG has the match: %s gold, %s damage", real.get("gold"), real.get("damage"))
+                    return
+            log.info("OP.GG didn't have the match yet, leaving gold and damage out")
+        threading.Thread(target=wait, daemon=True, name="opgg-after").start()
 
     def _sample(self, game, me, now):
         """Once a game minute: your CS and level, and your lane opponent's (both on Tab)."""
@@ -695,6 +772,7 @@ class LeagueCompanion:
 
         if me:
             self._sample(game, me, now)
+            self._rank_context(game, me)
 
         # the box on the right: benchmarks and objective timers (not in Arena / TFT)
         rows, bench = [], []
@@ -789,7 +867,8 @@ class LeagueCompanion:
         deaths = sorted(float(e.get("EventTime", 0)) for e in ((game.get("events") or {}).get("Events") or [])
                         if e.get("EventName") == "ChampionKill" and highlights._names(e.get("VictimName")) & names)
         try:
-            summary["analysis"] = analyse(tl, deaths, avg, nums, tl.get("opp", ""), me.get("championName", ""))
+            summary["analysis"] = add_rank(analyse(tl, deaths, avg, nums, tl.get("opp", ""), me.get("championName", "")),
+                                           nums, self.ctx, me.get("championName", ""))
         except Exception:
             log.exception("Post match analysis")
         if nums.get("minutes", 0) >= 10:     # remakes don't count towards your average
@@ -802,8 +881,13 @@ class LeagueCompanion:
                               "cs_at": list(tl.get("cs") or [])[:60],
                               "vision_at": list(tl.get("vision") or [])[:60]})
         self.tl = None
+        if (self.ctx or {}).get("rank"):
+            summary["rank"] = self.ctx["rank"]
         if match.get("id"):
             self.on_summary({"id": match["id"], "summary": summary})
+            started = time.time() - float((game.get("gameData") or {}).get("gameTime", 0))
+            riot = (game.get("activePlayer") or {}).get("riotId") or me.get("riotId") or ""
+            self._real_numbers(match["id"], dict(summary), riot, started, me.get("championName", ""))
         log.info("Match summary: %s %s/%s/%s, %.1f CS a min", result, summary["kills"], summary["deaths"],
                  summary["assists"], summary["cs_min"])
         if not self.cfg("lol_match_summary"):
