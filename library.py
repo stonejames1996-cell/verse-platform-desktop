@@ -576,7 +576,7 @@ class ClipLibrary:
                 "old_count": len(old), "old_bytes": sum(c.get("size") or 0 for c in old)}
 
     def add_watermark(self, clip_id, encoder):
-        """Burns "Clipped by Verse Platform" into the first 2 seconds of a saved clip, in place.
+        """Burns "Clipped by Verse Platform" into the first 3 seconds of a saved clip, in place.
         Runs at low priority. Keeps the original if anything goes wrong."""
         clip = self.get(clip_id)
         if not clip or clip.get("watermarked"):

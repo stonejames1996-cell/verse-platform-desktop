@@ -4,7 +4,7 @@ from PyInstaller.utils.hooks import collect_data_files, collect_submodules
 
 block_cipher = None
 binaries = [("build_deps/ffmpeg.exe", ".")] if os.path.exists("build_deps/ffmpeg.exe") else []
-datas = [("assets/logo.png", "assets"), ("assets/logo.ico", "assets"), ("ui", "ui"), ("release-notes", "release-notes")]
+datas = [("assets/logo.png", "assets"), ("assets/logo.ico", "assets"), ("assets/fonts", "assets/fonts"), ("ui", "ui"), ("release-notes", "release-notes")]
 import os
 if os.path.exists("squad_secret.txt"):   # written by the GitHub build from a repo secret
     datas += [("squad_secret.txt", ".")]
