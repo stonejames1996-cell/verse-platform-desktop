@@ -19,6 +19,7 @@ saves clips on a hotkey or automatically on highlights, and hands clips to the w
   Only ship a quick fix on its own after asking, and only when something is properly broken (clips not saving, lag, no sound).
 - Never publish Base44 without the owner saying so.
 - Never put secrets in the code (the repo is public).
+- Use icons wherever we can (rank crests, champion and item pictures, objective icons) instead of plain text.
 
 ## Code map (Python 3, PyInstaller, pywebview / WebView2, FFmpeg)
 - `verse_desktop.py`: the app. Window, tray, `App` (recording control, save queue, death review, watermark queue,
