@@ -151,9 +151,11 @@ def secs_text(secs):
 class Overlay:
     """Call show(...) from any thread. All Windows work happens on the overlay's own thread."""
 
-    def __init__(self, get_monitor=lambda: 0):
-        """get_monitor: a screen number (0 = main) or a (left, top, right, bottom) rectangle."""
+    def __init__(self, get_monitor=lambda: 0, name="VersePlatformOverlay"):
+        """get_monitor: a screen number (0 = main) or a (left, top, right, bottom) rectangle.
+        name: its own window class, so several overlays (pop-ups, League timers) can be up at once."""
         self.get_monitor = get_monitor
+        self.name = name
         self.q = queue.Queue()
         self.ok = IS_WINDOWS
         if self.ok:
@@ -169,6 +171,15 @@ class Overlay:
         in_clips: let it show up in recordings (the item ideas do, it's good for Verse to be seen)."""
         if self.ok:
             self.q.put(("img", img, seconds, until, place, in_clips))
+
+    def show_static(self, img, place="right"):
+        """Shows (or replaces) a picture that stays up with no animation until hide_static()."""
+        if self.ok:
+            self.q.put(("static", img, place))
+
+    def hide_static(self):
+        if self.ok:
+            self.q.put(("hide",))
 
     def scale(self):
         try:
@@ -195,6 +206,10 @@ class Overlay:
             try:
                 if item[0] == "img":
                     self._present(*item[1:])
+                elif item[0] == "static":
+                    self._present(item[1], 0, None, item[2], static=True)
+                elif item[0] == "hide":
+                    self.u.ShowWindow(self.hwnd, 0)
                 else:
                     self._play(*item[1:])
             except Exception:
@@ -256,10 +271,10 @@ class Overlay:
         wc.cbSize = ctypes.sizeof(WNDCLASSEXW)
         wc.lpfnWndProc = self._proc
         wc.hInstance = hinst
-        wc.lpszClassName = "VersePlatformOverlay"
+        wc.lpszClassName = self.name
         u.RegisterClassExW(ctypes.byref(wc))
         WS_EX = 0x00080000 | 0x00000020 | 0x00000008 | 0x00000080 | 0x08000000  # layered transparent topmost toolwindow noactivate
-        self.hwnd = u.CreateWindowExW(WS_EX, "VersePlatformOverlay", "Verse Platform", 0x80000000,  # WS_POPUP
+        self.hwnd = u.CreateWindowExW(WS_EX, self.name, "Verse Platform", 0x80000000,  # WS_POPUP
                                       0, 0, 1, 1, None, None, hinst, None)
         if not self.hwnd:
             raise OSError(ctypes.get_last_error(), "CreateWindowEx failed")
@@ -301,7 +316,7 @@ class Overlay:
     def _play(self, lead, accent, sub, ok):
         self._present(render(lead, accent, sub, self._scale(), ok), SHOW_SECONDS, None, "top")
 
-    def _present(self, img, seconds, until, place, in_clips=False):
+    def _present(self, img, seconds, until, place, in_clips=False, static=False):
         ct, wt, u, g = self.ct, self.wt, self.u, self.g
         try:   # save pop-ups stay out of recordings, the item ideas can be in them
             u.SetWindowDisplayAffinity(self.hwnd, 0 if in_clips else 0x11)
@@ -333,6 +348,8 @@ class Overlay:
             x0, y = left + margin, top + margin
             if place == "left":   # middle of the left edge, a little above centre (clear of chat)
                 y = max(top + margin, top + (bottom - top - h) // 2 - (bottom - top) // 12)
+            elif place == "right":   # right edge, a third of the way down (clear of the scoreboard and minimap)
+                x0, y = right - margin - w, top + int((bottom - top) * 0.30)
             size, src = wt.SIZE(w, h), wt.POINT(0, 0)
             blend = self.BLENDFUNCTION(0, 0, 0, 1)
 
@@ -342,6 +359,10 @@ class Overlay:
                 u.UpdateLayeredWindow(self.hwnd, screen, ct.byref(dst), ct.byref(size), mem, ct.byref(src), 0,
                                       ct.byref(blend), 2)  # ULW_ALPHA
 
+            if static:   # no animation, stays up until replaced or hidden
+                frame(255, 0)
+                u.SetWindowPos(self.hwnd, wt.HWND(-1), 0, 0, 0, 0, 0x0001 | 0x0002 | 0x0010 | 0x0040)
+                return
             frame(0, -16 * scale)
             u.SetWindowPos(self.hwnd, wt.HWND(-1), 0, 0, 0, 0, 0x0001 | 0x0002 | 0x0010 | 0x0040)  # topmost, show, no activate
             ease = lambda t: 1 - (1 - t) ** 3

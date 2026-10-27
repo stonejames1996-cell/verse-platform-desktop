@@ -13,7 +13,8 @@ Keeping inside Riot's rules (developer policy, League section):
   * no win rates, nothing from outside the game client, nothing a player couldn't see on Tab
   * not in Arena or TFT
 
-When it shows: while you're dead (shopping time), until you respawn, and on a shortcut (Alt+Shift+I).
+When it shows: lol_live.LeagueCompanion shows it while you're dead (shopping time), until you respawn,
+and on a shortcut (Alt+Shift+I), together with your own numbers and your lane's item gold.
 The pop-up is the same click-through window as the save pop-up. Unlike that one it does show up in
 recordings, so a clip taken while it's open shows Verse Platform too.
 """
@@ -324,8 +325,11 @@ def ideas(gd, game, limit=3):
 
 
 # ---------------------------------------------------------------- the pop-up picture
-def render(gd, result, scale=1.0):
-    """Glass card in the same style as the save pop-up: title, then each idea with item icons."""
+def render(gd, result, scale=1.0, extras=None):
+    """Glass card in the same style as the save pop-up: title, then each idea with item icons.
+    extras (from lol_live): {"stats": [tiles], "gold": {...}} drawn above the ideas, under small labels."""
+    extras = extras or {}
+    result = result or {"rows": []}
     from overlay import HAZE, SIGNAL, WHITE, _logo
     from watermark import _font, _spaced
     s = scale * 2
@@ -337,7 +341,7 @@ def render(gd, result, scale=1.0):
     f_foot = _font("Inter-SemiBold.otf", int(9 * s))
     probe = ImageDraw.Draw(Image.new("RGBA", (1, 1)))
     cell = int(86 * s)
-    w = max(int(300 * s), pad * 2 + int(10 * s) + 3 * cell)
+    w = max(int(320 * s), pad * 2 + int(10 * s) + 3 * cell)
     logo_px = int(26 * s)
 
     def wrap(text, font, width):
@@ -367,6 +371,19 @@ def render(gd, result, scale=1.0):
     def why_h(row, lines):
         return max(len(lines) * lh(f_why), face if row.get("champs") else 0)
 
+    f_sec = _font("Inter-SemiBold.otf", int(8.5 * s))
+    f_big = _font("InterDisplay-Bold.otf", int(17 * s))
+    f_small = _font("Inter-SemiBold.otf", int(9 * s))
+    sec_h = lh(f_sec) + int(6 * s)
+    tiles = extras.get("stats") or []
+    gold = extras.get("gold")
+    tile_h = lh(f_big) + lh(f_small) * 2 + int(10 * s)
+    if tiles:
+        h += sec_h + tile_h + int(12 * s)
+    if gold:
+        h += sec_h + face + int(14 * s)
+    if result["rows"]:
+        h += sec_h
     for row in result["rows"]:
         why = wrap(row["why"], f_why, w - pad * 2 - int(10 * s) - faces_w(row))
         names = [wrap(gd.name(i), f_item, cell - int(6 * s))[:2] for i in row["items"]]
@@ -374,7 +391,8 @@ def render(gd, result, scale=1.0):
         bh = why_h(row, why) + int(6 * s) + icon + int(4 * s) + name_h + int(12 * s)
         blocks.append((row, why, names, bh))
         h += bh
-    foot = "Ideas from what's on the Tab screen. Your call."
+    foot = ("Ideas from what's on the Tab screen. Your call." if result["rows"]
+            else "Your numbers vs your own past games.")
     h += lh(f_foot) + pad
     r = int(14 * s)
 
@@ -399,13 +417,59 @@ def render(gd, result, scale=1.0):
         card.alpha_composite(lg, (x0, y + (lh(f_label) + lh(f_title) - lg.height) // 2))
     tx = x0 + logo_px + int(10 * s)
     _spaced(d, (tx, y), "VERSE PLATFORM", f_label, HAZE, 2.0 * s)
-    d.text((tx, y + lh(f_label)), "Item ideas", font=f_title, fill=WHITE)
-    d.text((tx + probe.textlength("Item ideas ", font=f_title), y + lh(f_label)),
-           f"vs their team", font=f_title, fill=SIGNAL)
+    title, accent = ("Your game", "so far") if (tiles or gold) else ("Item ideas", "vs their team")
+    d.text((tx, y + lh(f_label)), title, font=f_title, fill=WHITE)
+    d.text((tx + probe.textlength(title + " ", font=f_title), y + lh(f_label)), accent, font=f_title, fill=SIGNAL)
     y += max(logo_px, lh(f_label) + lh(f_title)) + int(12 * s)
+    UP, DOWN = (52, 211, 153, 255), (251, 191, 36, 255)   # green-ish up, amber down (differ in lightness too)
 
-    for row, why, names, bh in blocks:
+    def section(label):
+        nonlocal y
         d.line([(x0, y - int(6 * s)), (w - pad, y - int(6 * s))], fill=(255, 255, 255, 22), width=max(1, int(s)))
+        _spaced(d, (x0, y), label, f_sec, HAZE, 1.6 * s)
+        y += sec_h
+
+    def face_at(key, fx, fy):
+        im = gd.champ_icon(key, face) if key else None
+        if im is not None:
+            m = Image.new("L", (face * 4, face * 4), 0)
+            ImageDraw.Draw(m).ellipse((0, 0, face * 4 - 1, face * 4 - 1), fill=255)
+            card.paste(im, (fx, fy), m.resize((face, face), Image.LANCZOS))
+        d.ellipse((fx, fy, fx + face - 1, fy + face - 1), outline=(255, 255, 255, 70), width=max(1, int(s)))
+
+    if tiles:
+        section("YOUR GAME")
+        tw = (w - pad - x0 - int(8 * s) * (len(tiles) - 1)) // max(1, len(tiles))
+        for n, t in enumerate(tiles):
+            cx = x0 + n * (tw + int(8 * s))
+            d.rounded_rectangle((cx, y, cx + tw, y + tile_h), radius=int(8 * s), fill=(255, 255, 255, 12),
+                                outline=(255, 255, 255, 26), width=max(1, int(s)))
+            ix, iy = cx + int(8 * s), y + int(5 * s)
+            d.text((ix, iy), t["value"], font=f_big, fill=WHITE)
+            d.text((ix, iy + lh(f_big)), t["label"], font=f_small, fill=HAZE)
+            if t.get("vs"):
+                col = UP if t.get("up") else DOWN if t.get("up") is False else HAZE
+                d.text((ix, iy + lh(f_big) + lh(f_small)), t["vs"], font=f_small, fill=col)
+        y += tile_h + int(12 * s)
+    if gold:
+        section("ITEMS VS YOUR LANE")
+        face_at(gold.get("me_key"), x0, y)
+        face_at(gold.get("them_key"), x0 + face + face_gap, y)
+        gx = x0 + face * 2 + face_gap + int(8 * s)
+        diff = gold["me"] - gold["them"]
+        line = f"{gold['me']:,} vs {gold['them']:,} gold"
+        ty = y + (face - lh(f_why)) // 2
+        d.text((gx, ty), line, font=f_why, fill=WHITE)
+        tag = "even" if abs(diff) < 150 else f"{abs(diff):,} {'ahead' if diff > 0 else 'behind'}"
+        d.text((gx + probe.textlength(line + "  ", font=f_why), ty), tag, font=f_why,
+               fill=HAZE if abs(diff) < 150 else UP if diff > 0 else DOWN)
+        y += face + int(14 * s)
+    if result["rows"]:
+        section("ITEM IDEAS VS THEIR TEAM")
+
+    for bi, (row, why, names, bh) in enumerate(blocks):
+        if bi:
+            d.line([(x0, y - int(6 * s)), (w - pad, y - int(6 * s))], fill=(255, 255, 255, 22), width=max(1, int(s)))
         top_y, wh = y, why_h(row, why)
         for n, key in enumerate(row.get("champs") or []):   # their champion pictures, round
             fx = x0 + n * (face + face_gap)
@@ -444,85 +508,3 @@ def render(gd, result, scale=1.0):
     full.paste((0, 0, 0, 255), (0, 0), sh.filter(ImageFilter.GaussianBlur(int(7 * s))))
     full.alpha_composite(card, (m, m))
     return full.resize((max(1, full.width // 2), max(1, full.height // 2)), Image.LANCZOS)
-
-
-# ---------------------------------------------------------------- watching the match
-class ItemIdeas:
-    """Shows the item ideas pop-up while you're dead, and on the shortcut."""
-
-    GAME = "League of Legends"
-
-    def __init__(self, get_cfg, is_playing, overlay, data_dir, get=None):
-        self.get_cfg, self.is_playing, self.overlay = get_cfg, is_playing, overlay
-        self.gd = GameData(data_dir)
-        self.get = get or highlights._get
-        self.dead = False
-        self.asked = 0.0
-
-    def start(self):
-        threading.Thread(target=self._loop, daemon=True, name="item-ideas").start()
-
-    def on(self):
-        return bool(self.get_cfg().get("lol_item_ideas", True))
-
-    def show_now(self, *_):
-        """The shortcut: show the ideas for a few seconds."""
-        self.asked = time.time()
-
-    def _loop(self):
-        while True:
-            try:
-                if self.on() and self.is_playing(self.GAME):
-                    self._tick()
-                else:
-                    self.dead = False
-            except Exception:
-                log.debug("item ideas poll", exc_info=True)
-            time.sleep(0.5)
-
-    def _tick(self):
-        asked = self.asked and time.time() - self.asked < 2
-        try:
-            game = self.get("/allgamedata")
-        except Exception:
-            return   # loading screen, or not in a match
-        me = self._me(game)
-        dead = bool(me and me.get("isDead"))
-        if dead and not self.dead:
-            self.dead = True
-            wait = float(me.get("respawnTimer") or 0)
-            if wait >= 4:   # not worth it for a very short death timer
-                self._show(game, seconds=min(wait, 75), until=self._still_dead)
-        elif not dead:
-            self.dead = False
-        if asked:
-            self.asked = 0
-            self._show(game, seconds=12, until=None, say_nothing=False)
-
-    def _me(self, game):
-        active = game.get("activePlayer") or {}
-        mine = highlights._names(active.get("riotId"), active.get("summonerName"))
-        return next((p for p in game.get("allPlayers") or []
-                     if highlights._names(p.get("riotId"), p.get("summonerName"), p.get("riotIdGameName")) & mine), None)
-
-    def _still_dead(self):
-        try:
-            me = self._me(self.get("/allgamedata"))
-            return bool(me and me.get("isDead"))
-        except Exception:
-            return False
-
-    def _show(self, game, seconds, until, say_nothing=True):
-        if not self.gd.ensure():
-            if not say_nothing:
-                self.overlay.show("Item ideas need Riot's game data", accent="", sub="Couldn't download it, check your internet", ok=False)
-            return
-        res = ideas(self.gd, game)
-        if not res:
-            if not say_nothing:
-                self.overlay.show("No item ideas right now", accent="", sub="Nothing on their team stands out yet")
-            return
-        scale = self.overlay.scale() if hasattr(self.overlay, "scale") else 1.0
-        img = render(self.gd, res, scale)
-        log.info("Item ideas shown: %s", " | ".join(r["why"] for r in res["rows"]))
-        self.overlay.show_image(img, seconds=seconds, until=until, place="left", in_clips=True)

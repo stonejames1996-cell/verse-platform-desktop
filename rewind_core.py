@@ -97,7 +97,9 @@ DEFAULT_CONFIG = {
     "auto_clean_days": 0,          # remove unstarred, unposted clips older than this, 0 = never
     "auto_clean_permanent": False, # skip the Recycle Bin when cleaning up        # "Clipped by Verse Platform" in the first 2 seconds of every clip     # "Last 60s saved by Verse Platform" pop-up over the game
     "auto_highlights": True,       # clip big plays by themselves (League of Legends)
-    "lol_item_ideas": True,        # League: counter item ideas while you're dead, from what's on Tab
+    "lol_item_ideas": True,        # League: while you're dead, your numbers, lane gold and counter item ideas
+    "lol_objective_timers": True,  # League: Dragon, Baron and inhibitor respawn timers on the right
+    "lol_match_summary": True,     # League: a summary card when the game ends
     "item_ideas_hotkey": "alt+shift+i",  # show the item ideas any time in a League match
     "highlight_events": {},        # which moments count, see highlights.DEFAULT_EVENTS (blank = defaults)
     "highlight_before": 5,         # seconds kept before the first moment of a play

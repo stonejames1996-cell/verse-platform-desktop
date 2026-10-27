@@ -260,6 +260,14 @@ video { display: block; width: 100%; aspect-ratio: 16 / 9; max-height: calc(100v
 .m-chev { width: 9px; height: 9px; margin: 0 6px 4px 4px; border-right: 2px solid var(--haze); border-bottom: 2px solid var(--haze); transform: rotate(45deg); transition: transform .2s; flex: none; }
 .match.open .m-chev { transform: rotate(225deg); margin-bottom: -4px; }
 .m-grid { padding: 4px 18px 18px; }
+.m-summary { display: flex; flex-wrap: wrap; align-items: stretch; gap: 10px; padding: 2px 18px 14px; }
+.ms-stat { display: flex; flex-direction: column; gap: 2px; min-width: 120px; padding: 10px 14px; border-radius: 10px;
+  background: rgba(255, 255, 255, .04); border: 1px solid var(--seam); }
+.ms-stat strong { font-size: 18px; }
+.ms-stat span { font-size: 12px; color: var(--haze); }
+.ms-stat small { font-size: 12px; font-weight: 600; color: var(--haze); }
+.ms-stat small.up { color: #34d399; } .ms-stat small.down { color: #fbbf24; }
+.ms-post { margin-left: auto; align-self: center; }
 .loose-head { color: var(--haze); font-size: 13px; font-weight: 600; margin: 18px 0 10px; text-transform: uppercase; letter-spacing: .06em; }
 @media (max-width: 900px) { .m-thumbs { display: none; } }
 

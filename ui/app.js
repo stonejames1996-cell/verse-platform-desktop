@@ -231,10 +231,41 @@ function matchCard(m, list, latest) {
     el("span", { class: "tick" }), all ? "Selected" : "Select game") : null;
   return el("div", { class: "match" + (open ? " open" : "") + (all && selecting ? " picked" : "") },
     el("div", { class: "m-top" }, head, pick),
+    open && m.summary ? matchSummary(m.summary, plays) : null,
     open && plays.length ? el("div", { class: "grid m-grid" }, plays.map(clipCard)) : null,
     open && deaths.length ? el("details", { class: "m-deaths" },
       el("summary", {}, `Death review · ${deaths.length}`, el("small", {}, " only on this PC, never posted unless you choose to")),
       el("div", { class: "grid m-grid" }, deaths.map(clipCard))) : null);
+}
+// the best auto clip of a game: the rarest moment wins
+const CLIP_RANK = ["penta", "steal", "quadra", "ace", "elder", "baron", "triple", "teamfight", "double", "first blood", "victory", "dragon", "kill"];
+function bestClip(plays) {
+  const rank = (c) => {
+    const t = (c.title || "").toLowerCase();
+    const i = CLIP_RANK.findIndex((k) => t.includes(k));
+    return c.highlight ? (i < 0 ? CLIP_RANK.length : i) : CLIP_RANK.length + 1;
+  };
+  return [...plays].filter((c) => !isPosted(c)).sort((a, b) => rank(a) - rank(b))[0];
+}
+// end of game numbers for a League match, vs the player's own average from past games
+function matchSummary(s, plays) {
+  const avg = s.avg || {};
+  const stat = (value, label, now, base, fmt) => {
+    let vs = "", cls = "";
+    if (base != null && now != null) {
+      const up = now > base * 1.04, down = now < base * 0.96;
+      vs = `avg ${fmt(base)}` + (up ? " \u25b2" : down ? " \u25bc" : "");
+      cls = up ? "up" : down ? "down" : "";
+    }
+    return el("div", { class: "ms-stat" }, el("strong", {}, value), el("span", {}, label), vs ? el("small", { class: cls }, vs) : null);
+  };
+  const best = bestClip(plays);
+  return el("div", { class: "m-summary" },
+    stat(`${s.kills}/${s.deaths}/${s.assists}`, "K / D / A"),
+    stat((s.cs_min || 0).toFixed(1), `CS per min (${s.cs} CS)`, s.cs_min, avg.cs_min, (v) => v.toFixed(1)),
+    s.kp != null ? stat(`${Math.round(s.kp * 100)}%`, "Kill share", s.kp, avg.kp, (v) => `${Math.round(v * 100)}%`) : null,
+    stat((s.vision_min || 0).toFixed(2), `Vision per min (${Math.round(s.vision || 0)})`, s.vision_min, avg.vision_min, (v) => v.toFixed(2)),
+    best ? el("button", { class: "btn btn-primary ms-post", onclick: () => openPlayer(best.id) }, `Post ${best.title}`) : null);
 }
 function clipCard(c) {
   const posted = isPosted(c);

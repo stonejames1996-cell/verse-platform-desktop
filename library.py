@@ -170,10 +170,12 @@ class ClipLibrary:
                 pass
 
     def save_match(self, match):
+        """Adds or updates a match. Fields not in this update (like the end of game "summary") are kept."""
         with self.lock:
-            if self.matches.get(match["id"]) == match:
+            merged = {**self.matches.get(match["id"], {}), **match}
+            if self.matches.get(match["id"]) == merged:
                 return
-            self.matches[match["id"]] = dict(match)
+            self.matches[match["id"]] = merged
             tmp = self.matches_path + ".tmp"
             with open(tmp, "w", encoding="utf-8") as f:
                 json.dump(list(self.matches.values()), f, indent=1)

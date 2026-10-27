@@ -38,6 +38,8 @@ saves clips on a hotkey or automatically on highlights, and hands clips to the w
   `https://verseplatform.gg/functions/squadRelay?secret=...`, mates save their own POV, small copies come back and get
   combined side by side. Secret is baked in at build time from the `SQUAD_RELAY_SECRET` repo secret (`squad_secret.txt`, never committed).
 - `triggers.py`: "clip that" voice command (Windows System.Speech) and controller combos (XInput).
+- `lol_live.py`: League companion loop: objective timers strip, the panel while dead (own stats vs `lol_history.json` averages,
+  lane item gold, item ideas), match summary card + `summary` on the match. Riot policy: no enemy cooldowns, no win rates.
 - `lol_items.py`: League item ideas pop-up (counter items from enemy items on Tab, Data Dragon names/icons; shown while dead or Alt+Shift+I).
   Keep it inside Riot policy: always 2+ choices with reasons, no win rates, only Tab info.
 - `overlay.py`: the "Last 60s saved by Verse Platform" pop-up. `watermark.py`: animated "Clipped by Verse Platform" card for the
@@ -97,3 +99,5 @@ The "Ready." line shows encoder, capture method and "(GPU only)". Useful lines: 
 Match summary pop-up after a game, slow-mo on the big moment, end card with K/D/A and verseplatform.gg,
 mic noise removal, auto match montage, in-game replay viewer, auto-post drafts to Verse, Clip of the Week on the site,
 quieter Discord posts for small fix releases.
+Waiting on Riot's production key (app 897128): loading screen info (ranks), skill order / rune ideas. Not doing: augment
+pick/win rates (Riot bans augment win rates), enemy ult timers (banned), jungle pathing.

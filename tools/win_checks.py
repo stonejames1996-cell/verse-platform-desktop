@@ -61,6 +61,28 @@ else:
             print(" ", row["why"], "->", [gd.name(i) for i in row["items"]])
         for scale in (1.0, 1.5):
             lol_items.render(gd, res, scale).save(os.path.join(OUT, f"item_ideas_{scale}.png"))
+        # the full panel while you're dead, the timers strip and the match summary (lol_live)
+        import lol_live
+        me = lol_live.me_in(sample)
+        hist = lol_live.History(OUT)
+        for i in range(6):
+            hist.add({"id": f"g{i}", "rift": True, "role": "BOTTOM", "minutes": 30, "cs_min": 6.2 + i * 0.1,
+                      "kp": 0.45, "vision_min": 0.6})
+        nums = lol_live.live_numbers(sample, me)
+        extras = {"stats": lol_live.stat_tiles(nums, hist.averages("BOTTOM", True)),
+                  "gold": lol_live.lane_gold(gd, sample, me)}
+        print("your game:", nums, extras["gold"])
+        lol_items.render(gd, res, 1.5, extras).save(os.path.join(OUT, "panel_1.5.png"))
+        timers = lol_live.ObjectiveTimers()
+        timers.update(sample, me["team"])
+        rows = timers.active(float(sample["gameData"]["gameTime"]))
+        print("timers:", rows)
+        lol_live.render_timers(rows, 1.5).save(os.path.join(OUT, "timers_1.5.png"))
+        summ = {"result": "Win", "champion": "Jinx", "champion_key": "Jinx", "kills": 9, "deaths": 3, "assists": 11,
+                "cs": 231, "cs_min": 7.7, "kp": 0.64, "vision": 31, "better": ["CS", "kill share"], "clips": 3}
+        lol_live.render_summary(gd, summ, 1.5).save(os.path.join(OUT, "summary_1.5.png"))
+        if not rows or not extras["gold"]:
+            problems.append("timers or lane gold came out empty for the sample match")
     missing = sorted({i for need in lol_items.OPTIONS.values() for ids in need.values() for i in ids
                       if not gd.in_shop(i, 11)})
     print("suggested items not in this patch's Summoner's Rift shop:", missing, [gd.name(i) for i in missing])

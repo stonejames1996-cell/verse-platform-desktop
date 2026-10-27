@@ -30,7 +30,7 @@ from library import ALLOWED_ORIGINS, ClipLibrary, ExportError, MediaServer
 from updater import Updater
 from overlay import Overlay, secs_text
 from highlights import DEFAULT_EVENTS, LeagueHighlights
-from lol_items import ItemIdeas
+from lol_live import LeagueCompanion
 from triggers import COMBOS, ControllerTrigger, VoiceTrigger
 from gsi import CS2Highlights, DotaHighlights, GSIServer, install_cfgs
 from squad import Squad, make_code
@@ -48,7 +48,7 @@ LIVE_KEYS = {"hotkey", "buffer_seconds", "record_mode", "detect_fullscreen_apps"
              "highlight_after", "highlight_max_per_game", "voice_command",
              "death_review", "death_review_before", "squad_code", "squad_name", "squad_share",
              "controller_combo", "auto_clean_days", "auto_clean_permanent", "follow_game_screen",
-             "lol_item_ideas"}
+             "lol_item_ideas", "lol_objective_timers", "lol_match_summary"}
 
 # A small "Clips" tab added to the left edge of Verse pages inside the app, so the clip library
 # is always one click away. Verse can render its own button instead: if the page has an element
@@ -212,7 +212,13 @@ class App:
         self.current_match = None
         self.voice = VoiceTrigger(self.trigger_save)
         self.pad = ControllerTrigger(lambda: self.cfg.get("controller_combo", ""), self.trigger_save)
-        self.item_ideas = ItemIdeas(lambda: self.cfg, self.is_playing, self.overlay, DATA_DIR)
+        # League: objective timers, the panel while you're dead (stats, lane gold, item ideas), match summary
+        self.timer_strip = Overlay(self.popup_screen, name="VersePlatformTimers")
+        self.item_ideas = LeagueCompanion(
+            lambda: self.cfg, self.is_playing, self.overlay, self.timer_strip, DATA_DIR,
+            get_match=lambda: self.highlights.match, on_summary=self.on_match_summary, notify=self.notify,
+            count_clips=lambda mid: sum(1 for c in self.library.list() if mid and c.get("match") == mid
+                                        and c.get("highlight") and not c.get("review")))
         self.highlights = LeagueHighlights(lambda: self.cfg, self.is_playing, self.save_highlight,
                                            on_match=self.on_match, on_death=self.on_death)
         # auto clips, death reviews and squad clips queue up here, so two at once never collide
@@ -423,6 +429,13 @@ class App:
         self.library.save_match(m)
         if not old or old.get("id") != m["id"] or old.get("result") != m.get("result"):
             self.bump()
+
+    def on_match_summary(self, m):
+        """End of a League game: keep the summary with the match so My clips can show it."""
+        self.library.save_match(m)
+        if self.current_match and self.current_match.get("id") == m["id"]:
+            self.current_match = {**self.current_match, **m}
+        self.bump()
 
     def trigger_save(self):
         """Voice command or controller combo: same as pressing the shortcut."""
