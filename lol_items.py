@@ -14,7 +14,8 @@ Keeping inside Riot's rules (developer policy, League section):
   * not in Arena or TFT
 
 When it shows: while you're dead (shopping time), until you respawn, and on a shortcut (Alt+Shift+I).
-The pop-up is the same click-through window as the save pop-up, hidden from recordings.
+The pop-up is the same click-through window as the save pop-up. Unlike that one it does show up in
+recordings, so a clip taken while it's open shows Verse Platform too.
 """
 
 import json
@@ -492,4 +493,4 @@ class ItemIdeas:
         scale = self.overlay.scale() if hasattr(self.overlay, "scale") else 1.0
         img = render(self.gd, res, scale)
         log.info("Item ideas shown: %s", " | ".join(r["why"] for r in res["rows"]))
-        self.overlay.show_image(img, seconds=seconds, until=until, place="left")
+        self.overlay.show_image(img, seconds=seconds, until=until, place="left", in_clips=True)

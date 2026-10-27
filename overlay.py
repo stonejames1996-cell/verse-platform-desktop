@@ -163,11 +163,12 @@ class Overlay:
         if self.ok:
             self.q.put(("msg", lead, accent, sub, ok))
 
-    def show_image(self, img, seconds=SHOW_SECONDS, until=None, place="top"):
+    def show_image(self, img, seconds=SHOW_SECONDS, until=None, place="top", in_clips=False):
         """Shows a ready drawn RGBA picture. until: optional check, the pop-up goes as soon as it
-        returns False (e.g. the item ideas leave when you respawn). place: "top" or "left"."""
+        returns False (e.g. the item ideas leave when you respawn). place: "top" or "left".
+        in_clips: let it show up in recordings (the item ideas do, it's good for Verse to be seen)."""
         if self.ok:
-            self.q.put(("img", img, seconds, until, place))
+            self.q.put(("img", img, seconds, until, place, in_clips))
 
     def scale(self):
         try:
@@ -300,8 +301,12 @@ class Overlay:
     def _play(self, lead, accent, sub, ok):
         self._present(render(lead, accent, sub, self._scale(), ok), SHOW_SECONDS, None, "top")
 
-    def _present(self, img, seconds, until, place):
+    def _present(self, img, seconds, until, place, in_clips=False):
         ct, wt, u, g = self.ct, self.wt, self.u, self.g
+        try:   # save pop-ups stay out of recordings, the item ideas can be in them
+            u.SetWindowDisplayAffinity(self.hwnd, 0 if in_clips else 0x11)
+        except Exception:
+            pass
         scale = self._scale()
         w, h = img.size
         # premultiplied BGRA, which is what UpdateLayeredWindow wants
