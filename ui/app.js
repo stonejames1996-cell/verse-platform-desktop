@@ -233,6 +233,7 @@ function matchCard(m, list, latest) {
     el("div", { class: "m-top" }, head, pick),
     open && m.summary ? matchSummary(m.summary, plays) : null,
     open && plays.length ? el("div", { class: "grid m-grid" }, plays.map(clipCard)) : null,
+    open && m.summary && m.summary.analysis ? matchAnalysis(m.summary.analysis, m.summary.champion) : null,
     open && deaths.length ? el("details", { class: "m-deaths" },
       el("summary", {}, `Death review · ${deaths.length}`, el("small", {}, " only on this PC, never posted unless you choose to")),
       el("div", { class: "grid m-grid" }, deaths.map(clipCard))) : null);
@@ -255,7 +256,7 @@ function matchSummary(s, plays) {
     if (base != null && now != null) {
       const up = now > base * 1.04, down = now < base * 0.96;
       vs = `avg ${fmt(base)}` + (up ? " \u25b2" : down ? " \u25bc" : "");
-      cls = up ? "up" : down ? "down" : "";
+      cls = up ? "s-up" : down ? "s-down" : "";
     }
     return el("div", { class: "ms-stat" }, el("strong", {}, value), el("span", {}, label), vs ? el("small", { class: cls }, vs) : null);
   };
@@ -266,6 +267,58 @@ function matchSummary(s, plays) {
     s.kp != null ? stat(`${Math.round(s.kp * 100)}%`, "Kill share", s.kp, avg.kp, (v) => `${Math.round(v * 100)}%`) : null,
     stat((s.vision_min || 0).toFixed(2), `Vision per min (${Math.round(s.vision || 0)})`, s.vision_min, avg.vision_min, (v) => v.toFixed(2)),
     best ? el("button", { class: "btn btn-primary ms-post", onclick: () => openPlayer(best.id) }, `Post ${best.title}`) : null);
+}
+// post match analysis: a few plain sentences, CS over the game (you, your lane opponent, your usual) and CS by phase
+function svgEl(tag, attrs = {}, ...kids) {
+  const e = document.createElementNS("http://www.w3.org/2000/svg", tag);
+  for (const [k, v] of Object.entries(attrs)) if (v != null) e.setAttribute(k, v);
+  for (const k of kids.flat()) if (k != null) e.append(k.nodeType ? k : document.createTextNode(k));
+  return e;
+}
+function csChart(a, champ) {
+  const W = 560, H = 220, L = 34, R = 10, T = 10, B = 26;
+  const n = Math.max(a.cs.length, 2);
+  const top = Math.max(10, ...a.cs, ...(a.opp_cs || []), ...(a.usual_cs || []));
+  const x = (i) => L + (i / (n - 1)) * (W - L - R);
+  const y = (v) => T + (1 - v / top) * (H - T - B);
+  const path = (list) => list.map((v, i) => `${i ? "L" : "M"}${x(i).toFixed(1)},${y(v).toFixed(1)}`).join("");
+  const kids = [];
+  for (let k = 0; k <= 4; k++) {
+    const v = Math.round((top * k) / 4);
+    kids.push(svgEl("line", { x1: L, x2: W - R, y1: y(v), y2: y(v), class: "ch-grid" }),
+      svgEl("text", { x: L - 6, y: y(v) + 4, class: "ch-tick", "text-anchor": "end" }, String(v)));
+  }
+  for (let m = 0; m < n; m += 5) kids.push(svgEl("text", { x: x(m), y: H - 8, class: "ch-tick", "text-anchor": "middle" }, String(m)));
+  for (const d of a.deaths || []) if (d <= n - 1) kids.push(svgEl("line", { x1: x(d), x2: x(d), y1: T, y2: H - B, class: "ch-death" }));
+  if ((a.usual_cs || []).length > 1) kids.push(svgEl("path", { d: path(a.usual_cs), class: "ch-usual" }));
+  if ((a.opp_cs || []).length > 1) kids.push(svgEl("path", { d: path(a.opp_cs), class: "ch-opp" }));
+  kids.push(svgEl("path", { d: path(a.cs), class: "ch-you" }));
+  const label = `CS over the game: you${a.opp_name ? ", " + a.opp_name : ""}${(a.usual_cs || []).length > 1 ? ", your usual" : ""}`;
+  return svgEl("svg", { viewBox: `0 0 ${W} ${H}`, class: "ma-chart", role: "img", "aria-label": label }, kids);
+}
+function matchAnalysis(a, champ) {
+  const legend = el("div", { class: "ma-legend" },
+    el("span", { class: "lg-you" }, champ ? `You (${champ})` : "You"),
+    a.opp_name ? el("span", { class: "lg-opp" }, a.opp_name) : null,
+    (a.usual_cs || []).length > 1 ? el("span", { class: "lg-usual" }, "Your usual") : null,
+    (a.deaths || []).length ? el("span", { class: "lg-death" }, "Your deaths") : null);
+  const phases = (a.phases || []).filter((p) => p.you != null);
+  const maxRate = Math.max(1, ...phases.map((p) => Math.max(p.you, p.usual || 0)));
+  return el("section", { class: "m-analysis", "aria-label": "Match analysis" },
+    el("div", { class: "ma-col" },
+      el("h4", {}, "Match analysis"),
+      (a.tips || []).length
+        ? el("ul", { class: "ma-tips" }, a.tips.map((t) => el("li", { class: "t-" + t.kind }, t.text)))
+        : el("p", { class: "ma-empty" }, "Nothing stood out this game. Play a few more and Verse can compare with your usual."),
+      phases.length ? el("div", { class: "ma-phases" },
+        el("h5", {}, "CS per minute by phase"),
+        phases.map((p) => el("div", { class: "ma-phase" },
+          el("span", { class: "ph-name" }, p.name),
+          el("span", { class: "ph-bar" },
+            el("i", { class: p.usual && p.you < p.usual * 0.92 ? "ph-down" : "", style: `width:${(p.you / maxRate) * 100}%` }),
+            p.usual ? el("b", { style: `left:${(p.usual / maxRate) * 100}%`, title: `Your usual: ${p.usual.toFixed(1)}` }) : null),
+          el("span", { class: "ph-val" }, p.you.toFixed(1) + (p.usual ? ` / ${p.usual.toFixed(1)}` : ""))))) : null),
+    el("div", { class: "ma-col ma-chart-col" }, el("h5", {}, "CS at every minute"), csChart(a, champ), legend));
 }
 function clipCard(c) {
   const posted = isPosted(c);

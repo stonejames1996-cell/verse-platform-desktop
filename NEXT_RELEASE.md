@@ -8,6 +8,7 @@ turn these into `release-notes/<version>.md`, then clear this list.
 * **Objective timers for League:** a small box on the right counts down when Dragon, Elder Dragon, Baron and inhibitors come back, and says when they're up. It only uses the kill announcements everyone sees, and never shows in your clips.
 * **Your game so far:** the pop-up while you're dead now also shows your CS per minute, kill share and vision compared with your own average from past games, plus your items' gold vs the enemy in your lane (like "1,350 behind Kai'Sa").
 * **Match summary:** when a League game ends you get a summary card with your K/D/A, CS, kill share and vision, what you did better than usual, and how many highlights were saved. The same numbers show on that game in My clips, with a button to post its best clip.
+* **Match analysis in My clips:** open a League game in My clips and under its clips you'll see a short analysis: a few plain tips (like where your farming dropped off, how you did against your lane opponent, early deaths), a chart of your CS at every minute vs your lane opponent and your usual games with your deaths marked, and your CS per minute in lane, mid and late game.
 * Each of these can be switched off in Settings under League of Legends in game.
 
 ## Behind the scenes
@@ -19,6 +20,9 @@ turn these into `release-notes/<version>.md`, then clear this list.
   kind (Summoner's Rift or not), same role when there are 5+. Lane gold uses `position` from the live data.
 * Match summary saved as `summary` on the match (`library.save_match` now merges fields), shown in the match card.
 * Settings: `lol_objective_timers`, `lol_benchmarks`, `lol_match_summary` (on), `lol_item_ideas` now covers the whole panel.
+* Post match analysis: `LeagueCompanion._sample` keeps CS and level for you and your lane opponent once a game
+  minute; `analyse()` turns it into `summary.analysis` (tips, CS lines, deaths, phases). History keeps `cs_at`
+  so `averages()` can give a usual CS curve (3+ games that lasted that long). Shown by `matchAnalysis()` in ui/app.js.
 * Benchmarks share the timers' window (`render_strip`). Gold per minute is an estimate: item value + current gold
   over game minutes (League's live data has no gold earned). History now also keeps `gpm` and `kda`.
 
