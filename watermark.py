@@ -1,5 +1,6 @@
 """
-"Clipped by Verse Platform" watermark, burned into the first 3 seconds of a clip.
+"Clipped by Verse Platform" watermark, burned into the first 3 seconds of a clip, and for auto
+highlights a matching "Double kill" style card at the moment it happened.
 
 It's a short animated title card, drawn frame by frame with Pillow and laid over the video:
   * the card glides in from the left and fades up (eased, no sudden jumps)
@@ -68,8 +69,9 @@ def _ease_in_out(t):
     return 3 * t * t - 2 * t * t * t
 
 
-def _card(scale):
-    """The finished card (no animation), plus its parts we animate. Drawn at 2x for smooth edges."""
+def _card(scale, label="CLIPPED BY", name=(("Verse ", None), ("Platform", "cyan"))):
+    """The finished card (no animation), plus its parts we animate. Drawn at 2x for smooth edges.
+    name: the big line, as (text, colour) pieces; colour None is white, "cyan" is the accent."""
     s = scale * 2
     pad_x, pad_y = int(20 * s), int(15 * s)
     logo_px = int(38 * s)
@@ -78,10 +80,8 @@ def _card(scale):
     f_name = _font("InterDisplay-Bold.otf", int(21 * s))
     probe = ImageDraw.Draw(Image.new("RGBA", (1, 1)))
     tracking = 2.4 * s
-    label = "CLIPPED BY"
     w_label = sum(probe.textlength(c, font=f_label) for c in label) + tracking * (len(label) - 1)
-    w_verse = probe.textlength("Verse ", font=f_name)
-    w_name = w_verse + probe.textlength("Platform", font=f_name)
+    w_name = sum(probe.textlength(t, font=f_name) for t, _ in name)
     text_w = max(w_label, w_name)
     w = int(pad_x + logo_px + gap + int(1.5 * s) + gap + text_w + pad_x * 1.15)
     h = int(logo_px + pad_y * 2)
@@ -118,8 +118,10 @@ def _card(scale):
     ty = (h - block) // 2 + int(1 * s)
     _spaced(d, (tx, ty), label, f_label, GREY + (255,), tracking)
     ny = ty + a_l + d_l + int(3 * s)
-    d.text((tx, ny), "Verse ", font=f_name, fill=WHITE + (255,))
-    d.text((tx + w_verse, ny), "Platform", font=f_name, fill=CYAN + (255,))
+    x = tx
+    for text, colour in name:
+        d.text((x, ny), text, font=f_name, fill=(CYAN if colour == "cyan" else WHITE) + (255,))
+        x += probe.textlength(text, font=f_name)
 
     # soft shadow + faint cyan glow behind the card
     m = int(18 * s)
@@ -136,8 +138,9 @@ def _card(scale):
     return {"img": full, "m": m, "w": w, "h": h, "r": r, "s": s, "mask": mask}
 
 
-def _frame(parts, t):
+def _frame(parts, t, length=None):
     """One frame of the animation at time t (seconds). Returns an RGBA image at 1x."""
+    length = length or SECONDS
     full, m, w, h, r, s = parts["img"], parts["m"], parts["w"], parts["h"], parts["r"], parts["s"]
     slide = int(34 * s)
     out_w, out_h = full.width + slide, full.height
@@ -145,7 +148,7 @@ def _frame(parts, t):
 
     # in: 0 to 0.5s, out: last 0.45s
     t_in = _ease_out(t / 0.5)
-    t_out = _ease_in_out((t - (SECONDS - 0.45)) / 0.45)
+    t_out = _ease_in_out((t - (length - 0.45)) / 0.45)
     alpha = t_in * (1 - t_out)
     if alpha <= 0.001:
         return frame.resize((max(1, out_w // 2), max(1, out_h // 2)), Image.LANCZOS)
@@ -182,37 +185,85 @@ def _frame(parts, t):
 
 
 # ---------------------------------------------------------------- used by library.py
-def png_for(height):
-    """Draws (once) the animation frames for a video of this height. Returns the ffmpeg image
-    sequence pattern for them."""
-    height = int(height or 1080)
-    folder = os.path.join(tempfile.gettempdir(), "VersePlatformWatermark", f"v{VERSION}_{height}")
+HL_SECONDS = 2.6     # how long the highlight card ("Double kill") stays up
+
+
+def _draw_set(folder, parts, length):
+    frames = int(round(length * FPS))
     pattern = os.path.join(folder, "f_%03d.png")
-    frames = int(round(SECONDS * FPS))
     last = os.path.join(folder, f"f_{frames - 1:03d}.png")
-    if _cache.get(height) == pattern and os.path.exists(last):
-        return pattern
     if not os.path.exists(last):
         os.makedirs(folder, exist_ok=True)
-        parts = _card(max(0.7, height / 640))
         tmp_names = []
         for i in range(frames):
             name = os.path.join(folder, f"f_{i:03d}.tmp.png")
-            _frame(parts, i / FPS).save(name)
+            _frame(parts, i / FPS, length).save(name)
             tmp_names.append(name)
         for i, name in enumerate(tmp_names):  # rename at the end, so a half-drawn set is never used
             os.replace(name, os.path.join(folder, f"f_{i:03d}.png"))
-    _cache[height] = pattern
     return pattern
 
 
-def inputs(pattern):
-    return ["-framerate", str(FPS), "-start_number", "0", "-i", pattern]
+def png_for(height):
+    """Draws (once) the "Clipped by" frames for a video of this height. Returns the ffmpeg image
+    sequence pattern for them."""
+    height = int(height or 1080)
+    key = ("tag", height)
+    if key in _cache and os.path.exists(_cache[key].replace("%03d", f"{int(round(SECONDS * FPS)) - 1:03d}")):
+        return _cache[key]
+    folder = os.path.join(tempfile.gettempdir(), "VersePlatformWatermark", f"v{VERSION}_{height}")
+    _cache[key] = _draw_set(folder, _card(max(0.7, height / 640)), SECONDS)
+    return _cache[key]
 
 
-def filter_graph(pix_fmt="yuv420p", base="[0:v]"):
-    """Overlay the animation (input 1) on the video (input 0, or another filter's output) for the
-    first few seconds. Output label: [vo]."""
-    return ("[1:v]format=rgba[wm];"
-            f"{base}[wm]overlay=x='W*0.022':y='H*0.035':eof_action=pass,"
-            f"format={pix_fmt}[vo]")
+def _highlight_name(label):
+    """ "Triple kill + Ace" -> big line pieces, with the joining + in the accent colour."""
+    bits = [b.strip() for b in str(label).split("+") if b.strip()]
+    out = []
+    for i, b in enumerate(bits):
+        if i:
+            out.append(("  +  ", "cyan"))
+        out.append((b, None))
+    return tuple(out) or ((str(label), None),)
+
+
+def highlight_png_for(height, label, game=""):
+    """Frames for the highlight card (e.g. "Double kill"), shown after the "Clipped by" one."""
+    import hashlib
+    height = int(height or 1080)
+    small = f"{game} highlight".strip().upper() if game else "HIGHLIGHT"
+    key = ("hl", height, label, small)
+    if key in _cache:
+        return _cache[key]
+    h = hashlib.sha1(f"{label}|{small}".encode("utf-8")).hexdigest()[:10]
+    folder = os.path.join(tempfile.gettempdir(), "VersePlatformWatermark", f"hl{VERSION}_{height}_{h}")
+    _cache[key] = _draw_set(folder, _card(max(0.7, height / 640), small, _highlight_name(label)), HL_SECONDS)
+    return _cache[key]
+
+
+def highlight_time(clip_len, at):
+    """When to show the highlight card: at the big moment, but never on top of the "Clipped by" tag
+    and never cut off by the end of the clip. None if there's no room for it."""
+    if at is None or clip_len < SECONDS + HL_SECONDS:
+        return None
+    t = max(SECONDS + 0.15, float(at))
+    t = min(t, clip_len - HL_SECONDS)
+    return t if t >= SECONDS else None
+
+
+def inputs(pattern, offset=0.0):
+    pre = ["-itsoffset", f"{offset:.3f}"] if offset else []
+    return pre + ["-framerate", str(FPS), "-start_number", "0", "-i", pattern]
+
+
+def filter_graph(pix_fmt="yuv420p", base="[0:v]", highlight=False):
+    """Overlay the "Clipped by" animation (input 1) on the video (input 0, or another filter's output)
+    for the first few seconds, then, with highlight=True, the highlight card (input 2, already
+    shifted to its moment). Output label: [vo]."""
+    pos = "x='W*0.022':y='H*0.035':eof_action=pass"
+    if not highlight:
+        return ("[1:v]format=rgba[wm];"
+                f"{base}[wm]overlay={pos},format={pix_fmt}[vo]")
+    return ("[1:v]format=rgba[wm];[2:v]format=rgba[hl];"
+            f"{base}[wm]overlay={pos}[v1];"
+            f"[v1][hl]overlay={pos},format={pix_fmt}[vo]")

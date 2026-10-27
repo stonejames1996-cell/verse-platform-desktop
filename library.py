@@ -365,11 +365,11 @@ class ClipLibrary:
                    "-avoid_negative_ts", "make_zero",
                    "-movflags", "+faststart", out]
         else:
-            cmd = self._encode_cmd(src, start, end, out, encoder, wm, audio=track)
+            cmd = self._encode_cmd(src, start, end, out, encoder, wm, audio=track, clip=clip)
         r = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=600, creationflags=NO_WINDOW)
         if r.returncode != 0 and encoder != "libx264" and not whole and not on_keyframes:
             log.warning("GPU trim failed, using CPU: %s", r.stderr.decode(errors="replace")[-200:])
-            r = subprocess.run(self._encode_cmd(src, start, end, out, "libx264", wm, audio=track), stdout=subprocess.PIPE,
+            r = subprocess.run(self._encode_cmd(src, start, end, out, "libx264", wm, audio=track, clip=clip), stdout=subprocess.PIPE,
                                stderr=subprocess.PIPE, timeout=900, creationflags=NO_WINDOW)
         if r.returncode != 0 or not os.path.exists(out):
             raise ExportError("Couldn't prepare the clip: " + r.stderr.decode(errors="replace").strip()[-200:])
@@ -380,8 +380,20 @@ class ClipLibrary:
         """Clips recorded with a mic have 2 sound tracks: 0 = game and mic, 1 = game only."""
         return 1 if remove_voice and probe_audio_tracks(self.ff, src) >= 2 else 0
 
-    def _encode_cmd(self, src, start, end, out, encoder, wm=False, audio=None, vertical=""):
-        """audio: None keeps every sound track, a number keeps just that one.
+    def _highlight_at(self, clip, start, end):
+        """For an auto highlight: (label, game, seconds into this cut) for the "Double kill" card, else None.
+        The app notes how far before the end the big moment was ("moment_from_end") when it saves."""
+        if not clip or not clip.get("highlight") or clip.get("moment_from_end") is None:
+            return None
+        dur = clip.get("duration") or probe_duration(self.ff, self.abs_path(clip))
+        at = dur - float(clip["moment_from_end"]) - start
+        if at < 0 or at > end - start:
+            return None   # the big moment was trimmed out
+        return clip["highlight"], clip.get("game", ""), at
+
+    def _encode_cmd(self, src, start, end, out, encoder, wm=False, audio=None, vertical="", clip=None):
+        """clip: the library record, so an auto highlight also gets its "Double kill" card.
+        audio: None keeps every sound track, a number keeps just that one.
         vertical: "" (as recorded), "blur" (9:16 with a blurred copy behind) or "crop" (9:16 centre crop)."""
         cmd = [self.ff, "-hide_banner", "-loglevel", "error", "-y", "-ss", f"{start:.3f}", "-i", src]
         graph, vlabel = "", "0:v:0"
@@ -394,9 +406,19 @@ class ClipLibrary:
             vlabel = "[vv]"
         if wm:
             import watermark
-            cmd += watermark.inputs(watermark.png_for(1080 if vertical else probe_height(self.ff, src)))
+            height = 1080 if vertical else probe_height(self.ff, src)
+            cmd += watermark.inputs(watermark.png_for(height))
+            hl, when = self._highlight_at(clip, start, end), None
+            if hl:
+                when = watermark.highlight_time(end - start, hl[2])
+                if when is not None:
+                    try:
+                        cmd += watermark.inputs(watermark.highlight_png_for(height, hl[0], hl[1]), when)
+                    except Exception:
+                        log.exception("Couldn't draw the highlight card, the clip just gets the Clipped by tag")
+                        when = None
             base = vlabel if vertical else "[0:v]"
-            graph = (graph + ";" if graph else "") + watermark.filter_graph(base=base)
+            graph = (graph + ";" if graph else "") + watermark.filter_graph(base=base, highlight=when is not None)
             vlabel = "[vo]"
         cmd += ["-t", f"{end - start:.3f}"]
         if graph:
@@ -446,7 +468,7 @@ class ClipLibrary:
         out = self._new_clip_path(clip, "(vertical)")
         track = self.audio_track(src, remove_voice)
         ok, err = self._run_encode(lambda enc: self._encode_cmd(src, start, end, out, enc, wm=watermark,
-                                                                audio=track, vertical=mode), encoder)
+                                                                audio=track, vertical=mode, clip=clip), encoder)
         if not ok or not os.path.exists(out):
             raise ExportError("Couldn't make the vertical clip: " + err)
         new = self.add(out, game=clip.get("game", ""), highlight=clip.get("highlight", ""), match=clip.get("match"))
@@ -576,7 +598,8 @@ class ClipLibrary:
                 "old_count": len(old), "old_bytes": sum(c.get("size") or 0 for c in old)}
 
     def add_watermark(self, clip_id, encoder):
-        """Burns "Clipped by Verse Platform" into the first 3 seconds of a saved clip, in place.
+        """Burns "Clipped by Verse Platform" into the first 3 seconds of a saved clip, in place
+        (plus the "Double kill" card at the big moment for auto highlights).
         Runs at low priority. Keeps the original if anything goes wrong."""
         clip = self.get(clip_id)
         if not clip or clip.get("watermarked"):
@@ -588,7 +611,7 @@ class ClipLibrary:
         tmp = src + ".wm.mp4"
         ok = False
         for enc in ([encoder, "libx264"] if encoder != "libx264" else ["libx264"]):
-            cmd = self._encode_cmd(src, 0, dur, tmp, enc, wm=True)
+            cmd = self._encode_cmd(src, 0, dur, tmp, enc, wm=True, clip=clip)
             # keep the original audio as is (no re-encode)
             i = cmd.index("-c:a")
             cmd[i + 1:i + 4] = ["copy"]

@@ -520,7 +520,10 @@ class App:
         tag = getattr(self.rec, "last_tag", "") if self.rec else ""
         secs = secs_text(getattr(self.rec, "last_seconds", 0) or self.cfg["buffer_seconds"])
         match = self.current_match["id"] if (self.current_match and self.rec and self.rec.subfolder) else None
-        clip = self.library.add(path, game=game, highlight=tag, match=match)
+        # auto highlights end "highlight_after" seconds after the big moment; noting that lets the
+        # watermark show the "Double kill" card right when it happens (the last 2s chunk can run a bit long)
+        extra = {"moment_from_end": float(self.cfg.get("highlight_after", 5)) + 0.5} if tag else None
+        clip = self.library.add(path, game=game, highlight=tag, match=match, extra=extra)
         self.library.bump_stat("clips_saved", tag)
         self.bump()
         if clip and self.cfg.get("clip_watermark", True):
