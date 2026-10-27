@@ -58,7 +58,19 @@ jobs:
         shell: pwsh
         run: |
           python -m pip install --quiet Pillow==10.4.0 psutil==6.0.0
-          python tools/win_checks.py
+          python tools/win_checks.py *> checks_out_log.txt
+          $code = $LASTEXITCODE
+          Get-Content checks_out_log.txt
+          # keep the results on a side branch (ci-checks) so they can be read without the Actions UI
+          New-Item -ItemType Directory -Force checks_out | Out-Null
+          Move-Item checks_out_log.txt checks_out/log.txt -Force
+          Push-Location checks_out
+          git init -q -b ci-checks
+          git config user.name "Verse build"; git config user.email "build@verseplatform.gg"
+          git add -A; git commit -qm "Windows checks for ${{ github.sha }}"
+          git push -q -f "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" ci-checks
+          Pop-Location
+          exit $code
 
       - uses: actions/upload-artifact@v4
         if: always()
