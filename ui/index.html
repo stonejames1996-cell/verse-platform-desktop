@@ -116,7 +116,11 @@
             </div>
           </div>
           <div class="row">
-            <div class="row-text"><strong>Screen</strong><span>Which monitor to record</span></div>
+            <div class="row-text"><strong>Record the game's screen</strong><span>With more than one screen, records whichever one the game is on</span></div>
+            <label class="switch"><input type="checkbox" data-set="follow_game_screen"><span></span></label>
+          </div>
+          <div class="row">
+            <div class="row-text"><strong>Screen</strong><span>Which monitor to record when there's no game (or the switch above is off)</span></div>
             <select data-set="monitor" data-num aria-label="Screen">
               <option value="0">Main screen</option><option value="1">Screen 2</option><option value="2">Screen 3</option>
             </select>
@@ -149,6 +153,15 @@
           <div class="row">
             <div class="row-text"><strong>Microphone</strong></div>
             <select data-set="mic_device" id="mic-select" aria-label="Microphone"><option value="">No microphone</option></select>
+          </div>
+        </section>
+
+        <section class="set-group">
+          <h3>League item ideas</h3>
+          <p class="set-sub">While you're dead, a small pop-up suggests a few counter items based on what the enemy team has (the same info as the Tab screen). It gives you choices, you decide. Press Alt+Shift+I in a match to see it any time. Shows in borderless or windowed mode.</p>
+          <div class="row">
+            <div class="row-text"><strong>Show item ideas</strong><span>League of Legends only, never shows up in your clips</span></div>
+            <label class="switch"><input type="checkbox" data-set="lol_item_ideas"><span></span></label>
           </div>
         </section>
 

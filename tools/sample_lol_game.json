@@ -1,0 +1,21 @@
+{
+  "activePlayer": {"riotId": "Tester#OCE", "summonerName": "Tester#OCE", "level": 11},
+  "gameData": {"gameMode": "CLASSIC", "mapNumber": 11, "gameTime": 1200},
+  "allPlayers": [
+    {"riotId": "Tester#OCE", "summonerName": "Tester#OCE", "championName": "Jinx", "rawChampionName": "game_character_displayname_Jinx",
+     "team": "ORDER", "isDead": true, "respawnTimer": 22, "level": 11, "scores": {"kills": 4, "deaths": 3, "assists": 5},
+     "items": [{"itemID": 3031}, {"itemID": 3006}, {"itemID": 1038}]},
+    {"riotId": "Ally1#OCE", "championName": "Leona", "rawChampionName": "game_character_displayname_Leona", "team": "ORDER",
+     "scores": {"kills": 1, "deaths": 4, "assists": 9}, "items": [{"itemID": 3190}]},
+    {"riotId": "Foe1#OCE", "championName": "Aatrox", "rawChampionName": "game_character_displayname_Aatrox", "team": "CHAOS",
+     "scores": {"kills": 6, "deaths": 2, "assists": 3}, "items": [{"itemID": 6692}, {"itemID": 3053}, {"itemID": 3047}]},
+    {"riotId": "Foe2#OCE", "championName": "Soraka", "rawChampionName": "game_character_displayname_Soraka", "team": "CHAOS",
+     "scores": {"kills": 0, "deaths": 2, "assists": 11}, "items": [{"itemID": 3222}]},
+    {"riotId": "Foe3#OCE", "championName": "Kai'Sa", "rawChampionName": "game_character_displayname_Kaisa", "team": "CHAOS",
+     "scores": {"kills": 7, "deaths": 1, "assists": 4}, "items": [{"itemID": 3031}, {"itemID": 3006}, {"itemID": 3046}]},
+    {"riotId": "Foe4#OCE", "championName": "Malphite", "rawChampionName": "game_character_displayname_Malphite", "team": "CHAOS",
+     "scores": {"kills": 1, "deaths": 2, "assists": 6}, "items": [{"itemID": 3068}, {"itemID": 3075}, {"itemID": 3047}]},
+    {"riotId": "Foe5#OCE", "championName": "Lissandra", "rawChampionName": "game_character_displayname_Lissandra", "team": "CHAOS",
+     "scores": {"kills": 3, "deaths": 3, "assists": 5}, "items": [{"itemID": 6655}, {"itemID": 3020}]}
+  ]
+}

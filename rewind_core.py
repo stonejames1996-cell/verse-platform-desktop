@@ -66,7 +66,8 @@ DEFAULT_CONFIG = {
     "fps": 60,
     "bitrate": "20M",              # 20M is great for 1080p60, try 40M for 1440p/4K
     "output_height": 0,            # 0 = native resolution, or e.g. 1080 to downscale
-    "monitor": 0,                  # 0 = main monitor, 1 = second monitor...
+    "monitor": 0,                  # 0 = main monitor, 1 = second monitor... (when the game's screen isn't known)
+    "follow_game_screen": True,    # record whichever screen the game is on
     "encoder": "auto",             # auto | h264_nvenc | h264_amf | h264_qsv | hevc_nvenc | libx264
     "capture": "auto",             # auto | ddagrab (fast, GPU) | gdigrab (old, slow fallback)
     "draw_mouse": True,
@@ -96,6 +97,8 @@ DEFAULT_CONFIG = {
     "auto_clean_days": 0,          # remove unstarred, unposted clips older than this, 0 = never
     "auto_clean_permanent": False, # skip the Recycle Bin when cleaning up        # "Clipped by Verse Platform" in the first 2 seconds of every clip     # "Last 60s saved by Verse Platform" pop-up over the game
     "auto_highlights": True,       # clip big plays by themselves (League of Legends)
+    "lol_item_ideas": True,        # League: counter item ideas while you're dead, from what's on Tab
+    "item_ideas_hotkey": "alt+shift+i",  # show the item ideas any time in a League match
     "highlight_events": {},        # which moments count, see highlights.DEFAULT_EVENTS (blank = defaults)
     "highlight_before": 5,         # seconds kept before the first moment of a play
     "highlight_after": 5,          # seconds kept after the last moment
@@ -421,6 +424,9 @@ class Recorder:
         self._tried = set()
         self.zero_copy = True
         self._audio_reload = False   # the default speakers/headset changed: reopen desktop audio
+        self._screen_reload = False  # the game moved to (or opened on) another screen
+        self.screen = None           # HMONITOR of the game's screen, None = the screen picked in Settings
+        self._hmonitor_ok = None     # does this FFmpeg's gfxcapture take hmonitor=? (checked once)
         self._out_id = None
         self.save_lock = threading.Lock()
         self.on_saved = None  # callback(path or None, message)
@@ -429,22 +435,59 @@ class Recorder:
         self.audio_info = open_loopback() if (cfg["record_desktop_audio"] and IS_WINDOWS) else None
 
     # these two methods are separate so the self test can swap in fake sources
+    def follow_screen(self, hmon):
+        """Record the screen the game is on (hmon), or the one picked in Settings (None).
+        Restarts capture when it changes."""
+        if hmon == self.screen:
+            return
+        self.screen = hmon
+        log.info("Recording %s", f"the game's screen ({screen_name(hmon)})" if hmon else "the screen picked in Settings")
+        if self.capturing:
+            self._screen_reload = True
+
+    def _source(self, kind, fps, cursor=None):
+        """The lavfi source for ddagrab / gfxcapture, aimed at the game's screen when we know it."""
+        c = self.cfg
+        dda_idx = c["monitor"]
+        if self.screen:
+            i = dxgi_output_index(self.screen)
+            if i is not None:
+                dda_idx = i
+        if kind == "ddagrab":
+            src = f"ddagrab=output_idx={dda_idx}:framerate={fps}"
+            return src + (f":draw_mouse={int(cursor)}" if cursor is not None else "")
+        where = f"monitor_idx={c['monitor']}"
+        if self.screen:
+            if self._hmonitor_ok is None:
+                code, err = run_quiet([self.ff, "-hide_banner", "-f", "lavfi", "-i",
+                                       f"gfxcapture=hmonitor={self.screen}:max_framerate=30", "-frames:v", "2",
+                                       "-vf", "hwdownload,format=bgra", "-f", "null", "-"])
+                self._hmonitor_ok = code == 0
+                if not self._hmonitor_ok:
+                    log.info("gfxcapture can't aim at a screen directly here, using its number: %s",
+                             (err or "").strip()[-200:])
+            where = f"hmonitor={self.screen}" if self._hmonitor_ok else f"monitor_idx={dda_idx}"
+        src = f"gfxcapture={where}:max_framerate={fps}"
+        return src + (f":capture_cursor={int(cursor)}" if cursor is not None else "")
+
     def video_input_args(self):
         c = self.cfg
         if self.capture == "ddagrab":
-            return (["-f", "lavfi", "-i",
-                     f"ddagrab=output_idx={c['monitor']}:framerate={c['fps']}:draw_mouse={int(c['draw_mouse'])}"],
+            return (["-f", "lavfi", "-i", self._source("ddagrab", c["fps"], c["draw_mouse"])],
                     "hwdownload,format=bgra")
         if self.capture == "gfxcapture":
             # Windows Graphics Capture: the newer capture path, which keeps working while Discord
             # (or OBS) is sharing the screen. It only sends a frame when something changes, so fps
             # turns it back into a steady frame rate
-            return (["-f", "lavfi", "-i",
-                     f"gfxcapture=monitor_idx={c['monitor']}:max_framerate={c['fps']}:capture_cursor={int(c['draw_mouse'])}"],
+            return (["-f", "lavfi", "-i", self._source("gfxcapture", c["fps"], c["draw_mouse"])],
                     f"hwdownload,format=bgra,fps={c['fps']}")
         if self.capture == "gdigrab":
+            area = []
+            r = screen_rect(self.screen) if self.screen else None
+            if r:   # just the game's screen, not every screen glued together
+                area = ["-offset_x", str(r[0]), "-offset_y", str(r[1]), "-video_size", f"{r[2] - r[0]}x{r[3] - r[1]}"]
             return (["-f", "gdigrab", "-framerate", str(c["fps"]),
-                     "-draw_mouse", str(int(c["draw_mouse"])), "-i", "desktop"], "")
+                     "-draw_mouse", str(int(c["draw_mouse"]))] + area + ["-i", "desktop"], "")
         return (["-f", "x11grab", "-framerate", str(c["fps"]), "-i", os.environ.get("DISPLAY", ":0")], "")
 
     def build_command(self):
@@ -635,8 +678,8 @@ class Recorder:
             self._kill()
             if not (self.running and self.capturing):
                 continue  # stopped on purpose
-            if problem == "audio":
-                continue          # relaunches straight away on the new sound device
+            if problem in ("audio", "screen"):
+                continue          # relaunches straight away on the new sound device / screen
             if problem:
                 self.freezes += 1
                 self.last_freeze = time.time()
@@ -674,6 +717,9 @@ class Recorder:
             time.sleep(0.25)
             if self._audio_reload:
                 return "audio"
+            if self._screen_reload:
+                self._screen_reload = False
+                return "screen"
             starts = _count(self.freeze_path, "freeze_start=")
             ends = _count(self.unfreeze_path, "freeze_end=")
             now = time.time()
@@ -703,8 +749,7 @@ class Recorder:
             self._tried.add(alt)
             if alt == "gdigrab":
                 return alt
-            src = (f"gfxcapture=monitor_idx={self.cfg['monitor']}:max_framerate=30" if alt == "gfxcapture"
-                   else f"ddagrab=output_idx={self.cfg['monitor']}:framerate=30")
+            src = self._source(alt, 30)
             code, err = run_quiet([self.ff, "-hide_banner", "-f", "lavfi", "-i", src, "-frames:v", "2",
                                    "-vf", "hwdownload,format=bgra", "-f", "null", "-"], timeout=20)
             if code == 0:
@@ -918,12 +963,119 @@ NOT_GAMES = {
 }
 
 
-class Window:
-    __slots__ = ("pid", "exe", "title", "foreground", "fullscreen")
+# ---------------------------------------------------------------- screens
+def monitor_of(hwnd):
+    """The screen (HMONITOR, as an int) a window is mostly on."""
+    if not IS_WINDOWS or not hwnd:
+        return None
+    import ctypes
+    from ctypes import wintypes
+    u32 = ctypes.WinDLL("user32")   # own copy, so these argtypes don't leak into other code
+    u32.IsWindow.argtypes = [wintypes.HWND]
+    u32.MonitorFromWindow.argtypes = [wintypes.HWND, wintypes.DWORD]
+    u32.MonitorFromWindow.restype = ctypes.c_void_p   # a handle, keep all 64 bits
+    if not u32.IsWindow(hwnd):
+        return None
+    return u32.MonitorFromWindow(hwnd, 2) or None    # MONITOR_DEFAULTTONEAREST
 
-    def __init__(self, pid, exe, title, foreground=False, fullscreen=False):
+
+def _monitor_info(hmon):
+    import ctypes
+    from ctypes import wintypes
+
+    class MONITORINFOEXW(ctypes.Structure):
+        _fields_ = [("cbSize", wintypes.DWORD), ("rcMonitor", wintypes.RECT), ("rcWork", wintypes.RECT),
+                    ("dwFlags", wintypes.DWORD), ("szDevice", wintypes.WCHAR * 32)]
+    u32 = ctypes.WinDLL("user32")
+    u32.GetMonitorInfoW.argtypes = [ctypes.c_void_p, ctypes.c_void_p]
+    mi = MONITORINFOEXW()
+    mi.cbSize = ctypes.sizeof(MONITORINFOEXW)
+    if not u32.GetMonitorInfoW(ctypes.c_void_p(hmon), ctypes.byref(mi)):
+        return None
+    m = mi.rcMonitor
+    return (m.left, m.top, m.right, m.bottom), mi.szDevice, bool(mi.dwFlags & 1)
+
+
+def screen_rect(hmon):
+    """(left, top, right, bottom) of a screen, or None."""
+    if not IS_WINDOWS or not hmon:
+        return None
+    try:
+        info = _monitor_info(hmon)
+        return info[0] if info else None
+    except Exception:
+        return None
+
+
+def screen_name(hmon):
+    try:
+        info = _monitor_info(hmon)
+        if info:
+            (l, t, r, b), dev, primary = info
+            return f"{dev.replace(chr(92) * 2 + '.' + chr(92), '')} {r - l}x{b - t}{', main' if primary else ''}"
+    except Exception:
+        pass
+    return "unknown"
+
+
+def dxgi_output_index(hmon):
+    """Which output_idx Desktop Duplication (ddagrab) uses for this screen: its place in the list of
+    screens on the main graphics card. None if it isn't on that card (or anything goes wrong)."""
+    if not IS_WINDOWS or not hmon:
+        return None
+    import ctypes
+    try:
+        class GUID(ctypes.Structure):
+            _fields_ = [("a", ctypes.c_uint32), ("b", ctypes.c_uint16), ("c", ctypes.c_uint16), ("d", ctypes.c_ubyte * 8)]
+
+        class RECT(ctypes.Structure):
+            _fields_ = [("l", ctypes.c_long), ("t", ctypes.c_long), ("r", ctypes.c_long), ("b", ctypes.c_long)]
+
+        class DXGI_OUTPUT_DESC(ctypes.Structure):
+            _fields_ = [("DeviceName", ctypes.c_wchar * 32), ("DesktopCoordinates", RECT),
+                        ("AttachedToDesktop", ctypes.c_int), ("Rotation", ctypes.c_uint), ("Monitor", ctypes.c_void_p)]
+
+        def vcall(obj, index, *args):
+            vtbl = ctypes.cast(obj, ctypes.POINTER(ctypes.POINTER(ctypes.c_void_p))).contents
+            fn = ctypes.WINFUNCTYPE(ctypes.c_long, ctypes.c_void_p, *[type(a) for a in args])(vtbl[index])
+            return fn(obj, *args)
+
+        iid = GUID(0x770AAE78, 0xF26F, 0x4DBA, (ctypes.c_ubyte * 8)(0xA8, 0x29, 0x25, 0x3C, 0x83, 0xD1, 0xB3, 0x87))
+        factory = ctypes.c_void_p()
+        if ctypes.WinDLL("dxgi").CreateDXGIFactory1(ctypes.byref(iid), ctypes.byref(factory)) != 0:
+            return None
+        adapter = ctypes.c_void_p()
+        try:
+            # IDXGIFactory1::EnumAdapters1 is slot 12, IDXGIAdapter::EnumOutputs 7, IDXGIOutput::GetDesc 7, Release 2
+            if vcall(factory, 12, ctypes.c_uint(0), ctypes.pointer(adapter)) != 0:
+                return None
+            want = int(hmon)
+            for i in range(16):
+                out = ctypes.c_void_p()
+                if vcall(adapter, 7, ctypes.c_uint(i), ctypes.pointer(out)) != 0:
+                    break
+                desc = DXGI_OUTPUT_DESC()
+                ok = vcall(out, 7, ctypes.pointer(desc)) == 0
+                vcall(out, 2)
+                if ok and (desc.Monitor or 0) == want:
+                    return i
+            return None
+        finally:
+            if adapter:
+                vcall(adapter, 2)
+            vcall(factory, 2)
+    except Exception:
+        log.debug("Couldn't match the screen to Desktop Duplication", exc_info=True)
+        return None
+
+
+class Window:
+    __slots__ = ("pid", "exe", "title", "foreground", "fullscreen", "hwnd", "area")
+
+    def __init__(self, pid, exe, title, foreground=False, fullscreen=False, hwnd=0, area=0):
         self.pid, self.exe, self.title = pid, exe.lower(), title
         self.foreground, self.fullscreen = foreground, fullscreen
+        self.hwnd, self.area = hwnd, area   # window handle and size, to find the screen a game is on
 
 
 def running_exes():
@@ -979,7 +1131,10 @@ def visible_windows():
         pid = wintypes.DWORD()
         u32.GetWindowThreadProcessId(hwnd, ctypes.byref(pid))
         is_fg = hwnd == fg
-        out.append(Window(pid.value, pid_names.get(pid.value, ""), buf.value, is_fg, is_fg and is_fullscreen(hwnd)))
+        r = wintypes.RECT()
+        area = (r.right - r.left) * (r.bottom - r.top) if u32.GetWindowRect(hwnd, ctypes.byref(r)) else 0
+        out.append(Window(pid.value, pid_names.get(pid.value, ""), buf.value, is_fg, is_fg and is_fullscreen(hwnd),
+                          hwnd or 0, area))
         return True
 
     u32.EnumWindows(proto(cb), 0)
@@ -992,6 +1147,12 @@ class GameWatcher:
     def __init__(self, get_cfg, list_exes=running_exes, list_windows=visible_windows):
         self.get_cfg, self.list_exes, self.list_windows = get_cfg, list_exes, list_windows
         self.last_fullscreen_app = None
+        self.game_window = None   # the game's main window, so recording can follow it to its screen
+
+    def game_screen(self):
+        """HMONITOR of the screen the game is on, or None if we can't tell."""
+        w = self.game_window
+        return monitor_of(w.hwnd) if w and w.hwnd else None
 
     def games(self):
         cfg = self.get_cfg()
@@ -1007,19 +1168,27 @@ class GameWatcher:
         ignored = {x.lower() for x in cfg.get("ignored_apps", [])}
         games = self.games()
         exes = self.list_exes()
+        windows = None
         for exe in sorted(exes):
             if exe in games:
+                windows = self.list_windows()
+                mine = [w for w in windows if w.exe == exe and w.hwnd]
+                # the window in front, else the biggest one (games often have small helper windows)
+                self.game_window = max(mine, key=lambda w: (w.foreground, w.area)) if mine else self.game_window
                 return games[exe]
-        windows = self.list_windows()
+        windows = windows if windows is not None else self.list_windows()
         for w in windows:
             for exe, title, name in TITLE_GAMES:
                 if w.exe == exe and w.title.startswith(title) and exe not in ignored:
+                    self.game_window = w
                     return name
         if cfg.get("detect_fullscreen_apps", True):
             for w in windows:
                 if w.fullscreen and w.exe and w.exe not in NOT_GAMES and w.exe not in ignored:
                     self.last_fullscreen_app = w
+                    self.game_window = w
                     return w.title.strip() or os.path.splitext(w.exe)[0]
+        self.game_window = None
         return None
 
 

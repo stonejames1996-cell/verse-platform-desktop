@@ -25,11 +25,12 @@ import urllib.parse
 from rewind_core import (APP_NAME, APP_VERSION, DATA_DIR, IS_WINDOWS, KNOWN_GAMES, LOG_PATH, NOT_GAMES, RES,
                          SEGMENT_SECONDS, VERSE_URL, GameWatcher, Recorder, already_running, find_ffmpeg,
                          get_autostart, list_mics, load_config, load_icon_image, message_box, open_path,
-                         save_config, set_autostart, visible_windows, _size)
+                         save_config, screen_rect, set_autostart, visible_windows, _size)
 from library import ALLOWED_ORIGINS, ClipLibrary, ExportError, MediaServer
 from updater import Updater
 from overlay import Overlay, secs_text
 from highlights import DEFAULT_EVENTS, LeagueHighlights
+from lol_items import ItemIdeas
 from triggers import COMBOS, ControllerTrigger, VoiceTrigger
 from gsi import CS2Highlights, DotaHighlights, GSIServer, install_cfgs
 from squad import Squad, make_code
@@ -46,7 +47,8 @@ LIVE_KEYS = {"hotkey", "buffer_seconds", "record_mode", "detect_fullscreen_apps"
              "show_save_overlay", "auto_highlights", "highlight_events", "highlight_before",
              "highlight_after", "highlight_max_per_game", "voice_command",
              "death_review", "death_review_before", "squad_code", "squad_name", "squad_share",
-             "controller_combo", "auto_clean_days", "auto_clean_permanent"}
+             "controller_combo", "auto_clean_days", "auto_clean_permanent", "follow_game_screen",
+             "lol_item_ideas"}
 
 # A small "Clips" tab added to the left edge of Verse pages inside the app, so the clip library
 # is always one click away. Verse can render its own button instead: if the page has an element
@@ -204,12 +206,13 @@ class App:
         self.library = ClipLibrary(self.cfg["clips_folder"], DATA_DIR, ff)
         self.media = MediaServer(self.library, os.path.join(RES, "ui"), self.on_command)
         self.updater = Updater(self.on_update_ready)
-        self.overlay = Overlay(lambda: self.cfg.get("monitor", 0))
+        self.overlay = Overlay(self.popup_screen)
         self.wm_queue = queue.Queue()
         threading.Thread(target=self._watermark_loop, daemon=True, name="watermark").start()
         self.current_match = None
         self.voice = VoiceTrigger(self.trigger_save)
         self.pad = ControllerTrigger(lambda: self.cfg.get("controller_combo", ""), self.trigger_save)
+        self.item_ideas = ItemIdeas(lambda: self.cfg, self.is_playing, self.overlay, DATA_DIR)
         self.highlights = LeagueHighlights(lambda: self.cfg, self.is_playing, self.save_highlight,
                                            on_match=self.on_match, on_death=self.on_death)
         # auto clips, death reviews and squad clips queue up here, so two at once never collide
@@ -382,11 +385,16 @@ class App:
             pass
         try:
             keyboard.add_hotkey(self.cfg["hotkey"], self.save_clip_async)
-            return True
         except Exception as e:
             log.error("Bad hotkey %r: %s", self.cfg["hotkey"], e)
             self.notice(f"The shortcut {pretty_hotkey(self.cfg['hotkey'])} can't be used, pick another")
             return False
+        try:   # League item ideas on demand (Alt+Shift+I by default)
+            if self.cfg.get("item_ideas_hotkey"):
+                keyboard.add_hotkey(self.cfg["item_ideas_hotkey"], self.item_ideas.show_now)
+        except Exception as e:
+            log.warning("Item ideas shortcut %r can't be used: %s", self.cfg.get("item_ideas_hotkey"), e)
+        return True
 
     def save_clip_async(self, *_):
         if self.rec:
@@ -560,6 +568,7 @@ class App:
                         game = self.watcher.detect()
                         if game:
                             last_seen = now
+                            self.follow_game_screen(rec)
                             if not rec.capturing:
                                 rec.subfolder = ""          # new game: the next match folder comes from its details
                                 self.current_match = None
@@ -586,6 +595,24 @@ class App:
                 except Exception:
                     pass
             time.sleep(2)
+
+    def follow_game_screen(self, rec):
+        """Record the screen the game is on (multi screen setups), unless that's turned off."""
+        if not self.cfg.get("follow_game_screen", True):
+            rec.follow_screen(None)
+            return
+        hmon = self.watcher.game_screen()
+        if hmon:
+            rec.follow_screen(hmon)
+
+    def popup_screen(self):
+        """Where pop-ups go: the game's screen when we know it, else the screen picked in Settings."""
+        rec = self.rec
+        if rec and rec.screen:
+            r = screen_rect(rec.screen)
+            if r:
+                return r
+        return self.cfg.get("monitor", 0)
 
     def buffered_seconds(self):
         rec = self.rec
@@ -620,6 +647,7 @@ class App:
             self.on_update_ready(self.updater.version, allow_auto=False)
         self.updater.start()
         self.highlights.start()
+        self.item_ideas.start()
         try:
             token = (self.cfg.get("device_id") or "verse")[:20]
             port = GSIServer(int(self.cfg.get("gsi_port") or 3517), token, self.gsi_games).start()

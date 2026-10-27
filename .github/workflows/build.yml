@@ -53,6 +53,20 @@ jobs:
         shell: pwsh
         run: ./build.ps1 -CI
 
+      - name: Windows checks (screens, FFmpeg, League item ideas)
+        continue-on-error: true
+        shell: pwsh
+        run: |
+          python -m pip install --quiet Pillow==10.4.0 psutil==6.0.0
+          python tools/win_checks.py
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: checks
+          path: checks_out/*.png
+          if-no-files-found: ignore
+
       - name: Name the installer for auto update
         shell: pwsh
         run: Copy-Item (Get-ChildItem "Output\Verse Platform Setup *.exe" | Select-Object -First 1).FullName "Output\VersePlatformSetup.exe"

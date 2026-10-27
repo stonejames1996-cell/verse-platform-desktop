@@ -152,6 +152,7 @@ class Overlay:
     """Call show(...) from any thread. All Windows work happens on the overlay's own thread."""
 
     def __init__(self, get_monitor=lambda: 0):
+        """get_monitor: a screen number (0 = main) or a (left, top, right, bottom) rectangle."""
         self.get_monitor = get_monitor
         self.q = queue.Queue()
         self.ok = IS_WINDOWS
@@ -160,7 +161,19 @@ class Overlay:
 
     def show(self, lead, accent="Verse Platform", sub="", ok=True):
         if self.ok:
-            self.q.put((lead, accent, sub, ok))
+            self.q.put(("msg", lead, accent, sub, ok))
+
+    def show_image(self, img, seconds=SHOW_SECONDS, until=None, place="top"):
+        """Shows a ready drawn RGBA picture. until: optional check, the pop-up goes as soon as it
+        returns False (e.g. the item ideas leave when you respawn). place: "top" or "left"."""
+        if self.ok:
+            self.q.put(("img", img, seconds, until, place))
+
+    def scale(self):
+        try:
+            return self._scale()
+        except Exception:
+            return 1.0
 
     # ---------------------------------------------------------------- Windows only below
     def _run(self):
@@ -179,7 +192,10 @@ class Overlay:
             while not self.q.empty():  # only the newest message matters
                 item = self.q.get_nowait()
             try:
-                self._play(*item)
+                if item[0] == "img":
+                    self._present(*item[1:])
+                else:
+                    self._play(*item[1:])
             except Exception:
                 log.exception("Overlay failed to draw")
 
@@ -271,6 +287,8 @@ class Overlay:
         primary = [r for r in rects if r[0] == 0 and r[1] == 0]
         ordered = primary + [r for r in rects if r not in primary]
         idx = self.get_monitor() or 0
+        if isinstance(idx, (tuple, list)):   # the game's screen, as a rectangle
+            return tuple(idx)
         return ordered[idx] if idx < len(ordered) else (ordered[0] if ordered else (0, 0, 1920, 1080))
 
     def _scale(self):
@@ -280,9 +298,11 @@ class Overlay:
             return 1.0
 
     def _play(self, lead, accent, sub, ok):
+        self._present(render(lead, accent, sub, self._scale(), ok), SHOW_SECONDS, None, "top")
+
+    def _present(self, img, seconds, until, place):
         ct, wt, u, g = self.ct, self.wt, self.u, self.g
         scale = self._scale()
-        img = render(lead, accent, sub, scale, ok)
         w, h = img.size
         # premultiplied BGRA, which is what UpdateLayeredWindow wants
         r_, g_, b_, a_ = img.split()
@@ -303,9 +323,11 @@ class Overlay:
         old = g.SelectObject(mem, bmp)
         try:
             ct.memmove(bits, data, len(data))
-            left, top, _, _ = self._monitor_rect()
+            left, top, right, bottom = self._monitor_rect()
             margin = int(24 * scale)
             x0, y = left + margin, top + margin
+            if place == "left":   # middle of the left edge, a little above centre (clear of chat)
+                y = max(top + margin, top + (bottom - top - h) // 2 - (bottom - top) // 12)
             size, src = wt.SIZE(w, h), wt.POINT(0, 0)
             blend = self.BLENDFUNCTION(0, 0, 0, 1)
 
@@ -322,10 +344,17 @@ class Overlay:
                 t = ease(i / 12)
                 frame(255 * t, -16 * scale * (1 - t))
                 time.sleep(1 / 60)
-            end = time.time() + SHOW_SECONDS
+            end, next_check = time.time() + seconds, time.time() + 1
             while time.time() < end and self.q.empty():
                 self._pump()
                 time.sleep(0.05)
+                if until and time.time() >= next_check:
+                    next_check = time.time() + 1
+                    try:
+                        if not until():
+                            break
+                    except Exception:
+                        break
             for i in range(1, 13):  # fade out
                 frame(255 * (1 - i / 12), 0)
                 time.sleep(1 / 60)
