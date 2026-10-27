@@ -294,15 +294,17 @@ class History:
         if len(pool) < 3:
             return None
         avg = lambda k: sum(g[k] for g in pool if g.get(k) is not None) / max(1, sum(1 for g in pool if g.get(k) is not None))
-        curve = []   # your usual CS at each minute, from games that lasted that long (3 or more)
-        for i in range(60):
-            at = [g["cs_at"][i] for g in pool if len(g.get("cs_at") or []) > i]
-            if len(at) < 3:
-                break
-            curve.append(round(sum(at) / len(at), 1))
+        def curve(key):   # your usual value at each minute, from games that lasted that long (3 or more)
+            out = []
+            for i in range(60):
+                at = [g[key][i] for g in pool if len(g.get(key) or []) > i]
+                if len(at) < 3:
+                    break
+                out.append(round(sum(at) / len(at), 1))
+            return out
         return {"cs_min": avg("cs_min"), "kp": avg("kp"), "vision_min": avg("vision_min"),
                 "gpm": avg("gpm"), "kda": avg("kda"), "games": len(pool),
-                "same_role": len(by_role) >= 5, "cs_curve": curve}
+                "same_role": len(by_role) >= 5, "cs_curve": curve("cs_at"), "vision_curve": curve("vision_at")}
 
 
 def stat_tiles(now, avg):
@@ -376,10 +378,10 @@ def analyse(tl, deaths, avg, nums, opp_name, me_name):
         worst = min(gaps)
         best = max(gaps)
         if worst[0] < -0.6:
-            tips.append({"kind": "down", "text": f"Your farming dropped in the {worst[1].lower()}: "
+            tips.append({"cat": "farming", "kind": "down", "text": f"Your farming dropped in the {worst[1].lower()}: "
                          f"{worst[2]:.1f} CS a minute, your usual is {worst[3]:.1f}."})
         if best[0] > 0.6 and best is not worst:
-            tips.append({"kind": "up", "text": f"Great farming in the {best[1].lower()}: "
+            tips.append({"cat": "farming", "kind": "up", "text": f"Great farming in the {best[1].lower()}: "
                          f"{best[2]:.1f} CS a minute, up from your usual {best[3]:.1f}."})
 
     # your lane opponent (same CS they show on Tab)
@@ -387,7 +389,7 @@ def analyse(tl, deaths, avg, nums, opp_name, me_name):
         d10 = cs[10] - opp[10]
         word = "ahead of" if d10 > 0 else "behind"
         if abs(d10) >= 8:
-            tips.append({"kind": "up" if d10 > 0 else "down",
+            tips.append({"cat": "farming", "kind": "up" if d10 > 0 else "down",
                          "text": f"At 10 minutes you were {abs(d10)} CS {word} {opp_name}."})
         end = min(len(cs), len(opp)) - 1
         dend = cs[end] - opp[end]
@@ -395,44 +397,104 @@ def analyse(tl, deaths, avg, nums, opp_name, me_name):
             turn = next((i for i in range(10, end + 1) if (cs[i] - opp[i]) * (1 if dend > 0 else -1) > 0
                          and (cs[i - 1] - opp[i - 1]) * (1 if dend > 0 else -1) <= 0), None)
             when = f" from about {turn} minutes" if turn and turn > 10 else ""
-            tips.append({"kind": "up" if dend > d10 else "down",
+            tips.append({"cat": "farming", "kind": "up" if dend > d10 else "down",
                          "text": f"{'You pulled ahead of' if dend > d10 else opp_name + ' out-farmed'} "
                                  f"{opp_name if dend > d10 else 'you'}{when}: "
                                  f"{abs(dend)} CS {'ahead' if dend > 0 else 'behind'} by the end."})
     lv, olv = tl.get("level") or [], tl.get("opp_level") or []
+    # (levels count as fights)
     if opp_name and len(lv) > 15 and len(olv) > 15 and abs(lv[15] - olv[15]) >= 2:
         d = lv[15] - olv[15]
-        tips.append({"kind": "up" if d > 0 else "down",
+        tips.append({"cat": "combat", "kind": "up" if d > 0 else "down",
                      "text": f"At 15 minutes you were {abs(d)} levels {'above' if d > 0 else 'below'} {opp_name}."})
 
     # deaths: early ones and clusters
     if deaths:
         first = deaths[0]
         if first < 8 * 60:
-            tips.append({"kind": "down", "text": f"First death at {clock(first)}. An early death costs a lot of lane gold."})
+            tips.append({"cat": "combat", "kind": "down", "text": f"First death at {clock(first)}. An early death costs a lot of lane gold."})
         for i in range(len(deaths) - 2):
             if deaths[i + 2] - deaths[i] <= 6 * 60:
-                tips.append({"kind": "down", "text": f"3 deaths in a short spell, between {clock(deaths[i])} and {clock(deaths[i + 2])}."})
+                tips.append({"cat": "combat", "kind": "down", "text": f"3 deaths in a short spell, between {clock(deaths[i])} and {clock(deaths[i + 2])}."})
                 break
     elif nums.get("minutes", 0) >= 15:
-        tips.append({"kind": "up", "text": "No deaths all game. Nice."})
+        tips.append({"cat": "combat", "kind": "up", "text": "No deaths all game. Nice."})
 
     # fights and vision vs your usual
     if nums.get("kp") is not None and avg.get("kp"):
         if nums["kp"] >= avg["kp"] + 0.12:
-            tips.append({"kind": "up", "text": f"You were in {round(nums['kp'] * 100)}% of your team's kills, "
+            tips.append({"cat": "combat", "kind": "up", "text": f"You were in {round(nums['kp'] * 100)}% of your team's kills, "
                          f"more than your usual {round(avg['kp'] * 100)}%."})
         elif nums["kp"] <= avg["kp"] - 0.12:
-            tips.append({"kind": "down", "text": f"You were in {round(nums['kp'] * 100)}% of your team's kills, "
+            tips.append({"cat": "combat", "kind": "down", "text": f"You were in {round(nums['kp'] * 100)}% of your team's kills, "
                          f"less than your usual {round(avg['kp'] * 100)}%."})
     if nums.get("vision_min") and avg.get("vision_min"):
         if nums["vision_min"] < avg["vision_min"] * 0.75:
-            tips.append({"kind": "down", "text": f"Less vision than usual: {nums['vision_min']:.2f} a minute, "
+            tips.append({"cat": "vision", "kind": "down", "text": f"Less vision than usual: {nums['vision_min']:.2f} a minute, "
                          f"your usual is {avg['vision_min']:.2f}."})
         elif nums["vision_min"] > avg["vision_min"] * 1.25:
-            tips.append({"kind": "up", "text": f"More vision than usual: {nums['vision_min']:.2f} a minute."})
+            tips.append({"cat": "vision", "kind": "up", "text": f"More vision than usual: {nums['vision_min']:.2f} a minute."})
+    # scores out of 100 for each tab: 50 is your usual game (or a typical one before you have an average)
+    def score(ratio):
+        return int(max(5, min(99, round(50 + (min(ratio, 2.0) - 1) * 100))))
+
+    def rating(sc):
+        return "Poor" if sc < 35 else "Fair" if sc < 55 else "Good" if sc < 75 else "Great"
+    cs_min = nums.get("cs_min") or (cs[-1] / max(1, len(cs) - 1) if cs else 0)
+    if avg.get("cs_min"):
+        f_ratio, f_vs = cs_min / avg["cs_min"], "your usual"
+    elif opp_name and opp and opp[-1]:
+        f_ratio, f_vs = cs[-1] / opp[-1], opp_name
+    else:
+        f_ratio, f_vs = cs_min / 7.0, "a typical game"
+    kp, kda = nums.get("kp"), nums.get("kda")
+    kp_r = kp / (avg.get("kp") or 0.5) if kp is not None else 1.0
+    kda_r = (kda or 0) / (avg.get("kda") or 3.0)
+    vis = nums.get("vision_min") or 0
+    v_r = vis / (avg.get("vision_min") or 0.8)
+    vis_tl, usual_vis = tl.get("vision") or [], (avg.get("vision_curve") or [])[:len(tl.get("vision") or [])]
+
+    # the weakest phase gets shaded on the farming chart
+    weak = None
+    below = [(m - u, a_, b_) for (name, a_, b_), m, u in zip(PHASES, mine, usual) if m is not None and u and m < u * 0.92]
+    if below:
+        _, a_, b_ = min(below)
+        weak = [a_, min(b_, len(cs) - 1)]
+
+    def headline(cat):
+        mine_tips = [t for t in tips if t["cat"] == cat]
+        return (next((t for t in mine_tips if t["kind"] == "down"), None) or (mine_tips[0] if mine_tips else None))
+    bars_f = [{"name": name, "you": m, "usual": u, "fmt": "1"} for (name, _, _), m, u in zip(PHASES, mine, usual) if m is not None]
+    bars_c = [b for b in (
+        {"name": "Kill share", "you": round(kp * 100) if kp is not None else None,
+         "usual": round(avg["kp"] * 100) if avg.get("kp") else None, "fmt": "%"},
+        {"name": "K/D/A", "you": round(kda, 1) if kda is not None else None,
+         "usual": round(avg["kda"], 1) if avg.get("kda") else None, "fmt": "1"},
+        {"name": "Deaths", "you": len(deaths), "usual": None, "fmt": "0", "lower": True}) if b["you"] is not None]
+    bars_v = [{"name": "Vision a min", "you": round(vis, 2), "usual": round(avg["vision_min"], 2) if avg.get("vision_min") else None, "fmt": "2"},
+              {"name": "Vision score", "you": vis_tl[-1] if vis_tl else round(nums.get("vision", 0)), "usual": None, "fmt": "0"}]
+    cats = {
+        "farming": {"title": "Farming", "score": score(f_ratio), "vs": f_vs, "bars": bars_f, "headline": headline("farming"),
+                    "chart": "CS at every minute of the game",
+                    "lines": [{"name": "You", "pts": cs, "style": "you"}]
+                    + ([{"name": opp_name, "pts": opp, "style": "opp"}] if opp_name and any(opp) else [])
+                    + ([{"name": "Your usual", "pts": curve[:len(cs)], "style": "usual"}] if len(curve) > 1 else []),
+                    "weak": weak},
+        "combat": {"title": "Combat", "score": score((kp_r + kda_r) / 2), "vs": "your usual" if avg.get("kp") else "a typical game",
+                   "bars": bars_c, "headline": headline("combat"), "chart": "Kills you were in vs your team's kills",
+                   "lines": [{"name": "Your team's kills", "pts": tl.get("team_kills") or [], "style": "opp"},
+                             {"name": "Kills you were in", "pts": tl.get("ka") or [], "style": "you"}],
+                   "weak": None},
+        "vision": {"title": "Vision", "score": score(v_r), "vs": "your usual" if avg.get("vision_min") else "a typical game",
+                   "bars": bars_v, "headline": headline("vision"), "chart": "Vision score over the game",
+                   "lines": [{"name": "You", "pts": vis_tl, "style": "you"}]
+                   + ([{"name": "Your usual", "pts": usual_vis, "style": "usual"}] if len(usual_vis) > 1 else []),
+                   "weak": None},
+    }
+    for c in cats.values():
+        c["rating"] = rating(c["score"])
     return {
-        "tips": tips[:6],
+        "tips": tips[:8], "cats": cats,
         "cs": cs, "opp_cs": opp if opp_name else [], "usual_cs": curve[:len(cs)], "opp_name": opp_name or "",
         "deaths": [round(t / 60, 2) for t in deaths],
         "phases": [{"name": name, "you": m, "usual": u} for (name, _, _), m, u in zip(PHASES, mine, usual)],
@@ -578,7 +640,8 @@ class LeagueCompanion:
         minute = int(now // 60)
         tl = self.tl
         if tl is None or minute < len(tl["cs"]) - 2:
-            tl = self.tl = {"cs": [], "opp_cs": [], "level": [], "opp_level": [], "opp": ""}
+            tl = self.tl = {"cs": [], "opp_cs": [], "level": [], "opp_level": [], "ka": [], "team_kills": [],
+                            "vision": [], "opp": ""}
         if minute < len(tl["cs"]):
             return
         pos = me.get("position") or ""
@@ -589,6 +652,11 @@ class LeagueCompanion:
             tl["level"].append(me.get("level", 0))
             tl["opp_cs"].append((opp.get("scores") or {}).get("creepScore", 0) if opp else 0)
             tl["opp_level"].append(opp.get("level", 0) if opp else 0)
+            sc = me.get("scores") or {}
+            tl["ka"].append(sc.get("kills", 0) + sc.get("assists", 0))
+            tl["team_kills"].append(sum((p.get("scores") or {}).get("kills", 0) for p in game.get("allPlayers") or []
+                                        if p.get("team") == me.get("team")))
+            tl["vision"].append(round(float(sc.get("wardScore", 0)), 1))
         if opp:
             tl["opp"] = opp.get("championName") or ""
 
@@ -731,7 +799,8 @@ class LeagueCompanion:
                               "kp": summary["kp"], "vision_min": summary["vision_min"],
                               "kda": round(nums.get("kda", 0), 2),
                               "gpm": round(self.last_gpm, 1) if self.last_gpm else None,
-                              "cs_at": list(tl.get("cs") or [])[:60]})
+                              "cs_at": list(tl.get("cs") or [])[:60],
+                              "vision_at": list(tl.get("vision") or [])[:60]})
         self.tl = None
         if match.get("id"):
             self.on_summary({"id": match["id"], "summary": summary})

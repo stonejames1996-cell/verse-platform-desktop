@@ -233,7 +233,7 @@ function matchCard(m, list, latest) {
     el("div", { class: "m-top" }, head, pick),
     open && m.summary ? matchSummary(m.summary, plays) : null,
     open && plays.length ? el("div", { class: "grid m-grid" }, plays.map(clipCard)) : null,
-    open && m.summary && m.summary.analysis ? matchAnalysis(m.summary.analysis, m.summary.champion) : null,
+    open && m.summary && m.summary.analysis ? matchAnalysis(m.summary.analysis, m.summary.champion, m.id) : null,
     open && deaths.length ? el("details", { class: "m-deaths" },
       el("summary", {}, `Death review · ${deaths.length}`, el("small", {}, " only on this PC, never posted unless you choose to")),
       el("div", { class: "grid m-grid" }, deaths.map(clipCard))) : null);
@@ -275,50 +275,97 @@ function svgEl(tag, attrs = {}, ...kids) {
   for (const k of kids.flat()) if (k != null) e.append(k.nodeType ? k : document.createTextNode(k));
   return e;
 }
-function csChart(a, champ) {
-  const W = 560, H = 220, L = 34, R = 10, T = 10, B = 26;
-  const n = Math.max(a.cs.length, 2);
-  const top = Math.max(10, ...a.cs, ...(a.opp_cs || []), ...(a.usual_cs || []));
+const analysisTab = new Map();   // which tab (farming / combat / vision) is open for each match
+function lineChart(c, deaths) {
+  const W = 620, H = 230, L = 36, R = 12, T = 12, B = 26;
+  const lines = (c.lines || []).filter((l) => (l.pts || []).length > 1);
+  const n = Math.max(2, ...lines.map((l) => l.pts.length));
+  const top = Math.max(5, ...lines.flatMap((l) => l.pts)) * 1.05;
   const x = (i) => L + (i / (n - 1)) * (W - L - R);
   const y = (v) => T + (1 - v / top) * (H - T - B);
-  const path = (list) => list.map((v, i) => `${i ? "L" : "M"}${x(i).toFixed(1)},${y(v).toFixed(1)}`).join("");
-  const kids = [];
+  const kids = [svgEl("defs", {}, svgEl("pattern", { id: "hatch", width: 6, height: 6, patternUnits: "userSpaceOnUse", patternTransform: "rotate(45)" },
+    svgEl("line", { x1: 0, y1: 0, x2: 0, y2: 6, class: "ch-hatch" })))];
+  if (c.weak) kids.push(svgEl("rect", { x: x(c.weak[0]), y: T, width: Math.max(2, x(c.weak[1]) - x(c.weak[0])), height: H - T - B, class: "ch-weak" }));
   for (let k = 0; k <= 4; k++) {
-    const v = Math.round((top * k) / 4);
+    const v = (top / 1.05) * k / 4;
     kids.push(svgEl("line", { x1: L, x2: W - R, y1: y(v), y2: y(v), class: "ch-grid" }),
-      svgEl("text", { x: L - 6, y: y(v) + 4, class: "ch-tick", "text-anchor": "end" }, String(v)));
+      svgEl("text", { x: L - 7, y: y(v) + 4, class: "ch-tick", "text-anchor": "end" }, String(Math.round(v))));
   }
   for (let m = 0; m < n; m += 5) kids.push(svgEl("text", { x: x(m), y: H - 8, class: "ch-tick", "text-anchor": "middle" }, String(m)));
-  for (const d of a.deaths || []) if (d <= n - 1) kids.push(svgEl("line", { x1: x(d), x2: x(d), y1: T, y2: H - B, class: "ch-death" }));
-  if ((a.usual_cs || []).length > 1) kids.push(svgEl("path", { d: path(a.usual_cs), class: "ch-usual" }));
-  if ((a.opp_cs || []).length > 1) kids.push(svgEl("path", { d: path(a.opp_cs), class: "ch-opp" }));
-  kids.push(svgEl("path", { d: path(a.cs), class: "ch-you" }));
-  const label = `CS over the game: you${a.opp_name ? ", " + a.opp_name : ""}${(a.usual_cs || []).length > 1 ? ", your usual" : ""}`;
-  return svgEl("svg", { viewBox: `0 0 ${W} ${H}`, class: "ma-chart", role: "img", "aria-label": label }, kids);
+  for (const d of deaths || []) if (d <= n - 1) kids.push(svgEl("line", { x1: x(d), x2: x(d), y1: T, y2: H - B, class: "ch-death" }));
+  for (const l of lines) {
+    const d = l.pts.map((v, i) => `${i ? "L" : "M"}${x(i).toFixed(1)},${y(v).toFixed(1)}`).join("");
+    if (l.style === "you") kids.push(svgEl("path", { d: d + `L${x(l.pts.length - 1)},${y(0)}L${x(0)},${y(0)}Z`, class: "ch-area" }));
+    kids.push(svgEl("path", { d, class: "ch-" + l.style }));
+  }
+  return svgEl("svg", { viewBox: `0 0 ${W} ${H}`, class: "ma-chart", role: "img", "aria-label": c.chart + ": " + lines.map((l) => l.name).join(", ") }, kids);
 }
-function matchAnalysis(a, champ) {
-  const legend = el("div", { class: "ma-legend" },
-    el("span", { class: "lg-you" }, champ ? `You (${champ})` : "You"),
-    a.opp_name ? el("span", { class: "lg-opp" }, a.opp_name) : null,
-    (a.usual_cs || []).length > 1 ? el("span", { class: "lg-usual" }, "Your usual") : null,
-    (a.deaths || []).length ? el("span", { class: "lg-death" }, "Your deaths") : null);
-  const phases = (a.phases || []).filter((p) => p.you != null);
-  const maxRate = Math.max(1, ...phases.map((p) => Math.max(p.you, p.usual || 0)));
+function gauge(score) {
+  // a 240 degree arc like a speedo, filled to the score
+  const r = 42, cx = 50, cy = 52, start = 150, sweep = 240;
+  const pt = (deg) => [cx + r * Math.cos((deg * Math.PI) / 180), cy + r * Math.sin((deg * Math.PI) / 180)];
+  const arc = (from, to) => {
+    const [x1, y1] = pt(from), [x2, y2] = pt(to);
+    return `M${x1.toFixed(2)},${y1.toFixed(2)}A${r},${r} 0 ${to - from > 180 ? 1 : 0} 1 ${x2.toFixed(2)},${y2.toFixed(2)}`;
+  };
+  const cls = score < 35 ? "g-poor" : score < 55 ? "g-fair" : "g-good";
+  return svgEl("svg", { viewBox: "0 0 100 92", class: "ma-gauge", "aria-hidden": "true" },
+    svgEl("path", { d: arc(start, start + sweep), class: "g-track" }),
+    svgEl("path", { d: arc(start, start + Math.max(1, (sweep * score) / 100)), class: "g-fill " + cls }),
+    svgEl("text", { x: 50, y: 60, "text-anchor": "middle", class: "g-num" }, String(score)));
+}
+function withNumbers(text) {
+  // the numbers in a tip stand out, like "4.0 CS a minute"
+  const out = [];
+  let last = 0;
+  for (const m of text.matchAll(/\d(?:[\d.,:]*\d)?%?/g)) {
+    out.push(text.slice(last, m.index), el("b", {}, m[0]));
+    last = m.index + m[0].length;
+  }
+  out.push(text.slice(last));
+  return out;
+}
+function fmtBar(v, f) {
+  return v == null ? "" : f === "%" ? `${v}%` : f === "2" ? v.toFixed(2) : f === "1" ? Number(v).toFixed(1) : String(v);
+}
+function matchAnalysis(a, champ, id) {
+  if (!a.cats) return null;    // from an older version of the app
+  const keys = ["farming", "combat", "vision"];
+  const tab = analysisTab.get(id) || "farming";
+  const c = a.cats[tab];
+  const bars = c.bars || [];
+  const h = c.headline;
+  const legend = el("div", { class: "ma-legend" }, (c.lines || []).filter((l) => (l.pts || []).length > 1)
+    .map((l) => el("span", { class: "lg-" + l.style }, l.style === "you" && tab === "farming" && champ ? `You (${champ})` : l.name)),
+    tab === "combat" && (a.deaths || []).length ? el("span", { class: "lg-death" }, "Your deaths") : null,
+    c.weak ? el("span", { class: "lg-weak" }, "Where it dropped") : null);
   return el("section", { class: "m-analysis", "aria-label": "Match analysis" },
-    el("div", { class: "ma-col" },
+    el("div", { class: "ma-head" },
       el("h4", {}, "Match analysis"),
-      (a.tips || []).length
-        ? el("ul", { class: "ma-tips" }, a.tips.map((t) => el("li", { class: "t-" + t.kind }, t.text)))
-        : el("p", { class: "ma-empty" }, "Nothing stood out this game. Play a few more and Verse can compare with your usual."),
-      phases.length ? el("div", { class: "ma-phases" },
-        el("h5", {}, "CS per minute by phase"),
-        phases.map((p) => el("div", { class: "ma-phase" },
-          el("span", { class: "ph-name" }, p.name),
-          el("span", { class: "ph-bar" },
-            el("i", { class: p.usual && p.you < p.usual * 0.92 ? "ph-down" : "", style: `width:${(p.you / maxRate) * 100}%` }),
-            p.usual ? el("b", { style: `left:${(p.usual / maxRate) * 100}%`, title: `Your usual: ${p.usual.toFixed(1)}` }) : null),
-          el("span", { class: "ph-val" }, p.you.toFixed(1) + (p.usual ? ` / ${p.usual.toFixed(1)}` : ""))))) : null),
-    el("div", { class: "ma-col ma-chart-col" }, el("h5", {}, "CS at every minute"), csChart(a, champ), legend));
+      el("span", { class: "ma-vs" }, "Compared with ", el("b", {}, c.vs)),
+      el("div", { class: "ma-tabs", role: "tablist" }, keys.map((k) => el("button", {
+        role: "tab", "aria-selected": String(k === tab), class: k === tab ? "on" : "",
+        onclick: () => { analysisTab.set(id, k); renderClips(); } }, a.cats[k].title)))),
+    el("div", { class: "ma-body" },
+      el("div", { class: "ma-score" },
+        el("div", { class: "ma-score-top" }, gauge(c.score), el("strong", {}, c.title), el("span", {}, c.rating)),
+        bars.map((b) => {
+          const worse = b.usual != null && (b.lower ? b.you > b.usual : b.you < b.usual * 0.92);
+          // each bar on its own scale: a bit past the bigger of yours and your usual (deaths: out of 10)
+          const maxV = b.lower ? Math.max(10, b.you) : Math.max(0.01, b.you || 0, b.usual || 0) * 1.25;
+          return el("div", { class: "ma-bar" },
+            el("div", { class: "mb-row" }, el("span", {}, b.name), el("b", {}, fmtBar(b.you, b.fmt) + (b.usual != null ? ` / ${fmtBar(b.usual, b.fmt)}` : ""))),
+            el("span", { class: "ph-bar" },
+              el("i", { class: worse ? "ph-down" : "", style: `width:${Math.min(100, ((b.you || 0) / maxV) * 100)}%` }),
+              b.usual != null ? el("b", { style: `left:${(b.usual / maxV) * 100}%`, title: "Your usual" }) : null));
+        })),
+      el("div", { class: "ma-main" },
+        el("h5", {}, c.title + " performance"),
+        el("p", { class: "ma-headline" }, h ? withNumbers(h.text) : "Nothing stood out here this game."),
+        lineChart(c, tab === "combat" ? a.deaths : null), legend,
+        (a.tips || []).filter((t) => t.cat === tab && t !== h).length
+          ? el("ul", { class: "ma-tips" }, a.tips.filter((t) => t.cat === tab && t.text !== (h && h.text))
+            .map((t) => el("li", { class: "t-" + t.kind }, withNumbers(t.text)))) : null)));
 }
 function clipCard(c) {
   const posted = isPosted(c);

@@ -8,7 +8,7 @@ turn these into `release-notes/<version>.md`, then clear this list.
 * **Objective timers for League:** a small box on the right counts down when Dragon, Elder Dragon, Baron and inhibitors come back, and says when they're up. It only uses the kill announcements everyone sees, and never shows in your clips.
 * **Your game so far:** the pop-up while you're dead now also shows your CS per minute, kill share and vision compared with your own average from past games, plus your items' gold vs the enemy in your lane (like "1,350 behind Kai'Sa").
 * **Match summary:** when a League game ends you get a summary card with your K/D/A, CS, kill share and vision, what you did better than usual, and how many highlights were saved. The same numbers show on that game in My clips, with a button to post its best clip.
-* **Match analysis in My clips:** open a League game in My clips and under its clips you'll see a short analysis: a few plain tips (like where your farming dropped off, how you did against your lane opponent, early deaths), a chart of your CS at every minute vs your lane opponent and your usual games with your deaths marked, and your CS per minute in lane, mid and late game.
+* **Match analysis in My clips:** open a League game in My clips and under its clips there's a match analysis with Farming, Combat and Vision tabs. Each has a score out of 100 (50 is your usual game), a headline about the biggest thing that stood out, a chart over the whole game (your CS vs your lane opponent and your usual, kills you were in vs your team's, or vision), with the part of the game where you dropped off shaded, plus a few more tips.
 * Each of these can be switched off in Settings under League of Legends in game.
 
 ## Behind the scenes
