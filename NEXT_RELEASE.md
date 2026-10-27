@@ -4,7 +4,7 @@ Changes that are in `main` but not released yet. When it's time to release, bump
 turn these into `release-notes/<version>.md`, then clear this list.
 
 ## For the release notes
-* **League item ideas:** when you die in League, a small pop-up suggests counter items based on what the enemy team has, like anti heal against Soraka and Aatrox or armour against a fed Kai'Sa. It always gives you a few choices with the reason, and it disappears when you respawn. Press Alt+Shift+I in a match to see it any time. It uses the same info as the Tab screen, and if you clip while it's open it shows in the clip too. You can turn it off in Settings.
+* **League item ideas:** when you die in League, a small pop-up suggests counter items based on what the enemy team has (with their champion pictures, so you can tell who it means at a glance), like anti heal against Soraka and Aatrox or armour against a fed Kai'Sa. It always gives you a few choices with the reason, and it disappears when you respawn. Press Alt+Shift+I in a match to see it any time. It uses the same info as the Tab screen, and if you clip while it's open it shows in the clip too. You can turn it off in Settings.
 * **Records the screen your game is on:** with more than one screen, Verse now records whichever one the game is open on, even if you move it mid game. Save pop-ups show up on that screen too. You can turn this off in Settings and pick a screen yourself.
 
 ## Behind the scenes
