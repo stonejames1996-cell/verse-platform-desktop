@@ -40,6 +40,10 @@ saves clips on a hotkey or automatically on highlights, and hands clips to the w
 - `triggers.py`: "clip that" voice command (Windows System.Speech) and controller combos (XInput).
 - `lol_live.py`: League companion loop: objective timers strip, the panel while dead (own stats vs `lol_history.json` averages,
   lane item gold, item ideas), match summary card + `summary` on the match. Riot policy: no enemy cooldowns, no win rates.
+- `opgg.py`: OP.GG's public MCP server (mcp-api.op.gg/mcp, same as the website's guides): rank, champion at your tier
+  (KDA, win rate), top players (CS/gold per min from leaderboard totals), your real game after (gold, damage, lobby rank).
+  Answers are a class-text format, `parse()` reads them. Server from League's LeagueClientSettings.yaml. Cached in opgg_cache.json.
+  OP.GG has no per-rank CS/gold averages, so farming compares with your usual and with top players.
 - `lol_items.py`: League item ideas pop-up (counter items from enemy items on Tab, Data Dragon names/icons; shown while dead or Alt+Shift+I).
   Keep it inside Riot policy: always 2+ choices with reasons, no win rates, only Tab info.
 - `overlay.py`: the "Last 60s saved by Verse Platform" pop-up. `watermark.py`: animated "Clipped by Verse Platform" card for the
@@ -83,7 +87,7 @@ Ask for `%APPDATA%\Verse Platform\verse_platform.log` (and `crash.log` if there 
 The "Ready." line shows encoder, capture method and "(GPU only)". Useful lines: "Capture froze", "Switching from",
 "Sound output changed", "Saved with no audio", "Told the squad".
 
-## Still to confirm on a real PC (as of 1.2.9)
+## Still to confirm on a real PC (as of 1.3.0)
 - GPU-only recording ("(GPU only)" in the log, lower FFmpeg CPU in Task Manager).
 - Default sound device following ("Sound output changed, recording follows it").
 - Squad POV end to end between two PCs (needs the Base44 squadRelay function published; the upload size limit is untested).
@@ -94,6 +98,9 @@ The "Ready." line shows encoder, capture method and "(GPU only)". Useful lines: 
 - Highlight card (e.g. "Double kill") landing at the right moment in real auto highlights (1.2.8).
 - League item ideas pop-up in a real match ("Item ideas shown: ..."), borderless mode, and that it shows in clips (1.2.9).
 - Recording follows the game to a second screen ("Recording the game's screen (DISPLAY2 ...)") (1.2.9).
+- 1.3.0 League update: benchmarks box + objective timers in game, panel while dead, match summary card, match
+  analysis in My clips, OP.GG ("OP.GG: region ..., rank ...", "OP.GG has the match"). Respawn times assumed: Dragon 5:00,
+  Elder/Baron 6:00, inhibitors 5:00.
 
 ## Ideas not built yet
 Slow-mo on the big moment, end card with K/D/A and verseplatform.gg,

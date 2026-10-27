@@ -3,28 +3,7 @@
 Changes that are in `main` but not released yet. When it's time to release, bump `APP_VERSION`,
 turn these into `release-notes/<version>.md`, then clear this list.
 
-## For the release notes
-* **Live benchmarks for League:** a small box on the right shows how your game is going compared with your own average: CS per minute (with a little line of how it's moved this game), gold per minute, kill share and K/D/A, plus your level vs your lane opponent. Green means above your usual, yellow below. Your average builds up after 3 games. Never shows in your clips.
-* **Objective timers for League:** a small box on the right counts down when Dragon, Elder Dragon, Baron and inhibitors come back, and says when they're up. It only uses the kill announcements everyone sees, and never shows in your clips.
-* **Your game so far:** the pop-up while you're dead now also shows your CS per minute, kill share and vision compared with your own average from past games, plus your items' gold vs the enemy in your lane (like "1,350 behind Kai'Sa").
-* **Match summary:** when a League game ends you get a summary card with your K/D/A, CS, kill share and vision, what you did better than usual, and how many highlights were saved. The same numbers show on that game in My clips, with a button to post its best clip.
-* **Match analysis in My clips:** open a League game in My clips and under its clips there's a match analysis with Farming, Combat and Vision tabs. Each has a score out of 100 (50 is your usual game), a headline about the biggest thing that stood out, a chart over the whole game (your CS vs your lane opponent and your usual, kills you were in vs your team's, or vision), with the part of the game where you dropped off shaded, plus a few more tips.
-* Each of these can be switched off in Settings under League of Legends in game.
-
-## Behind the scenes
-* New `lol_live.py`: `LeagueCompanion` replaces `lol_items.ItemIdeas` (one loop on `/allgamedata` a second).
-  `ObjectiveTimers` reads DragonKill (soul at 4 of a team's dragons -> Elder 6:00, else 5:00), BaronKill (6:00),
-  InhibKilled/InhibRespawned (5:00). No enemy cooldowns (Riot bans that). Shown by a second `Overlay` window
-  ("VersePlatformTimers", `show_static`, right side, kept out of clips).
-* Your own averages: `lol_history.json` in the data folder (last 200 games, 10+ minutes), last 20 of the same
-  kind (Summoner's Rift or not), same role when there are 5+. Lane gold uses `position` from the live data.
-* Match summary saved as `summary` on the match (`library.save_match` now merges fields), shown in the match card.
-* Settings: `lol_objective_timers`, `lol_benchmarks`, `lol_match_summary` (on), `lol_item_ideas` now covers the whole panel.
-* Post match analysis: `LeagueCompanion._sample` keeps CS and level for you and your lane opponent once a game
-  minute; `analyse()` turns it into `summary.analysis` (tips, CS lines, deaths, phases). History keeps `cs_at`
-  so `averages()` can give a usual CS curve (3+ games that lasted that long). Shown by `matchAnalysis()` in ui/app.js.
-* Benchmarks share the timers' window (`render_strip`). Gold per minute is an estimate: item value + current gold
-  over game minutes (League's live data has no gold earned). History now also keeps `gpm` and `kda`.
+Nothing held right now. 1.3.0 shipped the big League update (benchmarks, timers, panel, summary, analysis, OP.GG).
 
 ## Still to confirm on a real PC
 * Link Xbox pop-up end to end (log lines: "Sign-in pop-up opened", "Sign-in finished, refreshing Verse").
@@ -34,3 +13,7 @@ turn these into `release-notes/<version>.md`, then clear this list.
 * Recording follows the game to a second screen (log: "Recording the game's screen (DISPLAY2 ...)").
 * Objective timers line up with the in-game times (Dragon 5:00, Elder/Baron 6:00, inhibitors 5:00 on patch 16.21).
 * Match summary card and the My clips match summary after a real League game.
+* Live benchmarks box and objective timers in a real League match (borderless), timings vs the game's own.
+* OP.GG: the server is read from League's settings file (log "OP.GG: region OCE, rank ..."), and gold/damage
+  arrive a few minutes after the game ("OP.GG has the match").
+* Match analysis in My clips after a real game (needs games played on 1.3.0; "your usual" needs 3).
