@@ -96,7 +96,7 @@ The "Ready." line shows encoder, capture method and "(GPU only)". Useful lines: 
 - Recording follows the game to a second screen ("Recording the game's screen (DISPLAY2 ...)") (1.2.9).
 
 ## Ideas not built yet
-Match summary pop-up after a game, slow-mo on the big moment, end card with K/D/A and verseplatform.gg,
+Slow-mo on the big moment, end card with K/D/A and verseplatform.gg,
 mic noise removal, auto match montage, in-game replay viewer, auto-post drafts to Verse, Clip of the Week on the site,
 quieter Discord posts for small fix releases.
 Waiting on Riot's production key (app 897128): loading screen info (ranks), skill order / rune ideas. Not doing: augment
