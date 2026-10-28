@@ -314,7 +314,7 @@ video { display: block; width: 100%; aspect-ratio: 16 / 9; max-height: calc(100v
 .ma-main h5 { margin: 0 0 6px; font-size: 12px; color: var(--haze); font-weight: 600; }
 .ma-headline { margin: 0 0 12px; font-size: 18px; font-weight: 700; line-height: 1.35; }
 .ma-headline b, .ma-tips b { color: #fbbf24; }
-.ma-chart { width: 100%; height: auto; display: block; }
+.ma-chart { display: block; width: auto; height: auto; max-width: none; }
 .ch-grid { stroke: #1d2630; stroke-width: 1; }
 .ch-tick { fill: #7b8794; font-size: 11px; }
 .ch-area { fill: rgba(34, 211, 238, .08); stroke: none; }
@@ -427,3 +427,51 @@ input[type="text"]:focus { outline: 2px solid var(--signal); outline-offset: 1px
   background: #1f2937; color: #e5e7eb; box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .12); }
 .group-head h3 .g-logo { width: 22px; height: 22px; vertical-align: -5px; }
 .mb-name .pic.crest { border-radius: 0; object-fit: contain; width: 20px; height: 20px; }
+
+/* match analysis: closed row, hide button, pictures */
+.m-analysis-closed { all: unset; box-sizing: border-box; display: flex; align-items: center; flex-wrap: wrap; gap: 12px 16px;
+  margin: 0 18px 18px; padding: 12px 16px; border-radius: 12px; cursor: pointer; width: calc(100% - 36px);
+  border: 1px solid #1f2a33; background: linear-gradient(90deg, rgba(34, 211, 238, .07), rgba(255, 255, 255, .01)), #0d1116; }
+.m-analysis-closed:hover { border-color: #2a3a48; }
+.m-analysis-closed:focus-visible { outline: 2px solid var(--signal); outline-offset: 2px; }
+.mac-title { font-weight: 700; font-size: 14px; }
+.mac-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.mac-chip { display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px 3px 4px; border-radius: 999px;
+  background: #11171e; border: 1px solid #1f2a33; font-size: 12px; color: var(--haze); }
+.mac-chip b { display: inline-grid; place-items: center; min-width: 24px; height: 20px; padding: 0 4px; border-radius: 999px;
+  font-size: 12px; color: #0a0a0a; background: #e5e7eb; }
+.mac-chip.g-poor b { background: #fbbf24; } .mac-chip.g-good b { background: #34d399; }
+.mac-open { margin-left: auto; display: inline-flex; align-items: center; gap: 8px; font-size: 13px; color: var(--signal); font-weight: 600; }
+.mac-chev { width: 7px; height: 7px; border-right: 2px solid currentColor; border-bottom: 2px solid currentColor; transform: translateY(-2px) rotate(45deg); }
+.ma-close { display: inline-flex; align-items: center; gap: 8px; margin-left: 4px; background: none; border: 1px solid #1f2a33; color: var(--haze); font: inherit; font-size: 12px;
+  font-weight: 600; padding: 4px 10px; border-radius: 7px; cursor: pointer; }
+.ma-close:hover { color: var(--frost); border-color: #2a3a48; }
+.ma-tabs { margin-left: auto; }
+.vs-pic { width: 20px; height: 20px; border-radius: 50%; vertical-align: -5px; margin: 0 5px 0 2px; box-shadow: 0 0 0 1px #2a3a48; }
+.lg-pic { width: 16px; height: 16px; border-radius: 50%; vertical-align: -4px; margin-right: 6px; }
+.ma-legend span:has(.lg-pic)::before { display: none; }
+.ma-legend .lg-you:has(.lg-pic) .lg-pic { box-shadow: 0 0 0 2px #22d3ee; }
+.ma-legend .lg-opp:has(.lg-pic) .lg-pic { box-shadow: 0 0 0 2px #e5e7eb; }
+
+/* the chart */
+.ma-chart-box { width: 100%; min-height: 270px; margin-top: 4px; }
+.ch-band { fill: rgba(255, 255, 255, .012); } .ch-band.alt { fill: rgba(255, 255, 255, .03); }
+.ch-phase { fill: #5b6775; font-size: 10px; font-weight: 700; letter-spacing: .14em; }
+.ch-axis { stroke: #2a3440; stroke-width: 1; }
+.ch-grid { stroke: #1a222b; stroke-width: 1; stroke-dasharray: 2 4; }
+.ch-tick { fill: #6b7785; font-size: 11px; font-variant-numeric: tabular-nums; }
+.ch-you { fill: none; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; }
+.ch-opp { fill: none; stroke: #e5e7eb; stroke-width: 2; stroke-linecap: round; opacity: .75; }
+.ch-usual { fill: none; stroke: #34d399; stroke-width: 1.8; stroke-dasharray: 6 5; opacity: .9; }
+.ch-death { stroke: #f87171; stroke-width: 1; stroke-dasharray: 3 3; opacity: .55; }
+.ch-death-dot { fill: #f87171; stroke: #0d1116; stroke-width: 2; }
+.ch-end { stroke: #0d1116; stroke-width: 2; }
+.ch-end.you { fill: #67e8f9; } .ch-end.opp { fill: #e5e7eb; } .ch-end.usual { fill: #34d399; }
+.ch-ring { fill: none; stroke-width: 1.5; } .ch-ring.you { stroke: #22d3ee; } .ch-ring.opp { stroke: #e5e7eb; }
+.ch-endval { font-size: 12px; font-weight: 700; } .ch-endval.you { fill: #67e8f9; } .ch-endval.opp { fill: #e5e7eb; } .ch-endval.usual { fill: #34d399; }
+.ch-hline { stroke: rgba(255, 255, 255, .25); stroke-width: 1; }
+.ch-hdot { stroke: #0d1116; stroke-width: 2; } .ch-hdot.you { fill: #67e8f9; } .ch-hdot.opp { fill: #e5e7eb; } .ch-hdot.usual { fill: #34d399; }
+.ch-hbox { fill: rgba(10, 14, 19, .94); stroke: #2a3a48; }
+.ch-htext { font-size: 12px; } .ch-hmin { fill: #8a96a3; font-weight: 700; }
+.ch-hrow { fill: #e5e7eb; font-weight: 600; } .ch-hrow.you { fill: #67e8f9; } .ch-hrow.usual { fill: #34d399; }
+.mac-chev.up { transform: translateY(2px) rotate(225deg); }

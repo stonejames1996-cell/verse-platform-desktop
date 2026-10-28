@@ -296,29 +296,128 @@ function svgEl(tag, attrs = {}, ...kids) {
   return e;
 }
 const analysisTab = new Map();   // which tab (farming / combat / vision) is open for each match
-function lineChart(c, deaths) {
-  const W = 620, H = 230, L = 36, R = 12, T = 12, B = 26;
-  const lines = (c.lines || []).filter((l) => (l.pts || []).length > 1);
-  const n = Math.max(2, ...lines.map((l) => l.pts.length));
-  const top = Math.max(5, ...lines.flatMap((l) => l.pts)) * 1.05;
-  const x = (i) => L + (i / (n - 1)) * (W - L - R);
-  const y = (v) => T + (1 - v / top) * (H - T - B);
-  const kids = [svgEl("defs", {}, svgEl("pattern", { id: "hatch", width: 6, height: 6, patternUnits: "userSpaceOnUse", patternTransform: "rotate(45)" },
-    svgEl("line", { x1: 0, y1: 0, x2: 0, y2: 6, class: "ch-hatch" })))];
-  if (c.weak) kids.push(svgEl("rect", { x: x(c.weak[0]), y: T, width: Math.max(2, x(c.weak[1]) - x(c.weak[0])), height: H - T - B, class: "ch-weak" }));
-  for (let k = 0; k <= 4; k++) {
-    const v = (top / 1.05) * k / 4;
-    kids.push(svgEl("line", { x1: L, x2: W - R, y1: y(v), y2: y(v), class: "ch-grid" }),
-      svgEl("text", { x: L - 7, y: y(v) + 4, class: "ch-tick", "text-anchor": "end" }, String(Math.round(v))));
+// ---------------------------------------------------------------- the match analysis chart
+// Drawn at the real pixel width of its box (redrawn when the window resizes), so text stays the same size
+// however wide the window is. Smooth lines, a glow and soft fill under yours, the game's phases as bands,
+// champion pictures at the end of each line, and a hover line that reads out every value at that minute.
+const PHASE_BANDS = [["Lane", 0, 14], ["Mid", 14, 25], ["Late", 25, 999]];
+function smoothPath(pts) {
+  // monotone curve through the points (never overshoots, so CS never looks like it went down)
+  const n = pts.length;
+  if (n < 3) return pts.map((p, i) => `${i ? "L" : "M"}${p[0].toFixed(1)},${p[1].toFixed(1)}`).join("");
+  const dx = [], dy = [], m = [], t = [];
+  for (let i = 0; i < n - 1; i++) { dx[i] = pts[i + 1][0] - pts[i][0]; dy[i] = pts[i + 1][1] - pts[i][1]; m[i] = dy[i] / dx[i]; }
+  t[0] = m[0]; t[n - 1] = m[n - 2];
+  for (let i = 1; i < n - 1; i++) t[i] = m[i - 1] * m[i] <= 0 ? 0 : (3 * (dx[i - 1] + dx[i])) / ((2 * dx[i] + dx[i - 1]) / m[i - 1] + (dx[i] + 2 * dx[i - 1]) / m[i]);
+  let d = `M${pts[0][0].toFixed(1)},${pts[0][1].toFixed(1)}`;
+  for (let i = 0; i < n - 1; i++) {
+    const h = dx[i] / 3;
+    d += `C${(pts[i][0] + h).toFixed(1)},${(pts[i][1] + h * t[i]).toFixed(1)} ${(pts[i + 1][0] - h).toFixed(1)},${(pts[i + 1][1] - h * t[i + 1]).toFixed(1)} ${pts[i + 1][0].toFixed(1)},${pts[i + 1][1].toFixed(1)}`;
   }
-  for (let m = 0; m < n; m += 5) kids.push(svgEl("text", { x: x(m), y: H - 8, class: "ch-tick", "text-anchor": "middle" }, String(m)));
-  for (const d of deaths || []) if (d <= n - 1) kids.push(svgEl("line", { x1: x(d), x2: x(d), y1: T, y2: H - B, class: "ch-death" }));
-  for (const l of lines) {
-    const d = l.pts.map((v, i) => `${i ? "L" : "M"}${x(i).toFixed(1)},${y(v).toFixed(1)}`).join("");
-    if (l.style === "you") kids.push(svgEl("path", { d: d + `L${x(l.pts.length - 1)},${y(0)}L${x(0)},${y(0)}Z`, class: "ch-area" }));
-    kids.push(svgEl("path", { d, class: "ch-" + l.style }));
-  }
-  return svgEl("svg", { viewBox: `0 0 ${W} ${H}`, class: "ma-chart", role: "img", "aria-label": c.chart + ": " + lines.map((l) => l.name).join(", ") }, kids);
+  return d;
+}
+let chartId = 0;
+function lineChart(c, deaths, keys) {
+  const box = el("div", { class: "ma-chart-box" });
+  const draw = () => {
+    const W = Math.max(320, Math.round(box.clientWidth || 640)), H = 270, L = 40, R = 64, T = 30, B = 30;
+    const id = "ch" + (++chartId);
+    const lines = (c.lines || []).filter((l) => (l.pts || []).length > 1);
+    const n = Math.max(2, ...lines.map((l) => l.pts.length));
+    const rawTop = Math.max(5, ...lines.flatMap((l) => l.pts));
+    const step = Math.pow(10, Math.floor(Math.log10(rawTop))) / 2;
+    const top = Math.ceil((rawTop * 1.08) / step) * step;
+    const x = (i) => L + (i / (n - 1)) * (W - L - R);
+    const y = (v) => T + (1 - v / top) * (H - T - B);
+    const kids = [svgEl("defs", {},
+      svgEl("linearGradient", { id: id + "fill", x1: 0, y1: 0, x2: 0, y2: 1 },
+        svgEl("stop", { offset: "0%", "stop-color": "#22d3ee", "stop-opacity": ".28" }),
+        svgEl("stop", { offset: "100%", "stop-color": "#22d3ee", "stop-opacity": "0" })),
+      svgEl("linearGradient", { id: id + "stroke", x1: 0, y1: 0, x2: 1, y2: 0 },
+        svgEl("stop", { offset: "0%", "stop-color": "#0891b2" }), svgEl("stop", { offset: "100%", "stop-color": "#67e8f9" })),
+      svgEl("filter", { id: id + "glow", x: "-10%", y: "-30%", width: "120%", height: "160%" },
+        svgEl("feGaussianBlur", { stdDeviation: 4, result: "b" }),
+        svgEl("feMerge", {}, svgEl("feMergeNode", { in: "b" }), svgEl("feMergeNode", { in: "SourceGraphic" }))),
+      svgEl("pattern", { id: id + "hatch", width: 6, height: 6, patternUnits: "userSpaceOnUse", patternTransform: "rotate(45)" },
+        svgEl("line", { x1: 0, y1: 0, x2: 0, y2: 6, class: "ch-hatch" })),
+      svgEl("clipPath", { id: id + "round" }, svgEl("circle", { cx: 11, cy: 11, r: 11 })))];
+    // the game's phases as soft bands with a label on top
+    PHASE_BANDS.forEach(([name, a, b], i) => {
+      if (a > n - 1) return;
+      const x1 = x(a), x2 = x(Math.min(b, n - 1));
+      kids.push(svgEl("rect", { x: x1, y: T, width: Math.max(0, x2 - x1), height: H - T - B, class: i % 2 ? "ch-band alt" : "ch-band" }),
+        svgEl("text", { x: (x1 + x2) / 2, y: T - 10, class: "ch-phase", "text-anchor": "middle" }, name.toUpperCase()));
+    });
+    if (c.weak) kids.push(svgEl("rect", { x: x(c.weak[0]), y: T, width: Math.max(2, x(c.weak[1]) - x(c.weak[0])), height: H - T - B, fill: `url(#${id}hatch)` }));
+    for (let k = 0; k <= 4; k++) {
+      const v = (top * k) / 4;
+      kids.push(svgEl("line", { x1: L, x2: W - R, y1: y(v), y2: y(v), class: k ? "ch-grid" : "ch-axis" }),
+        svgEl("text", { x: L - 10, y: y(v) + 4, class: "ch-tick", "text-anchor": "end" }, String(Math.round(v))));
+    }
+    const every = n > 40 ? 10 : 5;
+    for (let m = 0; m < n; m += every) kids.push(svgEl("text", { x: x(m), y: H - 10, class: "ch-tick", "text-anchor": "middle" }, m ? `${m}m` : "0"));
+    for (const d of deaths || []) if (d <= n - 1) kids.push(
+      svgEl("line", { x1: x(d), x2: x(d), y1: T, y2: H - B, class: "ch-death" }),
+      svgEl("circle", { cx: x(d), cy: H - B, r: 4, class: "ch-death-dot" }));
+    // lines: others first, yours on top with a glow and a fill
+    const order = [...lines].sort((p, q) => (p.style === "you") - (q.style === "you"));
+    for (const l of order) {
+      const pts = l.pts.map((v, i) => [x(i), y(v)]);
+      const d = smoothPath(pts);
+      if (l.style === "you") {
+        kids.push(svgEl("path", { d: d + `L${x(l.pts.length - 1)},${y(0)}L${x(0)},${y(0)}Z`, fill: `url(#${id}fill)` }),
+          svgEl("path", { d, class: "ch-you", stroke: `url(#${id}stroke)`, filter: `url(#${id}glow)` }));
+      } else kids.push(svgEl("path", { d, class: "ch-" + l.style }));
+    }
+    // the end of each line: a dot, its value and the champion's picture
+    const ends = lines.map((l) => ({ l, v: l.pts[l.pts.length - 1], i: l.pts.length - 1 })).sort((p, q) => q.v - p.v);
+    let lastY = -99;
+    for (const e of ends) {
+      const ex = x(e.i), ey = y(e.v);
+      const ly = Math.max(ey, lastY + 26); lastY = ly;
+      kids.push(svgEl("circle", { cx: ex, cy: ey, r: e.l.style === "you" ? 5 : 4, class: "ch-end " + e.l.style }));
+      const key = (keys || {})[e.l.style];
+      const url = key && ddVersion && ddVersion !== "pending" ? `https://ddragon.leagueoflegends.com/cdn/${ddVersion}/img/champion/${key}.png` : "";
+      const g = svgEl("g", { transform: `translate(${ex + 10},${ly - 11})` });
+      if (url) g.append(svgEl("image", { href: url, width: 22, height: 22, "clip-path": `url(#${id}round)` }), svgEl("circle", { cx: 11, cy: 11, r: 11, class: "ch-ring " + e.l.style }));
+      g.append(svgEl("text", { x: url ? 27 : 0, y: 15, class: "ch-endval " + e.l.style }, String(Math.round(e.v))));
+      kids.push(g);
+    }
+    // hover: a line and a little card with every value at that minute
+    const hover = svgEl("g", { class: "ch-hover", style: "display:none" });
+    const hLine = svgEl("line", { y1: T, y2: H - B, class: "ch-hline" });
+    const hBox = svgEl("rect", { rx: 8, class: "ch-hbox" });
+    const hText = svgEl("text", { class: "ch-htext" });
+    const hDots = lines.map((l) => svgEl("circle", { r: 4, class: "ch-hdot " + l.style }));
+    hover.append(hLine, ...hDots, hBox, hText);
+    kids.push(hover);
+    const hit = svgEl("rect", { x: L, y: T, width: W - L - R, height: H - T - B, fill: "transparent" });
+    hit.addEventListener("mousemove", (ev) => {
+      const r = svg.getBoundingClientRect();
+      const i = Math.max(0, Math.min(n - 1, Math.round(((ev.clientX - r.left - L) / (W - L - R)) * (n - 1))));
+      hover.style.display = "";
+      hLine.setAttribute("x1", x(i)); hLine.setAttribute("x2", x(i));
+      lines.forEach((l, k) => {
+        const v = l.pts[Math.min(i, l.pts.length - 1)];
+        hDots[k].setAttribute("cx", x(Math.min(i, l.pts.length - 1))); hDots[k].setAttribute("cy", y(v));
+      });
+      hText.replaceChildren(svgEl("tspan", { x: 0, dy: 0, class: "ch-hmin" }, `${i} min`),
+        ...lines.map((l) => svgEl("tspan", { x: 0, dy: 17, class: "ch-hrow " + l.style }, `${l.name}: ${Math.round(l.pts[Math.min(i, l.pts.length - 1)])}`)));
+      const bw = 18 + Math.max(60, ...lines.map((l) => (l.name.length + 6) * 7)), bh = 26 + lines.length * 17;
+      const bx = x(i) + 12 + bw > W - R ? x(i) - 12 - bw : x(i) + 12, by = T + 6;
+      hBox.setAttribute("x", bx); hBox.setAttribute("y", by); hBox.setAttribute("width", bw); hBox.setAttribute("height", bh);
+      hText.setAttribute("transform", `translate(${bx + 10},${by + 18})`);
+    });
+    hit.addEventListener("mouseleave", () => { hover.style.display = "none"; });
+    kids.push(hit);
+    const svg = svgEl("svg", { width: W, height: H, viewBox: `0 0 ${W} ${H}`, class: "ma-chart", role: "img",
+      "aria-label": c.chart + ": " + lines.map((l) => `${l.name} ${Math.round(l.pts[l.pts.length - 1])}`).join(", ") }, kids);
+    box.replaceChildren(svg);
+  };
+  let lastW = 0;
+  new ResizeObserver(() => { if (Math.abs(box.clientWidth - lastW) > 4) { lastW = box.clientWidth; draw(); } }).observe(box);
+  requestAnimationFrame(draw);
+  return box;
 }
 function gauge(score) {
   // a 240 degree arc like a speedo, filled to the score
@@ -359,27 +458,57 @@ function rankPic(tier, cls = "pic") {
   if (!t || t === "all") return null;
   return el("img", { class: cls + " crest", alt: "", src: `https://opgg-static.akamaized.net/images/medals_new/${t}.png`, onerror: (e) => e.target.remove() });
 }
+const analysisOpen = new Set();   // matches whose analysis is open (closed by default)
+function oppKey(a) {
+  // the lane opponent's Data Dragon name; older games only kept the display name ("Kai'Sa" -> "Kaisa")
+  if (a.opp_key) return a.opp_key;
+  const n = (a.opp_name || "").replace(/[^A-Za-z0-9]/g, "");
+  const odd = { KaiSa: "Kaisa", KhaZix: "Khazix", ChoGath: "Chogath", VelKoz: "Velkoz", LeBlanc: "Leblanc", BelVeth: "Belveth",
+    Wukong: "MonkeyKing", RenataGlasc: "Renata", NunuWillump: "Nunu", KogMaw: "KogMaw", RekSai: "RekSai" };
+  return odd[n] || n;
+}
 function matchAnalysis(a, champ, id, champKey) {
   if (!a.cats) return null;    // from an older version of the app
+  if (!analysisOpen.has(id)) {
+    // closed: one row with the three scores, click to open
+    const chip = (k) => {
+      const sc = a.cats[k].score;
+      return el("span", { class: "mac-chip " + (sc < 35 ? "g-poor" : sc < 55 ? "g-fair" : "g-good") },
+        el("b", {}, String(sc)), a.cats[k].title);
+    };
+    return el("button", { class: "m-analysis-closed", "aria-expanded": "false",
+        onclick: () => { analysisOpen.add(id); renderClips(); } },
+      el("span", { class: "mac-title" }, "Match analysis"),
+      el("span", { class: "mac-chips" }, ["farming", "combat", "vision"].map(chip)),
+      el("span", { class: "mac-open" }, "Show", el("span", { class: "mac-chev", "aria-hidden": "true" })));
+  }
   const keys = ["farming", "combat", "vision"];
   const tab = analysisTab.get(id) || "farming";
   const c = a.cats[tab];
   const bars = c.bars || [];
   const h = c.headline;
+  const okey = oppKey(a);
   const legend = el("div", { class: "ma-legend" }, (c.lines || []).filter((l) => (l.pts || []).length > 1)
-    .map((l) => el("span", { class: "lg-" + l.style }, l.style === "you" && tab === "farming" && champ ? `You (${champ})` : l.name)),
+    .map((l) => el("span", { class: "lg-" + l.style },
+      tab === "farming" && l.style === "you" ? champPic(champKey, "lg-pic") : tab === "farming" && l.style === "opp" ? champPic(okey, "lg-pic") : null,
+      l.style === "you" && tab === "farming" && champ ? `You (${champ})` : l.name)),
     tab === "combat" && (a.deaths || []).length ? el("span", { class: "lg-death" }, "Your deaths") : null,
     c.weak ? el("span", { class: "lg-weak" }, "Where it dropped") : null);
   return el("section", { class: "m-analysis", "aria-label": "Match analysis" },
     el("div", { class: "ma-head" },
       el("h4", {}, "Match analysis"),
-      el("span", { class: "ma-vs" }, "Compared with ", el("b", {}, c.vs_rank ? `${c.vs} and ${c.vs_rank} players` : c.vs)),
+      el("span", { class: "ma-vs" }, "Compared with ",
+        c.vs === a.opp_name && okey ? champPic(okey, "vs-pic") : null,
+        el("b", {}, c.vs_rank ? `${c.vs} and ${c.vs_rank} players` : c.vs)),
+
       a.rank ? el("span", { class: "ma-rank" },
         a.rank.image ? el("img", { src: a.rank.image, alt: "", onerror: (e) => e.target.remove() }) : null,
         a.rank.text, a.rank.lp != null ? el("small", {}, ` ${a.rank.lp} LP`) : null) : null,
       el("div", { class: "ma-tabs", role: "tablist" }, keys.map((k) => el("button", {
         role: "tab", "aria-selected": String(k === tab), class: k === tab ? "on" : "",
-        onclick: () => { analysisTab.set(id, k); renderClips(); } }, a.cats[k].title)))),
+        onclick: () => { analysisTab.set(id, k); renderClips(); } }, a.cats[k].title))),
+      el("button", { class: "ma-close", "aria-label": "Hide match analysis", title: "Hide",
+        onclick: () => { analysisOpen.delete(id); renderClips(); } }, "Hide", el("span", { class: "mac-chev up", "aria-hidden": "true" }))),
     el("div", { class: "ma-body" },
       el("div", { class: "ma-score" },
         el("div", { class: "ma-score-top" },
@@ -401,7 +530,7 @@ function matchAnalysis(a, champ, id, champKey) {
       el("div", { class: "ma-main" },
         el("h5", {}, c.title + " performance"),
         el("p", { class: "ma-headline" }, h ? withNumbers(h.text) : "Nothing stood out here this game."),
-        lineChart(c, tab === "combat" ? a.deaths : null), legend,
+        lineChart(c, tab === "combat" ? a.deaths : null, tab === "farming" ? { you: champKey, opp: okey } : {}), legend,
         (a.tips || []).filter((t) => t.cat === tab && t !== h).length
           ? el("ul", { class: "ma-tips" }, a.tips.filter((t) => t.cat === tab && t.text !== (h && h.text))
             .map((t) => el("li", { class: "t-" + t.kind }, withNumbers(t.text)))) : null)));

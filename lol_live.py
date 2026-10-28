@@ -410,7 +410,7 @@ def phase_rates(cs, upto=None):
     return out
 
 
-def analyse(tl, deaths, avg, nums, opp_name, me_name):
+def analyse(tl, deaths, avg, nums, opp_name, me_name, opp_key=""):
     """A few plain sentences about the game, plus the numbers the My clips chart needs.
     tl: {"cs": [...], "opp_cs": [...], "level": [...], "opp_level": [...]} one entry per game minute."""
     cs, opp = tl.get("cs") or [], tl.get("opp_cs") or []
@@ -445,10 +445,19 @@ def analyse(tl, deaths, avg, nums, opp_name, me_name):
             turn = next((i for i in range(10, end + 1) if (cs[i] - opp[i]) * (1 if dend > 0 else -1) > 0
                          and (cs[i - 1] - opp[i - 1]) * (1 if dend > 0 else -1) <= 0), None)
             when = f" from about {turn} minutes" if turn and turn > 10 else ""
-            tips.append({"cat": "farming", "kind": "up" if dend > d10 else "down",
-                         "text": f"{'You pulled ahead of' if dend > d10 else opp_name + ' out-farmed'} "
-                                 f"{opp_name if dend > d10 else 'you'}{when}: "
-                                 f"{abs(dend)} CS {'ahead' if dend > 0 else 'behind'} by the end."})
+            if d10 < 0 < dend:
+                text = f"You pulled ahead of {opp_name}{when}: {dend} CS ahead by the end."
+            elif dend > 0 > d10 or (d10 > 0 > dend):
+                text = f"{opp_name} pulled ahead{when}: {abs(dend)} CS behind by the end."
+            elif dend > d10 and dend <= 0:
+                text = f"You closed the gap on {opp_name}: {abs(dend)} CS behind by the end, down from {abs(d10)} at 10 minutes."
+            elif dend > d10:
+                text = f"You kept pulling away from {opp_name}: {dend} CS ahead by the end."
+            elif dend >= 0:
+                text = f"{opp_name} closed the gap: you finished {dend} CS ahead, down from {d10} at 10 minutes."
+            else:
+                text = f"{opp_name} out-farmed you{when}: {abs(dend)} CS behind by the end."
+            tips.append({"cat": "farming", "kind": "up" if dend > d10 else "down", "text": text})
     lv, olv = tl.get("level") or [], tl.get("opp_level") or []
     # (levels count as fights)
     if opp_name and len(lv) > 15 and len(olv) > 15 and abs(lv[15] - olv[15]) >= 2:
@@ -544,6 +553,7 @@ def analyse(tl, deaths, avg, nums, opp_name, me_name):
     return {
         "tips": tips[:8], "cats": cats,
         "cs": cs, "opp_cs": opp if opp_name else [], "usual_cs": curve[:len(cs)], "opp_name": opp_name or "",
+        "opp_key": opp_key or "",
         "deaths": [round(t / 60, 2) for t in deaths],
         "phases": [{"name": name, "you": m, "usual": u} for (name, _, _), m, u in zip(PHASES, mine, usual)],
     }
@@ -784,6 +794,7 @@ class LeagueCompanion:
             tl["vision"].append(round(float(sc.get("wardScore", 0)), 1))
         if opp:
             tl["opp"] = opp.get("championName") or ""
+            tl["opp_key"] = str(opp.get("rawChampionName") or "").rsplit("_", 1)[-1]   # Data Dragon's name, for the picture
 
     def _bench(self, game, me, now):
         """Your benchmark lines for the box on the right (from 3 minutes in)."""
@@ -919,7 +930,8 @@ class LeagueCompanion:
         deaths = sorted(float(e.get("EventTime", 0)) for e in ((game.get("events") or {}).get("Events") or [])
                         if e.get("EventName") == "ChampionKill" and highlights._names(e.get("VictimName")) & names)
         try:
-            summary["analysis"] = add_rank(analyse(tl, deaths, avg, nums, tl.get("opp", ""), me.get("championName", "")),
+            summary["analysis"] = add_rank(analyse(tl, deaths, avg, nums, tl.get("opp", ""), me.get("championName", ""),
+                                                   tl.get("opp_key", "")),
                                            nums, self.ctx, me.get("championName", ""))
         except Exception:
             log.exception("Post match analysis")
