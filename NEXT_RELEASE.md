@@ -3,7 +3,13 @@
 Changes that are in `main` but not released yet. When it's time to release, bump `APP_VERSION`,
 turn these into `release-notes/<version>.md`, then clear this list.
 
-Nothing held right now. 1.3.1 shipped the icons batch.
+## For the release notes
+* **Pick your own League shortcut:** in Settings under League of Legends in game you can now choose the keys that show your stats and item ideas (Alt+Shift+I by default), the same way you set the save clip shortcut.
+
+## Behind the scenes
+* Settings has a second shortcut button (`item_ideas_hotkey`, now a live setting). It can't be the same as the save
+  shortcut, bad combos are refused, and a bad League shortcut never stops the save shortcut working.
+
 
 ## Still to confirm on a real PC
 * Link Xbox pop-up end to end (log lines: "Sign-in pop-up opened", "Sign-in finished, refreshing Verse").

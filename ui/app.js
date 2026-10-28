@@ -663,6 +663,9 @@ async function loadSettings() {
   });
   $("#autostart").checked = r.autostart;
   $("#hotkey-btn").textContent = r.config.hotkey.toUpperCase().replace(/\+/g, " + ");
+  const ih = (r.config.item_ideas_hotkey || "alt+shift+i").toUpperCase().replace(/\+/g, " + ");
+  $("#items-hotkey-btn").textContent = ih;
+  for (const k of $$("[data-items-hotkey]")) k.textContent = ih;
   $("#folder-path").textContent = r.config.clips_folder;
   $("#version").textContent = `Verse Platform for Windows ${r.version}. Updates install by themselves`;
   $("#known-games-hint").textContent = `${r.known_games.length} popular games are picked up automatically, including ${r.known_games.slice(0, 6).join(", ")}.`;
@@ -761,12 +764,17 @@ function wire() {
     loadSettings();
   });
 
-  const hk = $("#hotkey-btn");
-  hk.addEventListener("click", () => {
-    listening = true;
-    hk.classList.add("listening");
-    hk.textContent = "Press keys...";
-  });
+  // two shortcut buttons: saving a clip, and League stats + item ideas
+  let hk = $("#hotkey-btn"), hkSetting = "hotkey";
+  for (const [btn, setting] of [[$("#hotkey-btn"), "hotkey"], [$("#items-hotkey-btn"), "item_ideas_hotkey"]]) {
+    btn.addEventListener("click", () => {
+      if (listening) hk.classList.remove("listening");
+      hk = btn; hkSetting = setting;
+      listening = true;
+      btn.classList.add("listening");
+      btn.textContent = "Press keys...";
+    });
+  }
   window.addEventListener("keydown", async (e) => {
     if (!listening) {
       if (e.key === "Escape" && openClipId) closePlayer();
@@ -782,7 +790,7 @@ function wire() {
     if (!combo) return;
     listening = false;
     hk.classList.remove("listening");
-    await setSetting("hotkey", combo);
+    await setSetting(hkSetting, combo);
   });
 
   $("#player-close").addEventListener("click", closePlayer);

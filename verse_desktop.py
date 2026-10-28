@@ -49,7 +49,7 @@ LIVE_KEYS = {"hotkey", "buffer_seconds", "record_mode", "detect_fullscreen_apps"
              "death_review", "death_review_before", "squad_code", "squad_name", "squad_share",
              "controller_combo", "auto_clean_days", "auto_clean_permanent", "follow_game_screen",
              "lol_item_ideas", "lol_objective_timers", "lol_match_summary",
-             "lol_benchmarks", "lol_opgg"}
+             "lol_benchmarks", "lol_opgg", "item_ideas_hotkey"}
 
 # A small "Clips" tab added to the left edge of Verse pages inside the app, so the clip library
 # is always one click away. Verse can render its own button instead: if the page has an element
@@ -396,12 +396,28 @@ class App:
             log.error("Bad hotkey %r: %s", self.cfg["hotkey"], e)
             self.notice(f"The shortcut {pretty_hotkey(self.cfg['hotkey'])} can't be used, pick another")
             return False
-        try:   # League item ideas on demand (Alt+Shift+I by default)
+        self.register_items_hotkey()   # a bad League shortcut never stops the save shortcut working
+        return True
+
+    def register_items_hotkey(self):
+        """League: stats and item ideas on demand (Alt+Shift+I by default, set in Settings)."""
+        import keyboard
+        try:
             if self.cfg.get("item_ideas_hotkey"):
                 keyboard.add_hotkey(self.cfg["item_ideas_hotkey"], self.item_ideas.show_now)
+            return True
         except Exception as e:
             log.warning("Item ideas shortcut %r can't be used: %s", self.cfg.get("item_ideas_hotkey"), e)
-        return True
+            return False
+
+    def register_items_hotkey_ok(self):
+        """Is the stats and item ideas shortcut a combo Windows can use?"""
+        import keyboard
+        try:
+            keyboard.parse_hotkey(self.cfg.get("item_ideas_hotkey") or "")
+            return True
+        except Exception:
+            return False
 
     def save_clip_async(self, *_):
         if self.rec:
@@ -1005,16 +1021,23 @@ class Api:
             value = str(value or "").strip()[:24]
         old = a.cfg.get(key)
         a.cfg[key] = value
-        if key == "hotkey" and not a.register_hotkey():
-            a.cfg[key] = old
-            a.register_hotkey()
-            return {"message": "That shortcut can't be used, try another"}
+        if key in ("hotkey", "item_ideas_hotkey"):
+            other = "item_ideas_hotkey" if key == "hotkey" else "hotkey"
+            if value and str(value).lower() == str(a.cfg.get(other, "")).lower():
+                a.cfg[key] = old
+                return {"message": "That's already your other shortcut, pick a different one"}
+            if (key == "item_ideas_hotkey" and not a.register_items_hotkey_ok()) or not a.register_hotkey():
+                a.cfg[key] = old
+                a.register_hotkey()
+                return {"message": "That shortcut can't be used, try another"}
         save_config(a.cfg)
         if key in RESTART_KEYS:
             threading.Thread(target=a.start_recorder, daemon=True).start()
             return {"message": "Saved. Recording restarted with the new setting"}
         if key == "hotkey":
             return {"message": f"Shortcut is now {pretty_hotkey(value)}"}
+        if key == "item_ideas_hotkey":
+            return {"message": f"Stats and item ideas shortcut is now {pretty_hotkey(value)}"}
         if key == "voice_command":
             if value and not a.voice.start():
                 a.cfg[key] = False
