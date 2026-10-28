@@ -135,12 +135,21 @@ async function loadClips() {
   renderClips();
   if (openClipId) renderPlayerBar();
 }
+// game logos for the filter tabs and headings (ui/games), or a letter badge for games without one
+const GAME_LOGOS = new Set(["counter-strike-2", "dead-by-daylight", "destiny-2", "dota-2", "escape-from-tarkov", "fortnite", "gta-v", "league-of-legends", "marvel-rivals", "minecraft", "old-school-runescape", "overwatch-2", "pubg", "rainbow-six-siege", "roblox", "rust", "valorant", "world-of-warcraft"]);
+function gameLogo(name) {
+  if (!name || name === "All") return null;
+  const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+  if (GAME_LOGOS.has(slug)) return el("img", { class: "g-logo", src: `games/${slug}.png`, alt: "" });
+  const letters = name.split(/\s+/).filter((w) => /[A-Za-z0-9]/.test(w[0])).map((w) => w[0]).join("").slice(0, 2).toUpperCase();
+  return el("span", { class: "g-logo g-letter", "aria-hidden": "true" }, letters || "?");
+}
 function renderClips() {
   const games = [...new Set(clips.map((c) => c.game || "Other"))];
   if (filter !== "All" && !games.includes(filter)) filter = "All";
   $("#filters").replaceChildren(
     ...(games.length > 1 ? ["All", ...games] : []).map((g) =>
-      el("button", { role: "tab", "aria-selected": String(g === filter), onclick: () => { filter = g; renderClips(); } }, g)
+      el("button", { role: "tab", "aria-selected": String(g === filter), onclick: () => { filter = g; renderClips(); } }, gameLogo(g), g)
     )
   );
   const shown = clips.filter((c) => filter === "All" || (c.game || "Other") === filter);
@@ -170,7 +179,7 @@ function renderClips() {
       const n = byMatch.size;
       const ids = list.map((c) => c.id);
       return el("section", { class: "group" },
-        el("div", { class: "group-head" }, el("h3", {}, g),
+        el("div", { class: "group-head" }, el("h3", {}, gameLogo(g), g),
           el("span", {}, (n ? `${n} game${n > 1 ? "s" : ""} · ` : "") + `${list.length} clip${list.length > 1 ? "s" : ""}`),
           selecting ? el("button", { class: "link-btn", onclick: () => selectMany(ids) },
             ids.every((i) => selected.has(i)) ? "Unselect all" : `Select all ${list.length}`) : null),
@@ -233,7 +242,7 @@ function matchCard(m, list, latest) {
     el("div", { class: "m-top" }, head, pick),
     open && m.summary ? matchSummary(m.summary, plays) : null,
     open && plays.length ? el("div", { class: "grid m-grid" }, plays.map(clipCard)) : null,
-    open && m.summary && m.summary.analysis ? matchAnalysis(m.summary.analysis, m.summary.champion, m.id) : null,
+    open && m.summary && m.summary.analysis ? matchAnalysis(m.summary.analysis, m.summary.champion, m.id, m.summary.champion_key || m.champion_key) : null,
     open && deaths.length ? el("details", { class: "m-deaths" },
       el("summary", {}, `Death review · ${deaths.length}`, el("small", {}, " only on this PC, never posted unless you choose to")),
       el("div", { class: "grid m-grid" }, deaths.map(clipCard))) : null);
@@ -339,7 +348,18 @@ function withNumbers(text) {
 function fmtBar(v, f) {
   return v == null ? "" : f === "%" ? `${v}%` : f === "2" ? v.toFixed(2) : f === "1" ? Number(v).toFixed(1) : String(v);
 }
-function matchAnalysis(a, champ, id) {
+// small pictures: a champion from Riot's Data Dragon, a rank crest from OP.GG
+function champPic(key, cls = "pic") {
+  if (!key || !ddVersion || ddVersion === "pending") return null;
+  return el("img", { class: cls, alt: "", src: `https://ddragon.leagueoflegends.com/cdn/${ddVersion}/img/champion/${key}.png`,
+    onerror: (e) => e.target.remove() });
+}
+function rankPic(tier, cls = "pic") {
+  const t = String(tier || "").split(" ")[0].toLowerCase();
+  if (!t || t === "all") return null;
+  return el("img", { class: cls + " crest", alt: "", src: `https://opgg-static.akamaized.net/images/medals_new/${t}.png`, onerror: (e) => e.target.remove() });
+}
+function matchAnalysis(a, champ, id, champKey) {
   if (!a.cats) return null;    // from an older version of the app
   const keys = ["farming", "combat", "vision"];
   const tab = analysisTab.get(id) || "farming";
@@ -362,13 +382,18 @@ function matchAnalysis(a, champ, id) {
         onclick: () => { analysisTab.set(id, k); renderClips(); } }, a.cats[k].title)))),
     el("div", { class: "ma-body" },
       el("div", { class: "ma-score" },
-        el("div", { class: "ma-score-top" }, gauge(c.score), el("strong", {}, c.title), el("span", {}, c.rating)),
+        el("div", { class: "ma-score-top" },
+          champ ? el("div", { class: "ma-champ" }, champPic(champKey, "ma-champ-pic"), el("span", {}, champ)) : null,
+          gauge(c.score), el("strong", {}, c.title), el("span", {}, c.rating)),
         bars.map((b) => {
           const worse = b.usual != null && (b.lower ? b.you > b.usual : b.you < b.usual * 0.92);
           // each bar on its own scale: a bit past the bigger of yours and your usual (deaths: out of 10)
           const maxV = b.lower ? Math.max(10, b.you) : Math.max(0.01, b.you || 0, b.usual || 0) * 1.25;
           return el("div", { class: "ma-bar" },
-            el("div", { class: "mb-row" }, el("span", {}, b.name), el("b", {}, fmtBar(b.you, b.fmt) + (b.usual != null ? ` / ${fmtBar(b.usual, b.fmt)}` : ""))),
+            el("div", { class: "mb-row" },
+              el("span", { class: "mb-name" },
+                b.icon === "rank" ? rankPic(b.tier || (a.rank && a.rank.tier)) : b.icon === "champ" ? champPic(champKey) : null, b.name),
+              el("b", {}, fmtBar(b.you, b.fmt) + (b.usual != null ? ` / ${fmtBar(b.usual, b.fmt)}` : ""))),
             el("span", { class: "ph-bar" },
               el("i", { class: worse ? "ph-down" : "", style: `width:${Math.min(100, ((b.you || 0) / maxV) * 100)}%` }),
               b.usual != null ? el("b", { style: `left:${(b.usual / maxV) * 100}%`, title: "Your usual" }) : null));

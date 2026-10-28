@@ -61,6 +61,7 @@ class ObjectiveTimers:
     def reset(self):
         self.seen = -1
         self.dragons = {"ORDER": 0, "CHAOS": 0}
+        self.kinds = []      # the elemental dragons taken so far, in order (Fire, Water...)
         self.timers = {}     # key -> {"label", "at" (game time it's back), "kind"}
 
     def update(self, game, me_team):
@@ -78,14 +79,20 @@ class ObjectiveTimers:
             name, t = e.get("EventName"), float(e.get("EventTime", 0))
             killer_team = next((teams[n] for n in highlights._names(e.get("KillerName")) if n in teams), None)
             if name == "DragonKill":
-                elder = str(e.get("DragonType", "")).lower() == "elder"
-                if not elder and killer_team in self.dragons:
-                    self.dragons[killer_team] += 1
+                kind = str(e.get("DragonType", "")).lower()
+                elder = kind == "elder"
+                if not elder:
+                    self.kinds.append(kind)
+                    if killer_team in self.dragons:
+                        self.dragons[killer_team] += 1
                 soul = max(self.dragons.values()) >= 4
                 if elder or soul:
-                    self.timers["dragon"] = {"label": "Elder Dragon", "at": t + ELDER_RESPAWN, "kind": "elder"}
+                    self.timers["dragon"] = {"label": "Elder Dragon", "at": t + ELDER_RESPAWN, "kind": "dragon_elder"}
                 else:
-                    self.timers["dragon"] = {"label": "Dragon", "at": t + DRAGON_RESPAWN, "kind": "dragon"}
+                    # from the third dragon on, every dragon is the rift's element (the third one's type)
+                    nxt = self.kinds[2] if len(self.kinds) >= 3 else ""
+                    icon, word = DRAGON_KINDS.get(nxt, ("dragon", ""))
+                    self.timers["dragon"] = {"label": f"{word} Dragon".strip(), "at": t + DRAGON_RESPAWN, "kind": icon}
             elif name == "BaronKill":
                 self.timers["baron"] = {"label": "Baron", "at": t + BARON_RESPAWN, "kind": "baron"}
             elif name == "InhibKilled":
@@ -95,7 +102,7 @@ class ObjectiveTimers:
                 lane = next((LANES[x] for x in parts if x in LANES), "")
                 whose = "Our" if side == me_team else "Their"
                 self.timers["inhib:" + key] = {"label": f"{whose} {lane} inhib".replace("  ", " "),
-                                              "at": t + INHIB_RESPAWN, "kind": "inhib_ours" if whose == "Our" else "inhib"}
+                                              "at": t + INHIB_RESPAWN, "kind": "inhibitor"}
             elif name == "InhibRespawned":
                 self.timers.pop("inhib:" + str(e.get("InhibRespawned", "")), None)
 
@@ -114,11 +121,33 @@ class ObjectiveTimers:
         return [(label, text, kind) for _, label, text, kind in sorted(out)]
 
 
+# the game's DragonType -> Riot's minimap icon (assets/lol) and the name players use
+DRAGON_KINDS = {"fire": ("dragon_infernal", "Infernal"), "earth": ("dragon_mountain", "Mountain"),
+                "water": ("dragon_ocean", "Ocean"), "air": ("dragon_cloud", "Cloud"),
+                "chemtech": ("dragon_chemtech", "Chemtech"), "hextech": ("dragon_hextech", "Hextech")}
+_icons = {}
+
+
+def lol_icon(name, px):
+    """One of Riot's minimap icons bundled in assets/lol, at px size (None if missing)."""
+    key = (name, px)
+    if key not in _icons:
+        from rewind_core import RES
+        im = None
+        for base in (RES, os.path.dirname(os.path.abspath(__file__))):
+            path = os.path.join(base, "assets", "lol", f"{name}.png")
+            if os.path.exists(path):
+                im = Image.open(path).convert("RGBA").resize((px, px), Image.LANCZOS)
+                break
+        _icons[key] = im
+    return _icons[key]
+
+
 DOTS = {"dragon": (251, 146, 60), "elder": (94, 234, 212), "baron": (192, 132, 252),
         "inhib": (148, 163, 184), "inhib_ours": (248, 113, 113)}
 
 
-def bench_rows(nums, avg, gpm, opp_level, spark):
+def bench_rows(nums, avg, gpm, opp_level, spark, opp_face=None):
     """The benchmark lines, like "CSM +0.6 / 6.8": yours, then your average (or your lane opponent's level)."""
     avg = avg or {}
 
@@ -142,6 +171,8 @@ def bench_rows(nums, avg, gpm, opp_level, spark):
         row("KDA", nums.get("kda"), avg.get("kda"), lambda v: f"{v:.1f}"),
         row("LVL", nums.get("level"), opp_level, lambda v: f"{v:.0f}"),
     ]
+    if rows[-1] and opp_face is not None and opp_level:
+        rows[-1]["face"] = opp_face      # your lane opponent's champion picture next to their level
     return [r for r in rows if r]
 
 
@@ -165,19 +196,21 @@ def render_timers(rows, scale=1.0, bench=None):
     name_w = max([probe.textlength(r[0], font=f_row) for r in rows] or [0])
     time_w = max([probe.textlength(r[1], font=f_time) for r in rows] or [0])
     dot = int(6 * s)
-    w = int(pad * 2 + dot + int(7 * s) + name_w + int(14 * s) + time_w)
+    icon_px = int(17 * s)
+    w = int(pad * 2 + icon_px + int(6 * s) + name_w + int(14 * s) + time_w)
     w = max(w, int(150 * s))
     spark_w = int(34 * s)
     if bench:
         lab_w = max(probe.textlength(b["label"], font=f_row) for b in bench)
         val_w = max(probe.textlength(b["value"], font=f_time) for b in bench)
         base_w = max(probe.textlength(("/ " + b["base"]) if b["base"] else "", font=f_row) for b in bench)
-        w = max(w, int(pad * 2 + lab_w + int(10 * s) + val_w + int(5 * s) + base_w + int(8 * s) + spark_w))
+        face_w = lh(f_row) + int(6 * s) if any(b.get("face") is not None for b in bench) else 0
+        w = max(w, int(pad * 2 + lab_w + int(10 * s) + val_w + int(5 * s) + base_w + face_w + int(8 * s) + spark_w))
     h = pad
     if bench:
         h += lh(f_label) + int(4 * s) + len(bench) * (lh(f_row) + gap) - gap + (int(12 * s) if rows else 0)
     if rows:
-        h += lh(f_label) + int(4 * s) + len(rows) * (lh(f_row) + gap) - gap
+        h += lh(f_label) + int(4 * s) + len(rows) * (max(lh(f_row), icon_px) + gap) - gap
     h += pad
     r = int(10 * s)
     card = Image.new("RGBA", (w, h), (0, 0, 0, 0))
@@ -198,6 +231,13 @@ def render_timers(rows, scale=1.0, bench=None):
             d.text((vx, y - int(1 * s)), b["value"], font=f_time, fill=col)
             if b["base"]:
                 d.text((vx + val_w + int(5 * s), y), "/ " + b["base"], font=f_row, fill=(140, 144, 156, 255))
+            if b.get("face") is not None:   # round champion picture after "/ 9"
+                fp = lh(f_row)
+                fx = int(vx + val_w + int(5 * s) + probe.textlength("/ " + b["base"], font=f_row) + int(6 * s))
+                fm = Image.new("L", (fp * 4, fp * 4), 0)
+                ImageDraw.Draw(fm).ellipse((0, 0, fp * 4 - 1, fp * 4 - 1), fill=255)
+                card.paste(b["face"].resize((fp, fp), Image.LANCZOS), (fx, y), fm.resize((fp, fp), Image.LANCZOS))
+                d.ellipse((fx, y, fx + fp - 1, y + fp - 1), outline=(255, 255, 255, 80), width=max(1, int(s)))
             pts = b.get("spark") or []
             if len(pts) >= 2:   # a tiny line of how it has gone this game
                 lo, hi = min(pts), max(pts)
@@ -215,13 +255,20 @@ def render_timers(rows, scale=1.0, bench=None):
         _spaced(d, (pad, y), "OBJECTIVES", f_label, HAZE, 1.4 * s)
         y += lh(f_label) + int(4 * s)
     for label, text, kind in rows:
-        cy = y + lh(f_row) // 2
-        d.ellipse((pad, cy - dot // 2, pad + dot, cy + dot // 2), fill=DOTS.get(kind, (200, 200, 200)) + (255,))
-        d.text((pad + dot + int(7 * s), y), label, font=f_row, fill=WHITE)
+        row_h = max(lh(f_row), icon_px)
+        cy = y + row_h // 2
+        ty = y + (row_h - lh(f_row)) // 2
+        ic = lol_icon(kind, icon_px)
+        if ic is not None:     # Riot's own minimap icon for it
+            card.alpha_composite(ic, (pad, cy - icon_px // 2))
+        else:
+            d.ellipse((pad + (icon_px - dot) // 2, cy - dot // 2, pad + (icon_px + dot) // 2, cy + dot // 2),
+                      fill=DOTS.get(kind, (200, 200, 200)) + (255,))
+        d.text((pad + icon_px + int(6 * s), ty), label, font=f_row, fill=WHITE)
         tw = probe.textlength(text, font=f_time)
-        d.text((w - pad - tw, y - int(1 * s)), text, font=f_time,
+        d.text((w - pad - tw, ty - int(1 * s)), text, font=f_time,
                fill=(52, 211, 153, 255) if text == "up" else WHITE)
-        y += lh(f_row) + gap
+        y += row_h + gap
     m = int(8 * s)
     full = Image.new("RGBA", (w + m * 2, h + m * 2), (0, 0, 0, 0))
     sh = Image.new("L", full.size, 0)
@@ -515,7 +562,8 @@ def add_rank(analysis, nums, ctx, champ):
     kda = nums.get("kda")
     if at_tier and kda is not None and "combat" in cats:
         who = f"{at_tier['tier']} {champ}" if at_tier.get("tier") != "all ranks" else champ
-        cats["combat"]["bars"].append({"name": f"KDA vs {who}", "you": round(kda, 1), "usual": round(at_tier["kda"], 1), "fmt": "1"})
+        cats["combat"]["bars"].append({"name": f"KDA vs {who}", "you": round(kda, 1), "usual": round(at_tier["kda"], 1), "fmt": "1",
+                                       "icon": "rank", "tier": (rank or {}).get("tier") or str(at_tier.get("tier", "")).split(" ")[0]})
         better = kda >= at_tier["kda"]
         tips.append({"cat": "combat", "kind": "up" if better else "down",
                      "text": f"Your KDA of {kda:.1f} was {'above' if better else 'below'} the {at_tier['kda']:.1f} average "
@@ -523,7 +571,7 @@ def add_rank(analysis, nums, ctx, champ):
         cats["combat"]["vs_rank"] = who
     if top and nums.get("cs_min") and "farming" in cats:
         cats["farming"]["bars"].append({"name": f"Top {champ} players", "you": round(nums["cs_min"], 1),
-                                        "usual": round(top["cs_min"], 1), "fmt": "1"})
+                                        "usual": round(top["cs_min"], 1), "fmt": "1", "icon": "champ"})
         tips.append({"cat": "farming", "kind": "down" if nums["cs_min"] < top["cs_min"] * 0.85 else "up",
                      "text": f"The top {champ} players average {top['cs_min']:.1f} CS a minute. You had {nums['cs_min']:.1f}."})
     return analysis
@@ -756,7 +804,11 @@ class LeagueCompanion:
         pos = me.get("position") or ""
         opp = next((p for p in game.get("allPlayers") or []
                     if pos and p.get("team") != me.get("team") and p.get("position") == pos), None)
-        return bench_rows(nums, avg, gpm, (opp or {}).get("level"), self.spark)
+        face = None
+        if opp and self.gd.champs:
+            key, _ = self.gd.champ(opp.get("rawChampionName"), opp.get("championName"))
+            face = self.gd.champ_icon(key, 64)
+        return bench_rows(nums, avg, gpm, (opp or {}).get("level"), self.spark, face)
 
     def _tick(self):
         try:

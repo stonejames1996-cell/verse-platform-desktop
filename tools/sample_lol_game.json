@@ -185,20 +185,36 @@
    {
     "EventID": 1,
     "EventName": "DragonKill",
-    "EventTime": 910,
+    "EventTime": 330,
     "DragonType": "Fire",
     "KillerName": "Foe4#OCE",
     "Stolen": "False"
    },
    {
     "EventID": 2,
+    "EventName": "DragonKill",
+    "EventTime": 640,
+    "DragonType": "Earth",
+    "KillerName": "Tester#OCE",
+    "Stolen": "False"
+   },
+   {
+    "EventID": 3,
+    "EventName": "DragonKill",
+    "EventTime": 960,
+    "DragonType": "Water",
+    "KillerName": "Foe4#OCE",
+    "Stolen": "False"
+   },
+   {
+    "EventID": 4,
     "EventName": "InhibKilled",
     "EventTime": 1100,
     "InhibKilled": "Barracks_T2_L1",
     "KillerName": "Tester#OCE"
    },
    {
-    "EventID": 3,
+    "EventID": 5,
     "EventName": "BaronKill",
     "EventTime": 1150,
     "KillerName": "Tester#OCE",
