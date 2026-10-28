@@ -48,3 +48,28 @@ for slug, domain in GAMES.items():
         print("logo", slug, len(data))
     except Exception as e:
         print("logo", slug, "failed", e)
+
+
+# second look: other addresses for the logos that came out wrong, and Riot's objective icons for the timers
+ALT = {"apex-legends": ["playapex.com", "www.ea.com/games/apex-legends"], "call-of-duty": ["www.callofduty.com", "callofduty.com/warzone"],
+       "dota-2": ["www.dota2.com", "dota2.com/home"], "elden-ring": ["en.bandainamcoent.eu/elden-ring", "www.bandainamcoent.com"],
+       "rainbow-six-siege": ["rainbow6.com", "www.ubisoft.com/en-us/game/rainbow-six/siege-x"],
+       "overwatch-2": ["playoverwatch.com", "overwatch.com"], "world-of-warcraft": ["worldofwarcraft.com", "www.worldofwarcraft.com"]}
+for slug, doms in ALT.items():
+    for i, dom in enumerate(doms):
+        try:
+            data = get(f"https://www.google.com/s2/favicons?domain={dom}&sz=64")
+            with open(os.path.join(OUT, "games", f"{slug}__alt{i}.png"), "wb") as f:
+                f.write(data)
+        except Exception as e:
+            print("alt", slug, dom, e)
+os.makedirs(os.path.join(OUT, "lol"), exist_ok=True)
+for name in ("baron", "dragon", "dragon_chemtech", "dragon_cloud", "dragon_elder", "dragon_hextech", "dragon_infernal",
+             "dragon_mountain", "dragon_ocean", "inhibitor", "grub", "riftherald", "atakhan_v", "atakhan_r"):
+    try:
+        data = get(f"https://raw.communitydragon.org/latest/game/assets/ux/minimap/icons/{name}.png")
+        with open(os.path.join(OUT, "lol", name + ".png"), "wb") as f:
+            f.write(data)
+        print("lol icon", name, len(data))
+    except Exception as e:
+        print("lol icon", name, "failed", e)
