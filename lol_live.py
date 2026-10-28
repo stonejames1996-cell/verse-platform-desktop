@@ -673,6 +673,7 @@ class LeagueCompanion:
         self.dead = False
         self.asked = 0.0
         self.strip_shown = ""
+        self.paused = False      # while the player is moving the overlays around
         self.spark = []          # CS per minute, sampled once a game minute, for the little line
         self.spark_min = -1
         self.last_gpm = None
@@ -713,6 +714,8 @@ class LeagueCompanion:
             self.timers.reset()
 
     def _strip(self, rows, bench=None):
+        if self.paused:
+            return
         bench = bench or []
         key = "|".join(f"{a}{b}" for a, b, _ in rows) + "#" + "|".join(
             f"{b['label']}{b['value']}{b['base']}{len(b.get('spark') or [])}" for b in bench)

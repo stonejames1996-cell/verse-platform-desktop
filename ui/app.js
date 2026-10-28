@@ -796,6 +796,7 @@ async function loadSettings() {
   $("#items-hotkey-btn").textContent = ih;
   for (const k of $$("[data-items-hotkey]")) k.textContent = ih;
   $("#box-hotkey-btn").textContent = (r.config.lol_box_hotkey || "alt+shift+b").toUpperCase().replace(/\+/g, " + ");
+  $("#move-hotkey-btn").textContent = (r.config.overlay_move_hotkey || "alt+shift+m").toUpperCase().replace(/\+/g, " + ");
   $("#folder-path").textContent = r.config.clips_folder;
   $("#version").textContent = `Verse Platform for Windows ${r.version}. Updates install by themselves`;
   $("#known-games-hint").textContent = `${r.known_games.length} popular games are picked up automatically, including ${r.known_games.slice(0, 6).join(", ")}.`;
@@ -896,7 +897,7 @@ function wire() {
 
   // two shortcut buttons: saving a clip, and League stats + item ideas
   let hk = $("#hotkey-btn"), hkSetting = "hotkey";
-  for (const [btn, setting] of [[$("#hotkey-btn"), "hotkey"], [$("#items-hotkey-btn"), "item_ideas_hotkey"], [$("#box-hotkey-btn"), "lol_box_hotkey"]]) {
+  for (const [btn, setting] of [[$("#hotkey-btn"), "hotkey"], [$("#items-hotkey-btn"), "item_ideas_hotkey"], [$("#box-hotkey-btn"), "lol_box_hotkey"], [$("#move-hotkey-btn"), "overlay_move_hotkey"]]) {
     btn.addEventListener("click", () => {
       if (listening) hk.classList.remove("listening");
       hk = btn; hkSetting = setting;
@@ -923,6 +924,10 @@ function wire() {
     await setSetting(hkSetting, combo);
   });
 
+  $("#reset-overlays").addEventListener("click", async () => {
+    const r = await call("reset_overlay_positions");
+    if (r && r.message) toast(r.message);
+  });
   $("#player-close").addEventListener("click", closePlayer);
   $("#player").addEventListener("click", (e) => { if (e.target.id === "player") closePlayer(); });
   $("#player-title").addEventListener("change", async (e) => {

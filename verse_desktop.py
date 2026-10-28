@@ -28,7 +28,7 @@ from rewind_core import (APP_NAME, APP_VERSION, DATA_DIR, IS_WINDOWS, KNOWN_GAME
                          save_config, screen_rect, set_autostart, visible_windows, _size)
 from library import ALLOWED_ORIGINS, ClipLibrary, ExportError, MediaServer
 from updater import Updater
-from overlay import Overlay, secs_text
+from overlay import MoveMode, Overlay, secs_text
 from highlights import DEFAULT_EVENTS, LeagueHighlights
 from lol_live import LeagueCompanion
 from triggers import COMBOS, ControllerTrigger, VoiceTrigger
@@ -50,7 +50,7 @@ LIVE_KEYS = {"hotkey", "buffer_seconds", "record_mode", "detect_fullscreen_apps"
              "controller_combo", "auto_clean_days", "auto_clean_permanent", "follow_game_screen",
              "lol_item_ideas", "lol_objective_timers", "lol_match_summary",
              "lol_benchmarks", "lol_opgg", "item_ideas_hotkey",
-             "lol_box_hotkey", "lol_box_visible"}
+             "lol_box_hotkey", "lol_box_visible", "overlay_move_hotkey"}
 
 # A small "Clips" tab added to the left edge of Verse pages inside the app, so the clip library
 # is always one click away. Verse can render its own button instead: if the page has an element
@@ -208,14 +208,16 @@ class App:
         self.library = ClipLibrary(self.cfg["clips_folder"], DATA_DIR, ff)
         self.media = MediaServer(self.library, os.path.join(RES, "ui"), self.on_command)
         self.updater = Updater(self.on_update_ready)
-        self.overlay = Overlay(self.popup_screen)
+        self.overlay = Overlay(self.popup_screen, get_positions=lambda: self.cfg.get("overlay_positions") or {})
+        self.move_mode = None
         self.wm_queue = queue.Queue()
         threading.Thread(target=self._watermark_loop, daemon=True, name="watermark").start()
         self.current_match = None
         self.voice = VoiceTrigger(self.trigger_save)
         self.pad = ControllerTrigger(lambda: self.cfg.get("controller_combo", ""), self.trigger_save)
         # League: objective timers, the panel while you're dead (stats, lane gold, item ideas), match summary
-        self.timer_strip = Overlay(self.popup_screen, name="VersePlatformTimers")
+        self.timer_strip = Overlay(self.popup_screen, name="VersePlatformTimers",
+                                   get_positions=lambda: self.cfg.get("overlay_positions") or {})
         self.item_ideas = LeagueCompanion(
             lambda: self.cfg, self.is_playing, self.overlay, self.timer_strip, DATA_DIR,
             get_match=lambda: self.highlights.match, on_summary=self.on_match_summary, notify=self.notify,
@@ -404,7 +406,8 @@ class App:
         """League shortcuts: stats and item ideas (Alt+Shift+I) and hide / show the box on the right (Alt+Shift+B)."""
         import keyboard
         ok = True
-        for key, action in (("item_ideas_hotkey", self.item_ideas.show_now), ("lol_box_hotkey", self.toggle_lol_box)):
+        for key, action in (("item_ideas_hotkey", self.item_ideas.show_now), ("lol_box_hotkey", self.toggle_lol_box),
+                            ("overlay_move_hotkey", self.toggle_move_mode)):
             try:
                 if self.cfg.get(key):
                     keyboard.add_hotkey(self.cfg[key], action)
@@ -421,6 +424,30 @@ class App:
             return True
         except Exception:
             return False
+
+    def toggle_move_mode(self, *_):
+        """Alt+Shift+M: drag the overlays where you want them, press again to save."""
+        if self.move_mode:
+            self.move_mode.stop()
+            return
+        def screen_rect_now():
+            r = self.popup_screen()
+            return tuple(r) if isinstance(r, (tuple, list)) else self.overlay._monitor_rect()
+        self.item_ideas.paused = True
+        self.timer_strip.hide_static()
+        self.move_mode = MoveMode(screen_rect_now, self.cfg.get("overlay_positions") or {}, self._move_done,
+                                  pretty_hotkey(self.cfg.get("overlay_move_hotkey") or "alt+shift+m"))
+        log.info("Move mode on")
+
+    def _move_done(self, positions):
+        self.move_mode = None
+        if positions:
+            self.cfg["overlay_positions"] = positions
+            save_config(self.cfg)
+            log.info("Overlay spots saved: %s", positions)
+            self.overlay.show("Overlay spots saved", accent="", sub="Reset them any time in Settings")
+        self.item_ideas.paused = False
+        self.item_ideas.strip_shown = ""     # redraw the box in its new spot
 
     def toggle_lol_box(self, *_):
         """The League box on the right (benchmarks and timers): hide or bring back. Remembered between games."""
@@ -1035,8 +1062,8 @@ class Api:
             value = str(value or "").strip()[:24]
         old = a.cfg.get(key)
         a.cfg[key] = value
-        if key in ("hotkey", "item_ideas_hotkey", "lol_box_hotkey"):
-            others = [k for k in ("hotkey", "item_ideas_hotkey", "lol_box_hotkey") if k != key]
+        if key in ("hotkey", "item_ideas_hotkey", "lol_box_hotkey", "overlay_move_hotkey"):
+            others = [k for k in ("hotkey", "item_ideas_hotkey", "lol_box_hotkey", "overlay_move_hotkey") if k != key]
             if value and any(str(value).lower() == str(a.cfg.get(o, "")).lower() for o in others):
                 a.cfg[key] = old
                 return {"message": "That's already one of your other shortcuts, pick a different one"}
@@ -1054,6 +1081,8 @@ class Api:
             return {"message": f"Stats and item ideas shortcut is now {pretty_hotkey(value)}"}
         if key == "lol_box_hotkey":
             return {"message": f"Hide or show the stats box with {pretty_hotkey(value)}"}
+        if key == "overlay_move_hotkey":
+            return {"message": f"Move the overlays with {pretty_hotkey(value)}"}
         if key == "voice_command":
             if value and not a.voice.start():
                 a.cfg[key] = False
@@ -1065,6 +1094,16 @@ class Api:
         if key == "squad_code":
             return {"message": f"You're in squad {value}" if value else "Squad POV is off"}
         return {}
+
+    def reset_overlay_positions(self):
+        """Settings: put every overlay back in its normal spot."""
+        if not self._from_library():
+            return None
+        a = self._app
+        a.cfg["overlay_positions"] = {}
+        save_config(a.cfg)
+        a.item_ideas.strip_shown = ""
+        return {"message": "Overlays are back in their normal spots"}
 
     def squad_new_code(self):
         if not self._from_library():

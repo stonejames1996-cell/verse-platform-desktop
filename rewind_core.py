@@ -104,7 +104,9 @@ DEFAULT_CONFIG = {
     "lol_opgg": True,              # League: your rank and rank / top player comparisons from OP.GG
     "item_ideas_hotkey": "alt+shift+i",
     "lol_box_hotkey": "alt+shift+b",   # hide / show the League box on the right
-    "lol_box_visible": True,           # remembered between games  # show the item ideas any time in a League match
+    "lol_box_visible": True,           # remembered between games
+    "overlay_move_hotkey": "alt+shift+m",   # drag the overlays where you want them, press again to save
+    "overlay_positions": {},           # where they were dragged to: {"strip"|"panel"|"popup": [x, y] as screen shares}  # show the item ideas any time in a League match
     "highlight_events": {},        # which moments count, see highlights.DEFAULT_EVENTS (blank = defaults)
     "highlight_before": 5,         # seconds kept before the first moment of a play
     "highlight_after": 5,          # seconds kept after the last moment

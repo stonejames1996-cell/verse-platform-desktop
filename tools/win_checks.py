@@ -94,6 +94,25 @@ else:
                       if not gd.in_shop(i, 11)})
     print("suggested items not in this patch's Summoner's Rift shop:", missing, [gd.name(i) for i in missing])
 
+# ---- moving the overlays (Alt+Shift+M): open the drag boxes, close them, check the spots come back
+try:
+    import threading
+    import time as _t
+    from overlay import MoveMode
+    got = {}
+    done = threading.Event()
+    r = rc.screen_rect(hmon) or (0, 0, 1024, 768)
+    mm = MoveMode(lambda: r, {"panel": [0.5, 0.4]}, lambda pos: (got.update(pos or {}), done.set()))
+    _t.sleep(2)
+    mm.stop()
+    done.wait(10)
+    print("move mode spots:", got)
+    mm._card("Stats box", 170, 270, 1.5).save(os.path.join(OUT, "move_card.png"))
+    if not got or abs(got.get("panel", [0, 0])[0] - 0.5) > 0.02:
+        problems.append(f"move mode didn't give the spots back: {got}")
+except Exception as e:
+    problems.append(f"move mode check crashed: {e}")
+
 # ---- OP.GG (rank comparisons in the match analysis)
 try:
     import opgg

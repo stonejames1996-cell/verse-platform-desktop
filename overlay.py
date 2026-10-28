@@ -28,6 +28,7 @@ WHITE = (245, 245, 247, 255)
 SIGNAL = (34, 211, 238, 255)
 HAZE = (168, 172, 184, 255)
 SHOW_SECONDS = 3.2
+PLACE_KEYS = {"right": "strip", "left": "panel", "top": "popup"}   # overlay places -> saved position names
 
 
 def _font(size, bold=False):
@@ -151,10 +152,12 @@ def secs_text(secs):
 class Overlay:
     """Call show(...) from any thread. All Windows work happens on the overlay's own thread."""
 
-    def __init__(self, get_monitor=lambda: 0, name="VersePlatformOverlay"):
+    def __init__(self, get_monitor=lambda: 0, name="VersePlatformOverlay", get_positions=lambda: {}):
         """get_monitor: a screen number (0 = main) or a (left, top, right, bottom) rectangle.
-        name: its own window class, so several overlays (pop-ups, League timers) can be up at once."""
+        name: its own window class, so several overlays (pop-ups, League timers) can be up at once.
+        get_positions: where the player dragged each kind of overlay to (see MoveMode), as screen fractions."""
         self.get_monitor = get_monitor
+        self.get_positions = get_positions
         self.name = name
         self.q = queue.Queue()
         self.ok = IS_WINDOWS
@@ -350,6 +353,15 @@ class Overlay:
                 y = max(top + margin, top + (bottom - top - h) // 2 - (bottom - top) // 12)
             elif place == "right":   # right edge, a third of the way down (clear of the scoreboard and minimap)
                 x0, y = right - margin - w, top + int((bottom - top) * 0.30)
+            try:   # moved by the player (Alt+Shift+M): top left corner as a share of the screen
+                pos = (self.get_positions() or {}).get(PLACE_KEYS.get(place, place))
+            except Exception:
+                pos = None
+            if pos:
+                x0 = left + int(float(pos[0]) * (right - left))
+                y = top + int(float(pos[1]) * (bottom - top))
+                x0 = max(left, min(x0, right - w))
+                y = max(top, min(y, bottom - h))
             size, src = wt.SIZE(w, h), wt.POINT(0, 0)
             blend = self.BLENDFUNCTION(0, 0, 0, 1)
 
@@ -390,3 +402,172 @@ class Overlay:
             g.DeleteObject(bmp)
             g.DeleteDC(mem)
             u.ReleaseDC(None, screen)
+
+
+# ---------------------------------------------------------------- moving the overlays
+class MoveMode:
+    """Alt+Shift+M: a labelled box for each overlay that the player can drag anywhere. Press it again and
+    the spots are saved as shares of the screen (so they survive resolution and screen changes)."""
+
+    ITEMS = (("strip", "Stats box", 170, 270), ("panel", "Stats and item ideas", 330, 520), ("popup", "Save and summary pop-ups", 360, 74))
+
+    def __init__(self, get_rect, current, on_done, key_name="Alt+Shift+M"):
+        """get_rect() -> (left, top, right, bottom) of the game's screen; current: saved positions;
+        on_done(positions) is called with the new spots when move mode ends."""
+        self.get_rect, self.current, self.on_done = get_rect, dict(current or {}), on_done
+        self.key_name = key_name
+        self.stop_flag = threading.Event()
+        self.ok = IS_WINDOWS
+        if self.ok:
+            threading.Thread(target=self._run, daemon=True, name="overlay-move").start()
+
+    def stop(self):
+        self.stop_flag.set()
+
+    def _card(self, label, w, h, scale):
+        from watermark import _font
+        s = scale * 2
+        W, H = int(w * s), int(h * s)
+        im = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+        d = ImageDraw.Draw(im)
+        d.rounded_rectangle((0, 0, W - 1, H - 1), radius=int(12 * s), fill=(10, 14, 19, 200))
+        dash, gap, c = int(10 * s), int(6 * s), SIGNAL
+        for x in range(int(12 * s), W - int(12 * s), dash + gap):   # dashed cyan border
+            d.line([(x, int(s)), (min(x + dash, W), int(s))], fill=c, width=max(2, int(1.5 * s)))
+            d.line([(x, H - 1 - int(s)), (min(x + dash, W), H - 1 - int(s))], fill=c, width=max(2, int(1.5 * s)))
+        for y in range(int(12 * s), H - int(12 * s), dash + gap):
+            d.line([(int(s), y), (int(s), min(y + dash, H))], fill=c, width=max(2, int(1.5 * s)))
+            d.line([(W - 1 - int(s), y), (W - 1 - int(s), min(y + dash, H))], fill=c, width=max(2, int(1.5 * s)))
+        f1, f2 = _font("InterDisplay-Bold.otf", int(13 * s)), _font("Inter-SemiBold.otf", int(10 * s))
+        t1, t2 = label, f"Drag me. {self.key_name} to finish"
+        cy = H // 2 - (int(13 * s) if h > 60 else int(11 * s))
+        d.text(((W - d.textlength(t1, font=f1)) // 2, cy), t1, font=f1, fill=WHITE)
+        d.text(((W - d.textlength(t2, font=f2)) // 2, cy + int(19 * s)), t2, font=f2, fill=HAZE)
+        return im.resize((W // 2, H // 2), Image.LANCZOS)
+
+    def _run(self):
+        import ctypes
+        from ctypes import wintypes as wt
+        from PIL import ImageChops
+        try:
+            u, g = ctypes.WinDLL("user32"), ctypes.WinDLL("gdi32")
+            k = ctypes.WinDLL("kernel32")
+            LRESULT = ctypes.c_ssize_t
+            WNDPROC = ctypes.WINFUNCTYPE(LRESULT, wt.HWND, wt.UINT, wt.WPARAM, wt.LPARAM)
+
+            class WNDCLASSEXW(ctypes.Structure):
+                _fields_ = [("cbSize", wt.UINT), ("style", wt.UINT), ("lpfnWndProc", WNDPROC), ("cbClsExtra", ctypes.c_int),
+                            ("cbWndExtra", ctypes.c_int), ("hInstance", wt.HINSTANCE), ("hIcon", wt.HICON),
+                            ("hCursor", wt.HANDLE), ("hbrBackground", wt.HBRUSH), ("lpszMenuName", wt.LPCWSTR),
+                            ("lpszClassName", wt.LPCWSTR), ("hIconSm", wt.HICON)]
+
+            class BLENDFUNCTION(ctypes.Structure):
+                _fields_ = [("BlendOp", ctypes.c_ubyte), ("BlendFlags", ctypes.c_ubyte),
+                            ("SourceConstantAlpha", ctypes.c_ubyte), ("AlphaFormat", ctypes.c_ubyte)]
+
+            class BITMAPINFOHEADER(ctypes.Structure):
+                _fields_ = [("biSize", wt.DWORD), ("biWidth", ctypes.c_long), ("biHeight", ctypes.c_long), ("biPlanes", wt.WORD),
+                            ("biBitCount", wt.WORD), ("biCompression", wt.DWORD), ("biSizeImage", wt.DWORD),
+                            ("biXPelsPerMeter", ctypes.c_long), ("biYPelsPerMeter", ctypes.c_long), ("biClrUsed", wt.DWORD),
+                            ("biClrImportant", wt.DWORD)]
+            u.DefWindowProcW.argtypes = [wt.HWND, wt.UINT, wt.WPARAM, wt.LPARAM]
+            u.DefWindowProcW.restype = LRESULT
+            u.CreateWindowExW.argtypes = [wt.DWORD, wt.LPCWSTR, wt.LPCWSTR, wt.DWORD, ctypes.c_int, ctypes.c_int,
+                                          ctypes.c_int, ctypes.c_int, wt.HWND, wt.HMENU, wt.HINSTANCE, wt.LPVOID]
+            u.CreateWindowExW.restype = wt.HWND
+            u.RegisterClassExW.argtypes = [ctypes.POINTER(WNDCLASSEXW)]
+            u.UpdateLayeredWindow.argtypes = [wt.HWND, wt.HDC, ctypes.POINTER(wt.POINT), ctypes.POINTER(wt.SIZE), wt.HDC,
+                                              ctypes.POINTER(wt.POINT), wt.COLORREF, ctypes.POINTER(BLENDFUNCTION), wt.DWORD]
+            u.GetWindowRect.argtypes = [wt.HWND, ctypes.POINTER(wt.RECT)]
+            u.DestroyWindow.argtypes = [wt.HWND]
+            u.SetWindowPos.argtypes = [wt.HWND, wt.HWND, ctypes.c_int, ctypes.c_int, ctypes.c_int, ctypes.c_int, wt.UINT]
+            u.PeekMessageW.argtypes = [ctypes.POINTER(wt.MSG), wt.HWND, wt.UINT, wt.UINT, wt.UINT]
+            u.TranslateMessage.argtypes = [ctypes.POINTER(wt.MSG)]
+            u.DispatchMessageW.argtypes = [ctypes.POINTER(wt.MSG)]
+            u.GetDC.argtypes = [wt.HWND]
+            u.GetDC.restype = wt.HDC
+            u.ReleaseDC.argtypes = [wt.HWND, wt.HDC]
+            g.CreateCompatibleDC.argtypes = [wt.HDC]
+            g.CreateCompatibleDC.restype = wt.HDC
+            g.CreateDIBSection.argtypes = [wt.HDC, ctypes.c_void_p, wt.UINT, ctypes.POINTER(ctypes.c_void_p), wt.HANDLE, wt.DWORD]
+            g.CreateDIBSection.restype = wt.HBITMAP
+            g.SelectObject.argtypes = [wt.HDC, wt.HGDIOBJ]
+            g.SelectObject.restype = wt.HGDIOBJ
+            g.DeleteObject.argtypes = [wt.HGDIOBJ]
+            g.DeleteDC.argtypes = [wt.HDC]
+            k.GetModuleHandleW.argtypes = [wt.LPCWSTR]
+            k.GetModuleHandleW.restype = wt.HMODULE
+
+            def proc(h, m, w, l):
+                if m == 0x0084:        # WM_NCHITTEST: the whole box is a handle Windows drags for us
+                    return 2           # HTCAPTION
+                if m == 0x0021:        # WM_MOUSEACTIVATE: don't steal focus from the game
+                    return 3           # MA_NOACTIVATE
+                return u.DefWindowProcW(h, m, w, l)
+            self._proc = WNDPROC(proc)
+            hinst = k.GetModuleHandleW(None)
+            wc = WNDCLASSEXW()
+            wc.cbSize = ctypes.sizeof(WNDCLASSEXW)
+            wc.lpfnWndProc = self._proc
+            wc.hInstance = hinst
+            u.LoadCursorW.argtypes = [wt.HINSTANCE, ctypes.c_void_p]
+            u.LoadCursorW.restype = wt.HANDLE
+            wc.hCursor = u.LoadCursorW(None, ctypes.c_void_p(32646))   # IDC_SIZEALL, the move cursor
+            wc.lpszClassName = "VersePlatformMove"
+            u.RegisterClassExW(ctypes.byref(wc))
+            try:
+                scale = max(1.0, u.GetDpiForSystem() / 96)
+            except Exception:
+                scale = 1.0
+            left, top, right, bottom = self.get_rect()
+            sw, sh = right - left, bottom - top
+            margin = int(24 * scale)
+            defaults = {"strip": (right - margin - 170 * scale, top + sh * 0.30),
+                        "panel": (left + margin, top + sh * 0.25), "popup": (left + margin, top + margin)}
+            screen = u.GetDC(None)
+            wins = {}
+            for key, label, w, h in self.ITEMS:
+                img = self._card(label, w, h, scale)
+                iw, ih = img.size
+                pos = self.current.get(key)
+                x, y = (left + float(pos[0]) * sw, top + float(pos[1]) * sh) if pos else defaults[key]
+                x, y = int(max(left, min(x, right - iw))), int(max(top, min(y, bottom - ih)))
+                hwnd = u.CreateWindowExW(0x00080000 | 0x00000008 | 0x00000080 | 0x08000000,   # layered topmost toolwindow noactivate
+                                         "VersePlatformMove", label, 0x80000000, x, y, iw, ih, None, None, hinst, None)
+                r_, g_, b_, a_ = img.split()
+                r_, g_, b_ = (ImageChops.multiply(c, a_) for c in (r_, g_, b_))
+                data = Image.merge("RGBA", (b_, g_, r_, a_)).tobytes()
+                bmi = BITMAPINFOHEADER(ctypes.sizeof(BITMAPINFOHEADER), iw, -ih, 1, 32, 0, 0, 0, 0, 0, 0)
+                mem = g.CreateCompatibleDC(screen)
+                bits = ctypes.c_void_p()
+                bmp = g.CreateDIBSection(screen, ctypes.byref(bmi), 0, ctypes.byref(bits), None, 0)
+                old = g.SelectObject(mem, bmp)
+                ctypes.memmove(bits, data, len(data))
+                blend = BLENDFUNCTION(0, 0, 255, 1)
+                u.UpdateLayeredWindow(hwnd, screen, ctypes.byref(wt.POINT(x, y)), ctypes.byref(wt.SIZE(iw, ih)), mem,
+                                      ctypes.byref(wt.POINT(0, 0)), 0, ctypes.byref(blend), 2)
+                g.SelectObject(mem, old)
+                g.DeleteObject(bmp)
+                g.DeleteDC(mem)
+                u.SetWindowPos(hwnd, wt.HWND(-1), 0, 0, 0, 0, 0x0001 | 0x0002 | 0x0010 | 0x0040)
+                wins[key] = hwnd
+            u.ReleaseDC(None, screen)
+            msg = wt.MSG()
+            while not self.stop_flag.is_set():
+                while u.PeekMessageW(ctypes.byref(msg), None, 0, 0, 1):
+                    u.TranslateMessage(ctypes.byref(msg))
+                    u.DispatchMessageW(ctypes.byref(msg))
+                time.sleep(0.01)
+            out = {}
+            for key, hwnd in wins.items():
+                rc = wt.RECT()
+                if u.GetWindowRect(hwnd, ctypes.byref(rc)):
+                    out[key] = [round((rc.left - left) / max(1, sw), 4), round((rc.top - top) / max(1, sh), 4)]
+                u.DestroyWindow(hwnd)
+            self.on_done(out)
+        except Exception:
+            log.exception("Move mode failed")
+            try:
+                self.on_done(None)
+            except Exception:
+                pass
