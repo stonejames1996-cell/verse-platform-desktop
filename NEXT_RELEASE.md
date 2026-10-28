@@ -4,9 +4,12 @@ Changes that are in `main` but not released yet. When it's time to release, bump
 turn these into `release-notes/<version>.md`, then clear this list.
 
 ## For the release notes
+* **Hide the stats box:** press Alt+Shift+B in League to hide the box on the right (benchmarks and timers), and again to bring it back. A short message confirms it, it stays the way you left it next game, and you can pick your own keys in Settings.
 * **Tidier stats pop-up:** the "building your average" text no longer spills out of the boxes. Until you've played 3 games there's one short line under them instead, and any long text in a box now shrinks to fit.
 
 ## Behind the scenes
+* `lol_box_hotkey` (alt+shift+b) toggles `lol_box_visible` (saved in config) via `App.toggle_lol_box`; the companion
+  hides the strip when it's off. All three shortcuts are checked against each other in `set_setting`.
 * `stat_tiles` marks tiles `new` (no average yet) instead of writing text into them; `lol_items.render` adds one note line,
   makes the tiles shorter when there's no "avg" line, and trims any tile text to the tile width.
 

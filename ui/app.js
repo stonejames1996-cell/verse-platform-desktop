@@ -666,6 +666,7 @@ async function loadSettings() {
   const ih = (r.config.item_ideas_hotkey || "alt+shift+i").toUpperCase().replace(/\+/g, " + ");
   $("#items-hotkey-btn").textContent = ih;
   for (const k of $$("[data-items-hotkey]")) k.textContent = ih;
+  $("#box-hotkey-btn").textContent = (r.config.lol_box_hotkey || "alt+shift+b").toUpperCase().replace(/\+/g, " + ");
   $("#folder-path").textContent = r.config.clips_folder;
   $("#version").textContent = `Verse Platform for Windows ${r.version}. Updates install by themselves`;
   $("#known-games-hint").textContent = `${r.known_games.length} popular games are picked up automatically, including ${r.known_games.slice(0, 6).join(", ")}.`;
@@ -766,7 +767,7 @@ function wire() {
 
   // two shortcut buttons: saving a clip, and League stats + item ideas
   let hk = $("#hotkey-btn"), hkSetting = "hotkey";
-  for (const [btn, setting] of [[$("#hotkey-btn"), "hotkey"], [$("#items-hotkey-btn"), "item_ideas_hotkey"]]) {
+  for (const [btn, setting] of [[$("#hotkey-btn"), "hotkey"], [$("#items-hotkey-btn"), "item_ideas_hotkey"], [$("#box-hotkey-btn"), "lol_box_hotkey"]]) {
     btn.addEventListener("click", () => {
       if (listening) hk.classList.remove("listening");
       hk = btn; hkSetting = setting;

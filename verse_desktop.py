@@ -49,7 +49,8 @@ LIVE_KEYS = {"hotkey", "buffer_seconds", "record_mode", "detect_fullscreen_apps"
              "death_review", "death_review_before", "squad_code", "squad_name", "squad_share",
              "controller_combo", "auto_clean_days", "auto_clean_permanent", "follow_game_screen",
              "lol_item_ideas", "lol_objective_timers", "lol_match_summary",
-             "lol_benchmarks", "lol_opgg", "item_ideas_hotkey"}
+             "lol_benchmarks", "lol_opgg", "item_ideas_hotkey",
+             "lol_box_hotkey", "lol_box_visible"}
 
 # A small "Clips" tab added to the left edge of Verse pages inside the app, so the clip library
 # is always one click away. Verse can render its own button instead: if the page has an element
@@ -400,24 +401,37 @@ class App:
         return True
 
     def register_items_hotkey(self):
-        """League: stats and item ideas on demand (Alt+Shift+I by default, set in Settings)."""
+        """League shortcuts: stats and item ideas (Alt+Shift+I) and hide / show the box on the right (Alt+Shift+B)."""
         import keyboard
-        try:
-            if self.cfg.get("item_ideas_hotkey"):
-                keyboard.add_hotkey(self.cfg["item_ideas_hotkey"], self.item_ideas.show_now)
-            return True
-        except Exception as e:
-            log.warning("Item ideas shortcut %r can't be used: %s", self.cfg.get("item_ideas_hotkey"), e)
-            return False
+        ok = True
+        for key, action in (("item_ideas_hotkey", self.item_ideas.show_now), ("lol_box_hotkey", self.toggle_lol_box)):
+            try:
+                if self.cfg.get(key):
+                    keyboard.add_hotkey(self.cfg[key], action)
+            except Exception as e:
+                log.warning("League shortcut %r can't be used: %s", self.cfg.get(key), e)
+                ok = False
+        return ok
 
-    def register_items_hotkey_ok(self):
-        """Is the stats and item ideas shortcut a combo Windows can use?"""
+    def register_items_hotkey_ok(self, key="item_ideas_hotkey"):
+        """Is this shortcut a combo Windows can use?"""
         import keyboard
         try:
-            keyboard.parse_hotkey(self.cfg.get("item_ideas_hotkey") or "")
+            keyboard.parse_hotkey(self.cfg.get(key) or "")
             return True
         except Exception:
             return False
+
+    def toggle_lol_box(self, *_):
+        """The League box on the right (benchmarks and timers): hide or bring back. Remembered between games."""
+        self.cfg["lol_box_visible"] = not self.cfg.get("lol_box_visible", True)
+        save_config(self.cfg)
+        hk = pretty_hotkey(self.cfg.get("lol_box_hotkey") or "")
+        if self.cfg["lol_box_visible"]:
+            self.overlay.show("Stats box is back", accent="", sub=f"Press {hk} to hide it")
+        else:
+            self.overlay.show("Stats box hidden", accent="", sub=f"Press {hk} to bring it back")
+        log.info("League box %s", "shown" if self.cfg["lol_box_visible"] else "hidden")
 
     def save_clip_async(self, *_):
         if self.rec:
@@ -1021,12 +1035,12 @@ class Api:
             value = str(value or "").strip()[:24]
         old = a.cfg.get(key)
         a.cfg[key] = value
-        if key in ("hotkey", "item_ideas_hotkey"):
-            other = "item_ideas_hotkey" if key == "hotkey" else "hotkey"
-            if value and str(value).lower() == str(a.cfg.get(other, "")).lower():
+        if key in ("hotkey", "item_ideas_hotkey", "lol_box_hotkey"):
+            others = [k for k in ("hotkey", "item_ideas_hotkey", "lol_box_hotkey") if k != key]
+            if value and any(str(value).lower() == str(a.cfg.get(o, "")).lower() for o in others):
                 a.cfg[key] = old
-                return {"message": "That's already your other shortcut, pick a different one"}
-            if (key == "item_ideas_hotkey" and not a.register_items_hotkey_ok()) or not a.register_hotkey():
+                return {"message": "That's already one of your other shortcuts, pick a different one"}
+            if (key != "hotkey" and not a.register_items_hotkey_ok(key)) or not a.register_hotkey():
                 a.cfg[key] = old
                 a.register_hotkey()
                 return {"message": "That shortcut can't be used, try another"}
@@ -1038,6 +1052,8 @@ class Api:
             return {"message": f"Shortcut is now {pretty_hotkey(value)}"}
         if key == "item_ideas_hotkey":
             return {"message": f"Stats and item ideas shortcut is now {pretty_hotkey(value)}"}
+        if key == "lol_box_hotkey":
+            return {"message": f"Hide or show the stats box with {pretty_hotkey(value)}"}
         if key == "voice_command":
             if value and not a.voice.start():
                 a.cfg[key] = False

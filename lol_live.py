@@ -828,7 +828,7 @@ class LeagueCompanion:
 
         # the box on the right: benchmarks and objective timers (not in Arena / TFT)
         rows, bench = [], []
-        if me and mode not in lol_items.SKIP_MODES:
+        if me and mode not in lol_items.SKIP_MODES and self.cfg("lol_box_visible"):
             if self.cfg("lol_objective_timers"):
                 self.timers.update(game, me.get("team"))
                 rows = self.timers.active(now)
