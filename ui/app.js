@@ -136,7 +136,7 @@ async function loadClips() {
   if (openClipId) renderPlayerBar();
 }
 // game logos for the filter tabs and headings (ui/games), or a letter badge for games without one
-const GAME_LOGOS = new Set(["counter-strike-2", "dead-by-daylight", "destiny-2", "dota-2", "escape-from-tarkov", "fortnite", "gta-v", "league-of-legends", "marvel-rivals", "minecraft", "old-school-runescape", "overwatch-2", "pubg", "rainbow-six-siege", "roblox", "rust", "valorant", "world-of-warcraft"]);
+const GAME_LOGOS = new Set(["apex-legends", "counter-strike-2", "dead-by-daylight", "destiny-2", "dota-2", "escape-from-tarkov", "fortnite", "gta-v", "league-of-legends", "marvel-rivals", "minecraft", "old-school-runescape", "overwatch-2", "pubg", "rainbow-six-siege", "roblox", "rust", "valorant", "world-of-warcraft"]);
 function gameLogo(name) {
   if (!name || name === "All") return null;
   const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");

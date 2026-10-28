@@ -3,7 +3,13 @@
 Changes that are in `main` but not released yet. When it's time to release, bump `APP_VERSION`,
 turn these into `release-notes/<version>.md`, then clear this list.
 
-Nothing held right now. 1.3.2 shipped the League shortcut setting.
+## For the release notes
+* **Sharper game logos:** League of Legends, Counter-Strike 2 and Apex Legends now have proper high quality logos in My clips (Apex had a letter badge before).
+
+## Behind the scenes
+* `ui/games/league-of-legends.png`, `counter-strike-2.png`, `apex-legends.png` replaced with 128px versions of the logos W sent
+  (League's faint smoke trimmed). `GAME_LOGOS` in ui/app.js now includes apex-legends.
+
 
 ## Still to confirm on a real PC
 * Link Xbox pop-up end to end (log lines: "Sign-in pop-up opened", "Sign-in finished, refreshing Verse").
