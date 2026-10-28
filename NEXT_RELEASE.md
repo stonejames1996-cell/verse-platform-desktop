@@ -3,27 +3,7 @@
 Changes that are in `main` but not released yet. When it's time to release, bump `APP_VERSION`,
 turn these into `release-notes/<version>.md`, then clear this list.
 
-## For the release notes
-* **Move the overlays:** press Alt+Shift+M in game, drag the stats box, the stats and item ideas pop-up, and the save and summary pop-ups wherever you like, then press it again to save. They stay put between games and on other screen sizes, and Settings has a Reset spots button.
-* **Match analysis, tidied up:** it's now closed by default, showing just your three scores. Click it to open the full analysis.
-* **A better chart:** smooth lines with a glow, the game's lane, mid and late phases marked, champion pictures and numbers at the end of each line, and hover anywhere to see everyone's numbers at that minute. Text stays the same size however wide the window is.
-* **Champion pictures:** "Compared with" shows your lane opponent's picture, and the chart's key shows yours and theirs.
-* **Clearer lane tips:** when you catch up on your lane opponent but finish just behind, it now says you closed the gap instead of saying you pulled ahead.
-* **Hide the stats box:** press Alt+Shift+B in League to hide the box on the right (benchmarks and timers), and again to bring it back. A short message confirms it, it stays the way you left it next game, and you can pick your own keys in Settings.
-* **Tidier stats pop-up:** the "building your average" text no longer spills out of the boxes. Until you've played 3 games there's one short line under them instead, and any long text in a box now shrinks to fit.
-
-## Behind the scenes
-* Move mode: `overlay.MoveMode` opens one draggable layered window per overlay (WM_NCHITTEST -> HTCAPTION, no focus
-  steal), saves `overlay_positions` {"strip","panel","popup": [x, y] screen shares}; `Overlay._present` uses them
-  (clamped to the screen). `overlay_move_hotkey` (alt+shift+m), `Api.reset_overlay_positions`. The companion pauses the
-  strip while moving. Checked on the build machine (open, close, spots read back); dragging itself needs a real PC.
-* Match analysis UI: `analysisOpen` (closed by default), `lineChart` redrawn at real pixel width via ResizeObserver,
-  monotone smooth paths, phase bands, end labels with champion pictures, hover read-out. Analysis keeps `opp_key`.
-* `lol_box_hotkey` (alt+shift+b) toggles `lol_box_visible` (saved in config) via `App.toggle_lol_box`; the companion
-  hides the strip when it's off. All three shortcuts are checked against each other in `set_setting`.
-* `stat_tiles` marks tiles `new` (no average yet) instead of writing text into them; `lol_items.render` adds one note line,
-  makes the tiles shorter when there's no "avg" line, and trims any tile text to the tile width.
-
+Nothing held right now. 1.3.4 shipped move mode, hide the box, the new match analysis and chart.
 
 ## Still to confirm on a real PC
 * Link Xbox pop-up end to end (log lines: "Sign-in pop-up opened", "Sign-in finished, refreshing Verse").
