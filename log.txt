@@ -1,0 +1,68 @@
+desktop window screen: 65537 DISPLAY1 1024x768, main (0, 0, 1024, 768)
+Desktop Duplication output for it: 0
+visible windows: 2 [('windowsterminal.exe', 196702, 662940), ('explorer.exe', 65716, 786432)]
+ffmpeg gfxcapture=hmonitor=65537:max_framerate=30: exit 2981409195 ror opening input: Unknown error occurred
+Error opening input file gfxcapture=hmonitor=65537:max_framerate=30.
+Error opening input files: Unknown error occurred
+ffmpeg gfxcapture=monitor_idx=0:max_framerate=30: exit 2981409195 rror opening input: Unknown error occurred
+Error opening input file gfxcapture=monitor_idx=0:max_framerate=30.
+Error opening input files: Unknown error occurred
+ffmpeg ddagrab=output_idx=0:framerate=30: exit 2981409195 e5d40] Error opening input: Unknown error occurred
+Error opening input file ddagrab=output_idx=0:framerate=30.
+Error opening input files: Unknown error occurred
+gfxcapture knows hmonitor: True
+item ideas: {
+ "style": "ad",
+ "champion": "Jinx",
+ "rows": [
+  {
+   "why": "Lots of healing: Aatrox, Soraka",
+   "items": [
+    3033,
+    3123,
+    6609
+   ],
+   "champs": [
+    "Aatrox",
+    "Soraka"
+   ]
+  },
+  {
+   "why": "Kai'Sa is building crit",
+   "items": [
+    3026,
+    6333
+   ],
+   "champs": [
+    "Kaisa"
+   ]
+  },
+  {
+   "why": "They're stacking armour (Malphite)",
+   "items": [
+    3036,
+    6694,
+    3071
+   ],
+   "champs": [
+    "Malphite"
+   ]
+  }
+ ]
+}
+  Lots of healing: Aatrox, Soraka -> ['Mortal Reminder', "Executioner's Calling", 'Chempunk Chainsword']
+  Kai'Sa is building crit -> ['Guardian Angel', "Death's Dance"]
+  They're stacking armour (Malphite) -> ["Lord Dominik's Regards", "Serylda's Grudge", 'Black Cleaver']
+your game: {'cs_min': 7.5, 'kp': 1.0, 'vision_min': 0.7, 'cs': 150, 'minutes': 20.0, 'kills': 4, 'deaths': 3, 'assists': 5, 'kda': 3.0, 'level': 11, 'vision': 14.0} {'me': 5900, 'them': 7250, 'me_key': 'Jinx', 'them_key': 'Kaisa', 'them_name': "Kai'Sa"}
+timers: [('Ocean Dragon', '1:00', 'dragon_ocean'), ('Their top inhib', '3:20', 'inhibitor'), ('Baron', '5:10', 'baron')]
+benchmarks: [{'label': 'CSM', 'value': '+1.0', 'base': '6.5', 'state': 'up', 'spark': [5.1, 5.8, 6.2, 6.0, 6.9, 7.2, 7.5]}, {'label': 'GPM', 'value': '295', 'base': '380', 'state': 'down', 'spark': None}, {'label': 'KP%', 'value': '100', 'base': '45', 'state': 'up', 'spark': None}, {'label': 'KDA', 'value': '3.0', 'base': '2.8', 'state': 'up', 'spark': None}, {'label': 'LVL', 'value': '11', 'base': '9', 'state': 'up', 'spark': None, 'face': <PIL.Image.Image image mode=RGBA size=64x64 at 0x16D7503CC80>}]
+suggested items not in this patch's Summoner's Rift shop: [] []
+move mode spots (try 1): {'strip': [0.8105, 0.2995], 'panel': [0.5, 0.3229], 'popup': [0.0234, 0.0312]}
+move mode spots (try 2): {'strip': [0.8105, 0.2995], 'panel': [0.5, 0.3229], 'popup': [0.0234, 0.0312]}
+move mode spots (try 3): {'strip': [0.8105, 0.2995], 'panel': [0.5, 0.3229], 'popup': [0.0234, 0.0312]}
+opgg profile: {'tier': 'SILVER', 'division': 2, 'lp': 59, 'wins': 235, 'losses': 239, 'image': 'https://opgg-static.akamaized.net/images/medals_new/silver.png', 'text': 'Silver 2'}
+opgg Jinx at tier: {'kda': 2.11, 'win_rate': 0.51, 'games': 130222, 'tier': 'Silver'}
+opgg top Jinx OCE: {'cs_min': 8.322891381236769, 'gpm': 509.05793637983425, 'kda': 2.6272803147728627, 'dpm': 895.8451007708449, 'players': 10, 'games': 4562}
+opgg recent game: {'gold': 17874, 'gpm': 565.6, 'damage': 42915, 'dpm': 1358.1, 'op_score': 9.15, 'lobby': 'Silver 3', 'lobby_image': 'https://opgg-static.akamaized.net/images/medals_new/silver.png', 'game_id': 'm_eaDVNbCj9VvdBrK99Zj9652SBkFFKeql4rBn-kZWI='}
+
+All good
