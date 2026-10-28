@@ -47,7 +47,8 @@ saves clips on a hotkey or automatically on highlights, and hands clips to the w
   OP.GG has no per-rank CS/gold averages, so farming compares with your usual and with top players.
 - `lol_items.py`: League item ideas pop-up (counter items from enemy items on Tab, Data Dragon names/icons; shown while dead or Alt+Shift+I).
   Keep it inside Riot policy: always 2+ choices with reasons, no win rates, only Tab info.
-- `overlay.py`: the "Last 60s saved by Verse Platform" pop-up. `watermark.py`: animated "Clipped by Verse Platform" card for the
+- `overlay.py`: the "Last 60s saved by Verse Platform" pop-up, the League strip window, and `MoveMode` (Alt+Shift+M drag boxes;
+  spots saved as screen shares in `overlay_positions`). `watermark.py`: animated "Clipped by Verse Platform" card for the
   first 3s (always on). Both use the bundled Inter fonts in `assets/fonts` (OFL).
 - `updater.py`: auto update from GitHub Releases (`VersePlatformSetup.exe`, sha256 checked, silent install, relaunch).
 - `whatsnew.py` + `release-notes/*.md`: the in-app What's new pop-up.
