@@ -3,14 +3,7 @@
 Changes that are in `main` but not released yet. When it's time to release, bump `APP_VERSION`,
 turn these into `release-notes/<version>.md`, then clear this list.
 
-## For the release notes
-* **Fixed:** moving the overlays (Alt+Shift+M) could crash the app, most likely the second time you used it.
-
-## Behind the scenes
-* `MoveMode` registered its window class with a window procedure owned by the MoveMode object; once that object
-  was gone, the next move mode used a freed callback (native crash). The procedure now lives in a module global
-  (`_MOVE_CLASS`) for the whole run. win_checks opens move mode 3 times in a row.
-
+Nothing held right now. 1.3.5 shipped the move mode crash fix.
 
 ## Still to confirm on a real PC
 * Link Xbox pop-up end to end (log lines: "Sign-in pop-up opened", "Sign-in finished, refreshing Verse").
