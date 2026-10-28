@@ -35,7 +35,7 @@ import time
 import uuid
 
 APP_NAME = "Verse Platform"
-APP_VERSION = "1.3.2"
+APP_VERSION = "1.3.3"
 VERSE_URL = "https://verseplatform.gg"
 # GitHub repo the app updates itself from ("owner/repo"). Release.bat fills this in. Blank = no auto update.
 UPDATE_REPO = "stonejames1996-cell/verse-platform-desktop"

@@ -88,7 +88,7 @@ Ask for `%APPDATA%\Verse Platform\verse_platform.log` (and `crash.log` if there 
 The "Ready." line shows encoder, capture method and "(GPU only)". Useful lines: "Capture froze", "Switching from",
 "Sound output changed", "Saved with no audio", "Told the squad".
 
-## Still to confirm on a real PC (as of 1.3.2)
+## Still to confirm on a real PC (as of 1.3.3)
 - GPU-only recording ("(GPU only)" in the log, lower FFmpeg CPU in Task Manager).
 - Default sound device following ("Sound output changed, recording follows it").
 - Squad POV end to end between two PCs (needs the Base44 squadRelay function published; the upload size limit is untested).
