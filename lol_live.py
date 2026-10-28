@@ -371,7 +371,7 @@ def stat_tiles(now, avg):
         cur = now.get(key)
         text, up = vs(cur, (avg or {}).get(key), fmt)
         tiles.append({"value": fmt(cur) if cur is not None else "-", "label": label,
-                      "vs": text or ("building your average" if not avg else ""), "up": up})
+                      "vs": text, "up": up, "new": not avg})
     return tiles
 
 

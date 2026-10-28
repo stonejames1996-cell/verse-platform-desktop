@@ -377,9 +377,11 @@ def render(gd, result, scale=1.0, extras=None):
     sec_h = lh(f_sec) + int(6 * s)
     tiles = extras.get("stats") or []
     gold = extras.get("gold")
-    tile_h = lh(f_big) + lh(f_small) * 2 + int(10 * s)
+    tile_lines = 2 if any(t.get("vs") for t in tiles) else 1   # no "avg" line yet: shorter tiles
+    tile_h = lh(f_big) + lh(f_small) * tile_lines + int(10 * s)
+    note = "Your averages show up after 3 games" if any(t.get("new") for t in tiles) else ""
     if tiles:
-        h += sec_h + tile_h + int(12 * s)
+        h += sec_h + tile_h + int(12 * s) + (lh(f_small) + int(4 * s) if note else 0)
     if gold:
         h += sec_h + face + int(14 * s)
     if result["rows"]:
@@ -445,12 +447,24 @@ def render(gd, result, scale=1.0, extras=None):
             d.rounded_rectangle((cx, y, cx + tw, y + tile_h), radius=int(8 * s), fill=(255, 255, 255, 12),
                                 outline=(255, 255, 255, 26), width=max(1, int(s)))
             ix, iy = cx + int(8 * s), y + int(5 * s)
-            d.text((ix, iy), t["value"], font=f_big, fill=WHITE)
-            d.text((ix, iy + lh(f_big)), t["label"], font=f_small, fill=HAZE)
+            room = tw - int(14 * s)
+
+            def fit(text, font):   # never spill out of the tile: trim with "..." if needed
+                if probe.textlength(text, font=font) <= room:
+                    return text
+                while text and probe.textlength(text + "...", font=font) > room:
+                    text = text[:-1]
+                return text.rstrip() + "..."
+            d.text((ix, iy), fit(t["value"], f_big), font=f_big, fill=WHITE)
+            d.text((ix, iy + lh(f_big)), fit(t["label"], f_small), font=f_small, fill=HAZE)
             if t.get("vs"):
                 col = UP if t.get("up") else DOWN if t.get("up") is False else HAZE
-                d.text((ix, iy + lh(f_big) + lh(f_small)), t["vs"], font=f_small, fill=col)
-        y += tile_h + int(12 * s)
+                d.text((ix, iy + lh(f_big) + lh(f_small)), fit(t["vs"], f_small), font=f_small, fill=col)
+        y += tile_h + int(4 * s)
+        if note:   # one line under the tiles instead of squeezing it into each one
+            d.text((x0, y), note, font=f_small, fill=HAZE)
+            y += lh(f_small)
+        y += int(8 * s)
     if gold:
         section("ITEMS VS YOUR LANE")
         face_at(gold.get("me_key"), x0, y)

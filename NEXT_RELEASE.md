@@ -3,7 +3,13 @@
 Changes that are in `main` but not released yet. When it's time to release, bump `APP_VERSION`,
 turn these into `release-notes/<version>.md`, then clear this list.
 
-Nothing held right now. 1.3.3 shipped the sharper League, CS2 and Apex logos.
+## For the release notes
+* **Tidier stats pop-up:** the "building your average" text no longer spills out of the boxes. Until you've played 3 games there's one short line under them instead, and any long text in a box now shrinks to fit.
+
+## Behind the scenes
+* `stat_tiles` marks tiles `new` (no average yet) instead of writing text into them; `lol_items.render` adds one note line,
+  makes the tiles shorter when there's no "avg" line, and trims any tile text to the tile width.
+
 
 ## Still to confirm on a real PC
 * Link Xbox pop-up end to end (log lines: "Sign-in pop-up opened", "Sign-in finished, refreshing Verse").
