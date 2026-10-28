@@ -99,14 +99,15 @@ try:
     import threading
     import time as _t
     from overlay import MoveMode
-    got = {}
-    done = threading.Event()
     r = rc.screen_rect(hmon) or (0, 0, 1024, 768)
-    mm = MoveMode(lambda: r, {"panel": [0.5, 0.4]}, lambda pos: (got.update(pos or {}), done.set()))
-    _t.sleep(2)
-    mm.stop()
-    done.wait(10)
-    print("move mode spots:", got)
+    for attempt in (1, 2, 3):   # several times in one run: the second time used to crash the app
+        got = {}
+        done = threading.Event()
+        mm = MoveMode(lambda: r, {"panel": [0.5, 0.4]}, lambda pos: (got.update(pos or {}), done.set()))
+        _t.sleep(1.5)
+        mm.stop()
+        done.wait(10)
+        print(f"move mode spots (try {attempt}):", got)
     mm._card("Stats box", 170, 270, 1.5).save(os.path.join(OUT, "move_card.png"))
     if not got or abs(got.get("panel", [0, 0])[0] - 0.5) > 0.02:
         problems.append(f"move mode didn't give the spots back: {got}")

@@ -405,6 +405,9 @@ class Overlay:
 
 
 # ---------------------------------------------------------------- moving the overlays
+_MOVE_CLASS = None   # (window procedure, user32, class) kept alive for the whole run, see MoveMode._run
+
+
 class MoveMode:
     """Alt+Shift+M: a labelled box for each overlay that the player can drag anywhere. Press it again and
     the spots are saved as shares of the screen (so they survive resolution and screen changes)."""
@@ -498,23 +501,29 @@ class MoveMode:
             k.GetModuleHandleW.argtypes = [wt.LPCWSTR]
             k.GetModuleHandleW.restype = wt.HMODULE
 
-            def proc(h, m, w, l):
-                if m == 0x0084:        # WM_NCHITTEST: the whole box is a handle Windows drags for us
-                    return 2           # HTCAPTION
-                if m == 0x0021:        # WM_MOUSEACTIVATE: don't steal focus from the game
-                    return 3           # MA_NOACTIVATE
-                return u.DefWindowProcW(h, m, w, l)
-            self._proc = WNDPROC(proc)
             hinst = k.GetModuleHandleW(None)
-            wc = WNDCLASSEXW()
-            wc.cbSize = ctypes.sizeof(WNDCLASSEXW)
-            wc.lpfnWndProc = self._proc
-            wc.hInstance = hinst
-            u.LoadCursorW.argtypes = [wt.HINSTANCE, ctypes.c_void_p]
-            u.LoadCursorW.restype = wt.HANDLE
-            wc.hCursor = u.LoadCursorW(None, ctypes.c_void_p(32646))   # IDC_SIZEALL, the move cursor
-            wc.lpszClassName = "VersePlatformMove"
-            u.RegisterClassExW(ctypes.byref(wc))
+            # Windows keeps a window class for the whole run, pointing at this window procedure. It must live as
+            # long as the app does (a module global), or opening move mode a second time crashes the app.
+            global _MOVE_CLASS
+            if _MOVE_CLASS is None:
+                def proc(h, m, w, l):
+                    if m == 0x0084:        # WM_NCHITTEST: the whole box is a handle Windows drags for us
+                        return 2           # HTCAPTION
+                    if m == 0x0021:        # WM_MOUSEACTIVATE: don't steal focus from the game
+                        return 3           # MA_NOACTIVATE
+                    return u.DefWindowProcW(h, m, w, l)
+                wndproc = WNDPROC(proc)
+                wc = WNDCLASSEXW()
+                wc.cbSize = ctypes.sizeof(WNDCLASSEXW)
+                wc.lpfnWndProc = wndproc
+                wc.hInstance = hinst
+                u.LoadCursorW.argtypes = [wt.HINSTANCE, ctypes.c_void_p]
+                u.LoadCursorW.restype = wt.HANDLE
+                wc.hCursor = u.LoadCursorW(None, ctypes.c_void_p(32646))   # IDC_SIZEALL, the move cursor
+                wc.lpszClassName = "VersePlatformMove"
+                if not u.RegisterClassExW(ctypes.byref(wc)):
+                    raise OSError("Couldn't set up the move boxes")
+                _MOVE_CLASS = (wndproc, u, wc)     # keep every piece alive for the rest of the run
             try:
                 scale = max(1.0, u.GetDpiForSystem() / 96)
             except Exception:
@@ -534,6 +543,9 @@ class MoveMode:
                 x, y = int(max(left, min(x, right - iw))), int(max(top, min(y, bottom - ih)))
                 hwnd = u.CreateWindowExW(0x00080000 | 0x00000008 | 0x00000080 | 0x08000000,   # layered topmost toolwindow noactivate
                                          "VersePlatformMove", label, 0x80000000, x, y, iw, ih, None, None, hinst, None)
+                if not hwnd:
+                    log.warning("Couldn't open the move box for %s", label)
+                    continue
                 r_, g_, b_, a_ = img.split()
                 r_, g_, b_ = (ImageChops.multiply(c, a_) for c in (r_, g_, b_))
                 data = Image.merge("RGBA", (b_, g_, r_, a_)).tobytes()
