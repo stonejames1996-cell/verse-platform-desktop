@@ -60,6 +60,7 @@ jobs:
           python -m pip install --quiet Pillow==10.4.0 psutil==6.0.0
           python tools/win_checks.py *> checks_out_log.txt
           $code = $LASTEXITCODE
+          python tools/icon_probe.py *>> checks_out_log.txt
           Get-Content checks_out_log.txt
           # keep the results on a side branch (ci-checks) so they can be read without the Actions UI
           New-Item -ItemType Directory -Force checks_out | Out-Null
