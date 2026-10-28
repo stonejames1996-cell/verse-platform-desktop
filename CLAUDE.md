@@ -88,7 +88,7 @@ Ask for `%APPDATA%\Verse Platform\verse_platform.log` (and `crash.log` if there 
 The "Ready." line shows encoder, capture method and "(GPU only)". Useful lines: "Capture froze", "Switching from",
 "Sound output changed", "Saved with no audio", "Told the squad".
 
-## Still to confirm on a real PC (as of 1.3.1)
+## Still to confirm on a real PC (as of 1.3.2)
 - GPU-only recording ("(GPU only)" in the log, lower FFmpeg CPU in Task Manager).
 - Default sound device following ("Sound output changed, recording follows it").
 - Squad POV end to end between two PCs (needs the Base44 squadRelay function published; the upload size limit is untested).
@@ -103,6 +103,7 @@ The "Ready." line shows encoder, capture method and "(GPU only)". Useful lines: 
   analysis in My clips, OP.GG ("OP.GG: region ..., rank ...", "OP.GG has the match"). Respawn times assumed: Dragon 5:00,
   Elder/Baron 6:00, inhibitors 5:00.
 - 1.3.1 icons: objective icons + dragon element on the timers, lane opponent picture, champion/rank pictures, game logos.
+- 1.3.2: the stats and item ideas shortcut set in Settings (`item_ideas_hotkey`).
 
 ## Ideas not built yet
 Slow-mo on the big moment, end card with K/D/A and verseplatform.gg,

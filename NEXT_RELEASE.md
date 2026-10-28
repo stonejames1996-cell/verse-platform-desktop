@@ -3,13 +3,7 @@
 Changes that are in `main` but not released yet. When it's time to release, bump `APP_VERSION`,
 turn these into `release-notes/<version>.md`, then clear this list.
 
-## For the release notes
-* **Pick your own League shortcut:** in Settings under League of Legends in game you can now choose the keys that show your stats and item ideas (Alt+Shift+I by default), the same way you set the save clip shortcut.
-
-## Behind the scenes
-* Settings has a second shortcut button (`item_ideas_hotkey`, now a live setting). It can't be the same as the save
-  shortcut, bad combos are refused, and a bad League shortcut never stops the save shortcut working.
-
+Nothing held right now. 1.3.2 shipped the League shortcut setting.
 
 ## Still to confirm on a real PC
 * Link Xbox pop-up end to end (log lines: "Sign-in pop-up opened", "Sign-in finished, refreshing Verse").
@@ -24,3 +18,4 @@ turn these into `release-notes/<version>.md`, then clear this list.
   arrive a few minutes after the game ("OP.GG has the match").
 * Match analysis in My clips after a real game (needs games played on 1.3.0; "your usual" needs 3).
 * 1.3.1 icons: objective icons and dragon element in a real match, lane opponent picture, game logos in My clips.
+* 1.3.2: changing the stats and item ideas shortcut in Settings, and that it works in game.
