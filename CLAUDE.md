@@ -38,6 +38,9 @@ saves clips on a hotkey or automatically on highlights, and hands clips to the w
 - `squad.py`: Squad POV. Mates share a squad code, highlights are signalled through the Base44 function
   `https://verseplatform.gg/functions/squadRelay?secret=...`, mates save their own POV, small copies come back and get
   combined side by side. Secret is baked in at build time from the `SQUAD_RELAY_SECRET` repo secret (`squad_secret.txt`, never committed).
+- `finals.py`: The Finals highlights. No game data feed, so the recorder adds a "tap" output (rewind_core TAP_W/TAP_CROP:
+  a 960x216 grey copy of the banner area under the crosshair, 4 fps, on ffmpeg's stdout) and Windows' built-in OCR
+  (pywinrt `winrt-*` packages) reads "ELIMINATED <name>", "TEAM WIPE", "TEAM STOLE A CASHOUT", cashouts. Checked in win_checks.
 - `triggers.py`: "clip that" voice command (Windows System.Speech) and controller combos (XInput).
 - `lol_live.py`: League companion loop: objective timers strip, the panel while dead (own stats vs `lol_history.json` averages,
   lane item gold, item ideas), match summary card + `summary` on the match. Riot policy: no enemy cooldowns, no win rates.

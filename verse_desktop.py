@@ -33,6 +33,7 @@ from highlights import DEFAULT_EVENTS, LeagueHighlights
 from lol_live import LeagueCompanion
 from triggers import COMBOS, ControllerTrigger, VoiceTrigger
 from gsi import CS2Highlights, DotaHighlights, GSIServer, install_cfgs
+from finals import FinalsHighlights, is_finals
 from squad import Squad, make_code
 from library import highlight_score
 
@@ -235,6 +236,9 @@ class App:
                                     on_match=self.on_match, on_death=self.on_death),
         }
         self.gsi_setup = {}
+        # The Finals: no game data feed, so highlights come from reading its on-screen pop-ups
+        self.finals = FinalsHighlights(lambda: self.cfg, self.is_playing, self.save_highlight,
+                                       on_match=self.on_match, on_death=self.on_death)
         self.squad = Squad(self)
         try:
             with open(INSTANCE_FILE, "w", encoding="utf-8") as f:
@@ -383,6 +387,8 @@ class App:
                 self.rec = None
             rec = Recorder(self.cfg, self.ff)
             rec.on_saved = self.on_saved
+            rec.tap = self.finals.feed_frame
+            rec.tap_for = lambda label: is_finals(label) and self.cfg.get("auto_highlights", True)
             rec.start(capture=False)  # the watch loop decides when to actually record
             self.rec = rec
         self.register_hotkey()
@@ -633,6 +639,8 @@ class App:
                             if not rec.capturing:
                                 rec.subfolder = ""          # new game: the next match folder comes from its details
                                 self.current_match = None
+                                if is_finals(game):
+                                    self.finals.reset()
                                 rec.begin_capture(game)
                                 self.notify(f"Recording {game}", f"Press {hk} to save a clip")
                             rec.label = game

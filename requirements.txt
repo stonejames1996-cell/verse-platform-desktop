@@ -5,3 +5,10 @@ PyAudioWPatch==0.2.12.7
 psutil==6.0.0
 pywebview==5.3.2
 pyinstaller==6.10.0
+winrt-runtime==3.2.1
+winrt-Windows.Foundation==3.2.1
+winrt-Windows.Foundation.Collections==3.2.1
+winrt-Windows.Globalization==3.2.1
+winrt-Windows.Graphics.Imaging==3.2.1
+winrt-Windows.Media.Ocr==3.2.1
+winrt-Windows.Storage.Streams==3.2.1

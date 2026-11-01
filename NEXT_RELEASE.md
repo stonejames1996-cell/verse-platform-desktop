@@ -9,6 +9,11 @@ turn these into `release-notes/<version>.md`, then clear this list.
 * Settings: every group starts closed, showing an icon, its name and a one-line summary. Click to open it.
   Open and Close all buttons, groups remember if you left them open, and they sit in two fixed columns so
   opening one never moves the others.
+* The Finals auto highlights (new). The game has no data feed for apps, so the app reads its own
+  pop-ups under the crosshair with Windows' built-in text recognition: "ELIMINATED <name>" (double,
+  triple, quad, penta within 6s of each other), "TEAM WIPE", "TEAM STOLE A CASHOUT" and your team's
+  cashout. New Settings switches under Auto highlights: Team wipe, Cashout, Cashout steal. The Finals is
+  now recognised by name (Discovery.exe with the "THE FINALS" window) and has its logo in My clips.
 
 ## Still to confirm on a real PC
 * Link Xbox pop-up end to end (log lines: "Sign-in pop-up opened", "Sign-in finished, refreshing Verse").
@@ -24,5 +29,7 @@ turn these into `release-notes/<version>.md`, then clear this list.
 * Match analysis in My clips after a real game (needs games played on 1.3.0; "your usual" needs 3).
 * 1.3.1 icons: objective icons and dragon element in a real match, lane opponent picture, game logos in My clips.
 * 1.3.2: changing the stats and item ideas shortcut in Settings, and that it works in game.
+* The Finals highlights in real matches (log: "Reading The Finals's on-screen pop-ups", "The Finals: elimination",
+  "The Finals banner not understood: ..." shows cashout wording we don't know yet). Try 1080p and 1440p.
 * Next release: the save pop-up appears in a clip saved within 60s of another one, and Settings groups open and close.
 * 1.3.4: dragging overlays in move mode in a real game, the new chart and closed analysis in My clips.

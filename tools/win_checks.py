@@ -3,6 +3,7 @@ Quick checks that run on the Windows build machine (GitHub Actions) before each 
   * screen helpers: find the screen of a window, match it to Desktop Duplication's numbering
   * FFmpeg: can gfxcapture aim at a screen by handle (hmonitor=)?
   * League item ideas: load Riot's game data and draw the pop-up for a made-up match
+  * The Finals: read made-up highlight banners with Windows' text recognition
 Writes what it finds to checks_out/ (uploaded with the build, handy for eyeballing the pop-up).
 """
 import ctypes
@@ -137,6 +138,76 @@ try:
         problems.append("OP.GG answers missing (profile / champion at tier / top players)")
 except Exception as e:
     problems.append(f"OP.GG check crashed: {e}")
+
+# ---- The Finals: read made-up banners with Windows' text recognition, the same way the app does
+try:
+    import random
+    from PIL import Image, ImageDraw, ImageFilter, ImageFont
+    import finals
+    fdir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "assets", "fonts")
+    big = ImageFont.truetype(os.path.join(fdir, "InterDisplay-Bold.otf"), 34)
+    small = ImageFont.truetype(os.path.join(fdir, "InterDisplay-Bold.otf"), 26)
+
+    def frame_1080(top, bottom, bg):
+        """A 1920x1080 'game' picture with a Finals-style banner under the crosshair (italic, white/red/yellow)."""
+        rnd = random.Random(bg)
+        im = Image.new("RGB", (1920, 1080), [(30, 40, 60), (150, 160, 190), (90, 60, 40)][bg])
+        d = ImageDraw.Draw(im)
+        for _ in range(400):   # busy scenery
+            x, y = rnd.randrange(1920), rnd.randrange(1080)
+            c = tuple(min(255, v + rnd.randrange(-60, 60)) for v in im.getpixel((x, y)))
+            d.rectangle((x, y, x + rnd.randrange(10, 120), y + rnd.randrange(10, 80)), fill=c)
+        im = im.filter(ImageFilter.GaussianBlur(2))
+        text = Image.new("RGBA", (1920, 200), (0, 0, 0, 0))
+        td = ImageDraw.Draw(text)
+        x = 960 - sum(td.textlength(t + "  ", font=big) for t, _ in top) / 2
+        for t, col in top:
+            td.text((x, 30), t, font=big, fill=col, stroke_width=1, stroke_fill=(0, 0, 0))
+            x += td.textlength(t + "  ", font=big)
+        bw = td.textlength(bottom, font=small)
+        td.text((960 - bw / 2, 80), bottom, font=small, fill=(232, 226, 60), stroke_width=1, stroke_fill=(0, 0, 0))
+        text = text.transform(text.size, Image.AFFINE, (1, 0.2, -20, 0, 1, 0))   # italic slant
+        im.paste(text, (0, 660), text)
+        return im
+
+    W, R, Y = (240, 240, 240), (230, 40, 60), (232, 226, 60)
+    samples = [
+        ([("ELIMINATED", W), ("SEERKING", R), ("$100", Y)], "ELIMINATION | + 250", 0, "elim"),
+        ([("ELIMINATED", W), ("XxDarkWolf_99", R), ("$100", Y)], "ELIMINATION | + 250", 1, "elim"),
+        ([("TEAM WIPE", W), ("BONUS", Y)], "ELIMINATION 250 + 696", 2, "wipe"),
+        ([("TEAM STOLE A CASHOUT", W), ("BONUS", Y), ("$1,000", Y)], "ASSIST + 600", 1, "steal"),
+    ]
+    # run the frames through FFmpeg with the recorder's own crop, so the banner position is checked too
+    ff = os.path.abspath(os.path.join("build_deps", "ffmpeg.exe"))
+    ocr = finals.WindowsOcr()
+    ok = 0
+    for i, (top, bottom, bg, want) in enumerate(samples):
+        src = os.path.join(OUT, f"finals_frame_{i}.png")
+        frame_1080(top, bottom, bg).save(src)
+        if os.path.exists(ff):
+            raw = subprocess.run([ff, "-hide_banner", "-loglevel", "error", "-i", src, "-vf", rc.TAP_CROP,
+                                  "-f", "rawvideo", "-pix_fmt", "gray", "-"], capture_output=True).stdout
+            crop = Image.frombytes("L", (rc.TAP_W, rc.TAP_H), raw[:rc.TAP_W * rc.TAP_H])
+        else:
+            crop = Image.open(src).convert("L").crop((480, 594, 1440, 810))
+        crop.save(os.path.join(OUT, f"finals_tap_{i}.png"))
+        lines, got = [], []
+        for v, version in enumerate(finals.prepare(crop)):
+            read = ocr.read(version)
+            lines.append(f"v{v}: {read}")
+            got = finals.parse(read)
+            if got:
+                break
+        hit = any(k == want for k, _ in got)
+        ok += hit
+        print(f"finals sample {i} want={want} bright={finals.has_bright_text(crop)} got={got}", *lines, sep="\n   ")
+    print(f"finals: {ok}/{len(samples)} banners read right (OCR available: {ocr.ok})")
+    if ok < len(samples):
+        problems.append(f"The Finals banners: only {ok}/{len(samples)} read right")
+except Exception as e:
+    import traceback
+    traceback.print_exc()
+    problems.append(f"The Finals check crashed: {e}")
 
 print("\nPROBLEMS:" if problems else "\nAll good", *problems, sep="\n  ")
 sys.exit(1 if problems else 0)

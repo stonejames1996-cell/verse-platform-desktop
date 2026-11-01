@@ -503,3 +503,4 @@ input[type="text"]:focus { outline: 2px solid var(--signal); outline-offset: 1px
 .set-col { flex: 1 1 520px; min-width: 0; display: grid; gap: 20px; }
 .set-col > .set-group { margin: 0; }
 .set-inner > .set-sub:first-child { margin-top: 14px; }
+.hl-logo { width: 16px; height: 16px; border-radius: 4px; vertical-align: -3px; margin-right: 4px; }

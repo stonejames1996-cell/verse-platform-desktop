@@ -40,6 +40,13 @@ VERSE_URL = "https://verseplatform.gg"
 # GitHub repo the app updates itself from ("owner/repo"). Release.bat fills this in. Blank = no auto update.
 UPDATE_REPO = "stonejames1996-cell/verse-platform-desktop"
 SEGMENT_SECONDS = 2  # length of each chunk in the rolling buffer
+# "tap": a small grey copy of one part of the picture, a few times a second, handed to the app while
+# recording. The Finals has no live game data for apps, so its highlights come from reading the
+# banner under the crosshair ("ELIMINATED ...", "TEAM WIPE", cashouts). Sized for that banner.
+TAP_W, TAP_H, TAP_FPS = 960, 216, 4
+# the banner area, as parts of the screen height (so 16:9, 16:10 and ultrawide all crop the same spot)
+TAP_CROP = (f"crop=w=trunc(ih*0.889/2)*2:h=trunc(ih*0.2/2)*2:x=trunc((iw-ih*0.889)/4)*2:y=trunc(ih*0.55/2)*2,"
+            f"scale={TAP_W}:{TAP_H},format=gray")
 IS_WINDOWS = sys.platform == "win32"
 FROZEN = getattr(sys, "frozen", False)  # True when running as the installed .exe
 # folder with the program itself (the .exe, or this .py file)
@@ -438,6 +445,8 @@ class Recorder:
         self._out_id = None
         self.save_lock = threading.Lock()
         self.on_saved = None  # callback(path or None, message)
+        self.tap = None       # callback(grey bytes, width, height, time) for tap frames, see TAP_W
+        self.tap_for = lambda label: False   # which games want the tap
         self.encoder = pick_encoder(ff, cfg["encoder"])
         self.capture = pick_capture(ff, cfg["capture"], cfg["monitor"])
         self.audio_info = open_loopback() if (cfg["record_desktop_audio"] and IS_WINDOWS) else None
@@ -520,9 +529,12 @@ class Recorder:
         # GPU only: the captured frames stay on the graphics card and go straight into its encoder, no
         # copy to the processor and no conversion there. Only a 4 fps copy comes down for the freeze check.
         zero = self.zero_copy_ok()
+        tap = self.tap_wanted()
         if zero:
             keep_fps = f"fps={c['fps']}," if self.capture == "gfxcapture" else ""
             graph = f"[0:v]{keep_fps}split=2[v][fz0];[fz0]fps=4,hwdownload,format=bgra,"
+            if tap:   # the 4 fps copy is already on the processor: the tap shares it
+                graph += f"split=2[tp0][fzx];[tp0]{TAP_CROP}[tap];[fzx]"
         vf = [f for f in (vpre,) if f]
         if c["output_height"]:
             vf.append(f"scale=-2:{int(c['output_height'])}")
@@ -536,7 +548,10 @@ class Recorder:
         self.unfreeze_path = os.path.join(self.seg_dir, f"unfreeze_{self.run:05d}.txt")
         esc = lambda p: p.replace("\\", "/").replace(":", "\\:")
         if not zero:
-            graph = f"[0:v]{','.join(vf)},split=2[v][fz];[fz]"
+            if tap:
+                graph = f"[0:v]{','.join(vf)},split=3[v][fz][tp0];[tp0]fps={TAP_FPS},{TAP_CROP}[tap];[fz]"
+            else:
+                graph = f"[0:v]{','.join(vf)},split=2[v][fz];[fz]"
         graph += (f"scale=160:-2,freezedetect=n=0.001:d=2,"
                  f"metadata=mode=print:key=lavfi.freezedetect.freeze_start:file='{esc(self.freeze_path)}':direct=1,"
                  f"metadata=mode=print:key=lavfi.freezedetect.freeze_end:file='{esc(self.unfreeze_path)}':direct=1,nullsink")
@@ -566,7 +581,33 @@ class Recorder:
         cmd += encoder_args(self.encoder, c["bitrate"], c["fps"])
         cmd += ["-f", "segment", "-segment_time", str(SEGMENT_SECONDS), "-segment_format", "mpegts",
                 "-reset_timestamps", "0", os.path.join(self.seg_dir, f"seg_{self.run:05d}_%07d.ts")]
+        if tap:   # second output: the raw grey tap frames, read by _read_tap
+            cmd += ["-map", "[tap]", "-c:v", "rawvideo", "-fps_mode", "passthrough",
+                    "-f", "rawvideo", "-pix_fmt", "gray", "pipe:1"]
         return cmd
+
+    def tap_wanted(self):
+        try:
+            return bool(self.tap) and bool(self.tap_for(self.label))
+        except Exception:
+            return False
+
+    def _read_tap(self, proc):
+        """Hands each tap frame to the app. Must never stall: ffmpeg waits if this pipe fills up,
+        which would hold up the recording too, so the callback only stores the frame."""
+        size = TAP_W * TAP_H
+        out = proc.stdout
+        while True:
+            try:
+                buf = out.read(size)
+            except (OSError, ValueError):
+                break
+            if not buf or len(buf) < size:
+                break
+            try:
+                self.tap(buf, TAP_W, TAP_H, time.time())
+            except Exception:
+                log.debug("tap frame", exc_info=True)
 
     def start(self, capture=True):
         """Starts the background threads. capture=False means wait for begin_capture()
@@ -645,8 +686,13 @@ class Recorder:
         cmd = self.build_command()
         log.debug("ffmpeg: %s", subprocess.list2cmdline(cmd))
         self._ff_log = open(os.path.join(self.seg_dir, "ffmpeg.log"), "ab")
+        tap = "[tap]" in cmd
         self.proc = subprocess.Popen(cmd, stdin=subprocess.PIPE if self.audio_info else subprocess.DEVNULL,
-                                     stdout=subprocess.DEVNULL, stderr=self._ff_log, creationflags=NO_WINDOW)
+                                     stdout=subprocess.PIPE if tap else subprocess.DEVNULL,
+                                     stderr=self._ff_log, creationflags=NO_WINDOW)
+        if tap:
+            log.info("Reading %s's on-screen pop-ups for highlights", self.label)
+            threading.Thread(target=self._read_tap, args=(self.proc,), daemon=True, name="tap").start()
         if self.audio_info:
             rate, ch, source = self.audio_info
             self.audio = AudioFeeder(rate, ch, source)
@@ -958,6 +1004,7 @@ KNOWN_GAMES = {
 # Games that share a generic exe, matched by exe + window title instead
 TITLE_GAMES = [
     ("javaw.exe", "Minecraft", "Minecraft"),   # Minecraft Java (and modpacks like Cobblemon)
+    ("discovery.exe", "THE FINALS", "The Finals"),   # Embark's exe has a very generic name
 ]
 
 # Fullscreen apps that are NOT games (so watching YouTube fullscreen doesn't record)

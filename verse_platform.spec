@@ -9,6 +9,10 @@ import os
 if os.path.exists("squad_secret.txt"):   # written by the GitHub build from a repo secret
     datas += [("squad_secret.txt", ".")]
 hidden = ["pystray._win32"]
+try:  # Windows' built-in text recognition, used for The Finals highlights
+    hidden += collect_submodules("winrt")
+except Exception:
+    pass
 try:  # the window (pywebview + Edge WebView2 through pythonnet)
     datas += collect_data_files("webview")
     hidden += collect_submodules("webview.platforms") + ["clr", "clr_loader"]

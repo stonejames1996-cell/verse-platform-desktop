@@ -204,7 +204,7 @@
 
         <section class="set-group" id="hl-group">
           <h3>Auto highlights</h3>
-          <p class="set-sub">League of Legends, Counter-Strike 2 and Dota 2. In CS2 a 3K or 4K is counted across the round. <span id="gsi-note"></span></p>
+          <p class="set-sub">League of Legends, Counter-Strike 2, Dota 2 and The Finals. In CS2 a 3K or 4K is counted across the round. The Finals is read from its on-screen pop-ups, so keep the game's HUD on. <span id="gsi-note"></span></p>
           <div class="row">
             <div class="row-text"><strong>Auto clip highlights</strong><span>Saves short clips of your plays by itself, no key needed</span></div>
             <label class="switch"><input type="checkbox" data-set="auto_highlights"><span></span></label>
@@ -233,6 +233,12 @@
               <label><input type="checkbox" data-hl="victory"> Victory <small>the Nexus falling</small></label>
               <label><input type="checkbox" data-hl="defeat"> Defeat</label>
               <label><input type="checkbox" data-hl="death"> Your deaths <small>blooper reel</small></label>
+            </div>
+            <div class="hl-list" role="group" aria-label="The Finals">
+              <div class="hl-head"><img class="hl-logo" src="games/the-finals.png" alt=""> The Finals</div>
+              <label><input type="checkbox" data-hl="team_wipe"> Team wipe</label>
+              <label><input type="checkbox" data-hl="cashout"> Cashout <small>your team cashes out</small></label>
+              <label><input type="checkbox" data-hl="cashout_steal"> Cashout steal</label>
             </div>
             <div class="row">
               <div class="row-text"><strong>Clip length</strong><span>Around the whole play, so a fight is one clip</span></div>

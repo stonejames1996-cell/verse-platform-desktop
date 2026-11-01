@@ -30,6 +30,7 @@ DEFAULT_EVENTS = {
     "first_blood": True, "ace": True, "teamfight": True, "every_kill": False,
     "steal": True, "baron_elder": True, "dragon": False, "structure": False,
     "victory": True, "defeat": False, "death": False,
+    "team_wipe": True, "cashout": True, "cashout_steal": True,     # The Finals
 }
 MULTI = {2: ("double", "Double kill", 4), 3: ("triple", "Triple kill", 6),
          4: ("quadra", "Quadra kill", 9), 5: ("penta", "Pentakill", 10)}
