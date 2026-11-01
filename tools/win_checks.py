@@ -198,7 +198,7 @@ try:
             got = finals.parse(read)
             if got:
                 break
-        hit = any(k == want for k, _ in got)
+        hit = [k for k, _ in got] == [want]   # exactly the one moment, no made-up extra kills
         ok += hit
         print(f"finals sample {i} want={want} bright={finals.has_bright_text(crop)} got={got}", *lines, sep="\n   ")
     print(f"finals: {ok}/{len(samples)} banners read right (OCR available: {ocr.ok})")

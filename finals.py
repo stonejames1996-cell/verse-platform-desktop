@@ -50,17 +50,21 @@ def _has(tokens, word, cut=0.8):
 
 
 def _eliminated_name(tokens):
-    """The name after ELIMINATED, or None if this line isn't a kill banner.
-    The line under it reads 'ELIMINATION | +250', so ...ION words don't count."""
+    """The name after ELIMINATED ('?' if the name couldn't be read: it's red and often too faint),
+    or None if this line isn't a kill banner. The reward line under it reads 'ELIMINATION | +250'
+    (sometimes read as 'ELIMINA TION'), and that one must not count as another kill."""
+    glued = "".join(tokens)
+    if re.search(r"ELIM[I1L]NA\W*T[I1L][O0]N", glued) or "TION" in tokens:
+        return None
     for i, t in enumerate(tokens):
-        if t.endswith(("ION", "I0N", "lON")) or not _like(t, "ELIMINATED", 0.78):
+        if t.endswith(("ION", "I0N", "LON")) or not _like(t, "ELIMINATED", 0.78):
             continue
         name = []
         for nt in tokens[i + 1:]:
             if nt.startswith(("$", "+", "|")) or re.fullmatch(r"[\d,.$+]+", nt):
                 break
             name.append(nt)
-        return " ".join(name) or None
+        return " ".join(name) or "?"
     return None
 
 
