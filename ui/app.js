@@ -1033,8 +1033,81 @@ async function tick() {
   if (r.notice) toast(r.notice);
 }
 
+// ---------- settings: every group starts closed; click its header to open it
+const GROUP_INFO = {
+  "Recording": ["i-rec", "Shortcut, clip length, quality and screen"],
+  "Games": ["i-pad", "Which games and apps get recorded"],
+  "Audio": ["i-sound", "Game sound and microphone"],
+  "League of Legends in game": ["games/league-of-legends.png", "Pop-ups, stats box and shortcuts"],
+  "Auto highlights": ["i-star", "Kills, objectives and wins saved by themselves"],
+  "Squad POV": ["i-squad", "Clip your mates' view of the same moment"],
+  "More ways to save a clip": ["i-mic", "Voice command and controller combo"],
+  "Storage": ["i-folder", "Space used and auto clean"],
+  "General": ["i-gear", "Start with Windows, clips folder and updates"],
+};
+const OPEN_KEY = "verse.settings.open";
+function openGroups() {
+  try { return new Set(JSON.parse(localStorage.getItem(OPEN_KEY) || "[]")); } catch (e) { return new Set(); }
+}
+function saveOpenGroups(set) {
+  try { localStorage.setItem(OPEN_KEY, JSON.stringify([...set])); } catch (e) { /* not kept, that's fine */ }
+}
+function setupGroups() {
+  const groups = [...document.querySelectorAll("#view-settings .set-group")];
+  if (!groups.length || groups[0].querySelector(".set-head")) return;
+  const open = openGroups();
+  groups.forEach((g, i) => {
+    const h3 = g.querySelector(":scope > h3");
+    if (!h3) return;
+    const name = h3.childNodes[0].textContent.trim();
+    const key = g.id || name;
+    const [ic, sum] = GROUP_INFO[name] || ["i-gear", ""];
+    const bodyId = `set-body-${i}`;
+    const inner = el("div", { class: "set-inner" });
+    while (h3.nextSibling) inner.append(h3.nextSibling);
+    const body = el("div", { class: "set-body", id: bodyId, role: "region" }, inner);
+    const ico = el("span", { class: "set-ico", "aria-hidden": "true" });
+    if (ic.startsWith("i-")) ico.append(icon(ic));
+    else ico.append(el("img", { src: ic, alt: "" }));
+    const chev = icon("i-chev");
+    chev.setAttribute("class", "set-chev");
+    chev.setAttribute("aria-hidden", "true");
+    const head = el("button", { class: "set-head", type: "button", "aria-controls": bodyId },
+      ico, el("span", { class: "set-title" }, h3, sum ? el("span", { class: "set-sum" }, sum) : null), chev);
+    const toggle = (want) => {
+      const on = want ?? !g.classList.contains("open");
+      g.classList.toggle("open", on);
+      head.setAttribute("aria-expanded", on ? "true" : "false");
+      inner.inert = !on;
+      const now = openGroups();
+      on ? now.add(key) : now.delete(key);
+      saveOpenGroups(now);
+    };
+    head.addEventListener("click", () => toggle());
+    g.prepend(head, body);
+    const startOpen = open.has(key);
+    g.classList.toggle("open", startOpen);
+    head.setAttribute("aria-expanded", startOpen ? "true" : "false");
+    inner.inert = !startOpen;
+  });
+  const settings = document.querySelector("#view-settings .settings");
+  if (settings) {
+    // two fixed columns, so opening a group never makes the others jump sides
+    const split = groups.findIndex((g) => g.id === "hl-group");
+    const left = el("div", { class: "set-col" }), right = el("div", { class: "set-col" });
+    groups.forEach((g, i) => (split > 0 && i >= split ? right : left).append(g));
+    settings.classList.add("set-cols");
+    settings.append(left, right);
+    const all = (on) => groups.forEach((g) => { if (g.classList.contains("open") !== on) g.querySelector(".set-head").click(); });
+    settings.before(el("div", { class: "set-tools" },
+      el("button", { class: "link-btn", type: "button", onclick: () => all(true) }, "Open all"),
+      el("button", { class: "link-btn", type: "button", onclick: () => all(false) }, "Close all")));
+  }
+}
+
 async function start() {
   api = window.pywebview.api;
+  setupGroups();
   wire();
   $("#update-btn").addEventListener("click", startUpdate);
   show("clips");

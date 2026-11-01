@@ -475,3 +475,31 @@ input[type="text"]:focus { outline: 2px solid var(--signal); outline-offset: 1px
 .ch-htext { font-size: 12px; } .ch-hmin { fill: #8a96a3; font-weight: 700; }
 .ch-hrow { fill: #e5e7eb; font-weight: 600; } .ch-hrow.you { fill: #67e8f9; } .ch-hrow.usual { fill: #34d399; }
 .mac-chev.up { transform: translateY(2px) rotate(225deg); }
+
+/* ---------- settings: collapsible groups (closed until opened) */
+.set-group { padding: 0; overflow: hidden; transition: border-color .2s; }
+.set-group.open { border-color: #2f3a3d; }
+.set-head { all: unset; box-sizing: border-box; width: 100%; display: flex; align-items: center; gap: 14px; padding: 16px 20px; cursor: pointer; border-radius: var(--r-md); }
+.set-head:hover { background: var(--deck-2); }
+.set-head:focus-visible { outline: 2px solid var(--signal); outline-offset: -2px; }
+.set-ico { flex: none; width: 38px; height: 38px; border-radius: 10px; display: grid; place-items: center; background: rgba(34, 211, 238, .09); color: var(--signal); }
+.set-ico svg { width: 20px; height: 20px; }
+.set-ico img { width: 26px; height: 26px; border-radius: 6px; }
+.set-title { flex: 1; min-width: 0; display: grid; gap: 1px; }
+.set-group .set-title h3 { margin: 0; font-size: 13px; }
+.set-sum { color: var(--haze); font-size: 12.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.set-chev { flex: none; width: 20px; height: 20px; color: var(--haze); transition: transform .25s ease; }
+.set-group.open .set-chev { transform: rotate(180deg); color: var(--signal); }
+.set-body { display: grid; grid-template-rows: 0fr; transition: grid-template-rows .28s ease; }
+.set-group.open .set-body { grid-template-rows: 1fr; }
+.set-inner { min-height: 0; overflow: hidden; padding: 0 22px; }
+.set-group.open .set-inner { padding-bottom: 8px; border-top: 1px solid var(--seam); }
+.set-tools { display: flex; justify-content: flex-end; gap: 8px; margin: -6px 0 12px; }
+.link-btn { all: unset; cursor: pointer; color: var(--haze); font-size: 12.5px; padding: 4px 6px; border-radius: 6px; }
+.link-btn:hover { color: var(--signal); }
+.link-btn:focus-visible { outline: 2px solid var(--signal); }
+@media (prefers-reduced-motion: reduce) { .set-body, .set-chev { transition: none; } }
+.settings.set-cols { column-count: auto; display: flex; flex-wrap: wrap; gap: 20px; align-items: flex-start; }
+.set-col { flex: 1 1 520px; min-width: 0; display: grid; gap: 20px; }
+.set-col > .set-group { margin: 0; }
+.set-inner > .set-sub:first-child { margin-top: 14px; }

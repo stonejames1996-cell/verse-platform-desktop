@@ -4,7 +4,8 @@
 It's a Windows layered window:
   * click-through and never takes focus, so the game keeps your mouse and keyboard
   * always on top of borderless / windowed games (exclusive fullscreen hides everything, like Game Bar)
-  * hidden from screen capture (WDA_EXCLUDEFROMCAPTURE), so it never shows up in your own clips
+  * notices are hidden from screen capture (WDA_EXCLUDEFROMCAPTURE); the "saved by Verse Platform"
+    pop-up and the item ideas are left visible, so Verse shows up in people's clips
 The picture is drawn with Pillow (smooth corners, real transparency) and faded in and out.
 """
 
@@ -164,9 +165,10 @@ class Overlay:
         if self.ok:
             threading.Thread(target=self._run, daemon=True, name="overlay").start()
 
-    def show(self, lead, accent="Verse Platform", sub="", ok=True):
+    def show(self, lead, accent="Verse Platform", sub="", ok=True, in_clips=False):
+        """in_clips: let it show up in recordings (the "saved by Verse Platform" pop-up does)."""
         if self.ok:
-            self.q.put(("msg", lead, accent, sub, ok))
+            self.q.put(("msg", lead, accent, sub, ok, in_clips))
 
     def show_image(self, img, seconds=SHOW_SECONDS, until=None, place="top", in_clips=False):
         """Shows a ready drawn RGBA picture. until: optional check, the pop-up goes as soon as it
@@ -316,12 +318,12 @@ class Overlay:
         except Exception:
             return 1.0
 
-    def _play(self, lead, accent, sub, ok):
-        self._present(render(lead, accent, sub, self._scale(), ok), SHOW_SECONDS, None, "top")
+    def _play(self, lead, accent, sub, ok, in_clips=False):
+        self._present(render(lead, accent, sub, self._scale(), ok), SHOW_SECONDS, None, "top", in_clips)
 
     def _present(self, img, seconds, until, place, in_clips=False, static=False):
         ct, wt, u, g = self.ct, self.wt, self.u, self.g
-        try:   # save pop-ups stay out of recordings, the item ideas can be in them
+        try:   # notices stay out of recordings; the save pop-up and item ideas can be in them
             u.SetWindowDisplayAffinity(self.hwnd, 0 if in_clips else 0x11)
         except Exception:
             pass

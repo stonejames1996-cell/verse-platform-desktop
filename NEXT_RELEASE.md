@@ -3,7 +3,12 @@
 Changes that are in `main` but not released yet. When it's time to release, bump `APP_VERSION`,
 turn these into `release-notes/<version>.md`, then clear this list.
 
-Nothing held right now. 1.3.5 shipped the move mode crash fix.
+## Held
+* The "Last 60s saved by Verse Platform" pop-up is always on now (the Settings switch is gone) and it shows up
+  in recordings, so Verse is seen in people's clips. Error pop-ups and other notices still stay out of clips.
+* Settings: every group starts closed, showing an icon, its name and a one-line summary. Click to open it.
+  Open and Close all buttons, groups remember if you left them open, and they sit in two fixed columns so
+  opening one never moves the others.
 
 ## Still to confirm on a real PC
 * Link Xbox pop-up end to end (log lines: "Sign-in pop-up opened", "Sign-in finished, refreshing Verse").
@@ -19,4 +24,5 @@ Nothing held right now. 1.3.5 shipped the move mode crash fix.
 * Match analysis in My clips after a real game (needs games played on 1.3.0; "your usual" needs 3).
 * 1.3.1 icons: objective icons and dragon element in a real match, lane opponent picture, game logos in My clips.
 * 1.3.2: changing the stats and item ideas shortcut in Settings, and that it works in game.
+* Next release: the save pop-up appears in a clip saved within 60s of another one, and Settings groups open and close.
 * 1.3.4: dragging overlays in move mode in a real game, the new chart and closed analysis in My clips.

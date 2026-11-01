@@ -44,7 +44,7 @@ RESTART_KEYS = {"fps", "bitrate", "output_height", "monitor", "record_desktop_au
                 "encoder", "capture", "draw_mouse", "audio_offset_ms"}
 LIVE_KEYS = {"hotkey", "buffer_seconds", "record_mode", "detect_fullscreen_apps", "stop_delay_seconds",
              "custom_games", "ignored_apps", "play_sound_on_save", "sort_clips_by_game",
-             "show_save_overlay", "auto_highlights", "highlight_events", "highlight_before",
+             "auto_highlights", "highlight_events", "highlight_before",
              "highlight_after", "highlight_max_per_game", "voice_command",
              "death_review", "death_review_before", "squad_code", "squad_name", "squad_share",
              "controller_combo", "auto_clean_days", "auto_clean_permanent", "follow_game_screen",
@@ -578,21 +578,16 @@ class App:
         return clip
 
     def flash(self, title, sub=""):
-        if self.cfg.get("show_save_overlay", True):
-            self.overlay.show(title, accent="", sub=sub)
-        else:
-            self.notify(title, sub)
+        self.overlay.show(title, accent="", sub=sub)
         self.notice(f"{title}: {sub}" if sub else title)
 
     def on_saved(self, path, msg):
         if self.cfg.get("play_sound_on_save") and IS_WINDOWS:
             import winsound
             winsound.MessageBeep(winsound.MB_OK if path else winsound.MB_ICONHAND)
-        overlay = self.cfg.get("show_save_overlay", True)
         if not path:
             self.notice(msg)
-            if overlay:
-                self.overlay.show(msg, accent="", ok=False)
+            self.overlay.show(msg, accent="", ok=False)
             self.notify(APP_NAME, msg)
             return
         game = self.rec.label if self.rec else ""
@@ -609,16 +604,11 @@ class App:
             self.wm_queue.put(clip["id"])
         if tag:
             self.notice(f"Highlight saved: {tag}")
-            if overlay:
-                self.overlay.show(tag, accent="", sub=f"{game}  \u00b7  last {secs} saved by Verse Platform")
-            else:
-                self.notify(f"Highlight saved: {tag}", f"{game} clip saved on this PC.")
+            # always on, and visible in recordings: Verse should be seen in people's clips
+            self.overlay.show(tag, accent="", sub=f"{game}  \u00b7  last {secs} saved by Verse Platform", in_clips=True)
             return
         self.notice("Clip saved to your library")
-        if overlay:
-            self.overlay.show(f"Last {secs} saved by")
-        else:
-            self.notify("Clip saved", f"{game or 'Clip'} saved on this PC. Open Clips to post it to Verse.")
+        self.overlay.show(f"Last {secs} saved by", in_clips=True)
 
     def watch_loop(self):
         """Every 2 seconds: is a game running? Start or stop recording to match."""
