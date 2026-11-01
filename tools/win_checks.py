@@ -203,7 +203,11 @@ try:
         print(f"finals sample {i} want={want} bright={finals.has_bright_text(crop)} got={got}", *lines, sep="\n   ")
     print(f"finals: {ok}/{len(samples)} banners read right (OCR available: {ocr.ok})")
     import finals_overlay as fo
-    fo.render_combo(3, True, 800, 1.25).save(os.path.join(OUT, "finals_combo.png"))
+    fo.render_title(2, False, 200, 1.25).save(os.path.join(OUT, "finals_title.png"))
+    got_icons = {k: fo.game_icon(k) is not None for k in fo.GAME_ICONS}
+    print("finals game icons downloaded:", got_icons)
+    if not all(got_icons.values()):
+        problems.append(f"The Finals icons didn't download: {got_icons}")
     fo.render_box({"elims": 14, "wipes": 2, "cashouts": 3, "steals": 1, "best": 3, "cash": 4300}, 1.25).save(os.path.join(OUT, "finals_box.png"))
     fo.render_summary({"elims": 14, "wipes": 2, "cashouts": 3, "steals": 1, "best": 3, "cash": 4300, "minutes": 47},
                       {"elims": 11.2, "wipes": 2, "cashouts": 1.5, "steals": 1.4, "best": 2.2, "cash": 3100}, 1.25).save(os.path.join(OUT, "finals_summary.png"))

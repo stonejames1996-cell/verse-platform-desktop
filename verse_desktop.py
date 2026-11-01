@@ -471,18 +471,19 @@ class App:
             return 1.0
 
     def finals_combo_show(self, n, wipe, cash):
-        """The Verse combo counter: up on each elimination, gone 3.5s after the last one. Shows in clips."""
+        """A pop-up on each elimination with its title ("Double kill", "Team wipe"), like League's highlight
+        pop-ups. Shows in clips. Goes 3s after the last one."""
         if not (self.cfg.get("finals_combo", True) and self.is_playing("The Finals")) or self.move_mode:
             return
-        from finals_overlay import render_combo
-        self.finals_combo.show_static(render_combo(n, wipe, cash, self._ov_scale()), place="combo", in_clips=True)
+        from finals_overlay import render_title
+        self.finals_combo.show_static(render_title(n, wipe, cash, self._ov_scale()), place="combo", in_clips=True)
         self._combo_token += 1
         tok = self._combo_token
 
         def gone():
             if tok == self._combo_token:
                 self.finals_combo.hide_static()
-        threading.Timer(4.5 if wipe else 3.5, gone).start()
+        threading.Timer(4.0 if wipe else 3.0, gone).start()
 
     def finals_stats(self, stats=None):
         """'Your game so far' box on the right. Never in clips. Hidden with the stats box shortcut."""
@@ -724,6 +725,8 @@ class App:
                                 rec.begin_capture(game)
                                 if is_finals(game):
                                     self.finals.new_session()
+                                    from finals_overlay import preload_icons
+                                    preload_icons()
                                 self.notify(f"Recording {game}", f"Press {hk} to save a clip")
                             rec.label = game
                             self.title = game

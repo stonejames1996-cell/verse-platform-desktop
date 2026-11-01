@@ -1,5 +1,5 @@
 """Pictures for The Finals overlays (drawn with Pillow, shown by overlay.py):
-  * render_combo: the Verse combo counter that pops up on each elimination (shows in clips)
+  * render_title: a pop-up on each elimination ("Double kill", "Team wipe"), like League's (shows in clips)
   * render_box: "your game so far" (eliminations, team wipes, cashouts, steals, best multi, cash)
   * render_summary: the session summary when the game closes, vs your usual
 Only the player's own numbers, read from their own on-screen pop-ups. Same look as the League boxes."""
@@ -65,8 +65,93 @@ def _finish(card, s, r):
     return full.resize((max(1, full.width // 2), max(1, full.height // 2)), Image.LANCZOS)
 
 
-# ---------------------------------------------------------------- little icons, drawn not typed
+# ---------------------------------------------------------------- the game's own icons
+# THE FINALS Wiki's copies of the game's loading screen icons. The app downloads them the first time it
+# needs them and keeps a cut-out copy (background removed) next to its settings, like League's champion
+# pictures. They're Embark's artwork, so they're not shipped in this (public) repo. If they can't be
+# fetched, the drawn icons below are used instead.
+WIKI = "https://www.thefinals.wiki/w/images/"
+GAME_ICONS = {
+    "elims": "6/61/Icon_LoadingScreen_Eliminated.png",
+    "wipes": "7/73/Icon_LoadingScreen_GhoulRush_Survivors_Cropped.png",
+    "cashouts": "6/68/Icon_LoadingScreen_Deposit_Station.png",
+    "steals": "e/e9/Icon_LoadingScreen_Cashbox.png",
+    "cash": "3/3b/Icon_LoadingScreen_Coins.png",
+}
+_game_icons = {}
+
+
+def cut_out(im):
+    """The icons sit on a pale grey backdrop: make the pale, colourless parts see-through and trim."""
+    im = im.convert("RGBA")
+    px = im.load()
+    w, h = im.size
+    for y in range(h):
+        for x in range(w):
+            r, g, b, a = px[x, y]
+            mx, mn = max(r, g, b), min(r, g, b)
+            sat = (mx - mn) / mx if mx else 0
+            if sat < 0.22 and mx > 120:
+                px[x, y] = (r, g, b, 0)
+            elif sat < 0.32 and mx > 110:
+                px[x, y] = (r, g, b, int(a * (sat - 0.22) / 0.10))
+    box = im.getchannel("A").point(lambda v: 255 if v > 40 else 0).getbbox()
+    if box:
+        x0, y0, x1, y1 = box
+        side = max(x1 - x0, y1 - y0) + 8
+        cx, cy = (x0 + x1) / 2, (y0 + y1) / 2
+        sq = Image.new("RGBA", (side, side), (0, 0, 0, 0))
+        sq.paste(im.crop((int(cx - side / 2), int(cy - side / 2), int(cx + side / 2), int(cy + side / 2))), (0, 0))
+        im = sq
+    return im.resize((96, 96), Image.LANCZOS)
+
+
+def game_icon(kind):
+    """The cut-out game icon (96px), downloading it once if needed. None if it isn't available."""
+    if kind in _game_icons:
+        return _game_icons[kind]
+    path_part = GAME_ICONS.get(kind)
+    im = None
+    if path_part:
+        from rewind_core import DATA_DIR
+        folder = os.path.join(DATA_DIR, "finals_icons")
+        local = os.path.join(folder, kind + ".png")
+        try:
+            if os.path.exists(local):
+                im = Image.open(local).convert("RGBA")
+            else:
+                import io
+                import urllib.request
+                req = urllib.request.Request(WIKI + path_part, headers={"User-Agent": "VersePlatform"})
+                with urllib.request.urlopen(req, timeout=8) as r:
+                    im = cut_out(Image.open(io.BytesIO(r.read())))
+                os.makedirs(folder, exist_ok=True)
+                im.save(local)
+        except Exception:
+            im = None
+    _game_icons[kind] = im
+    return im
+
+
+def preload_icons():
+    """Fetch the game icons in the background when The Finals starts, so the first pop-up isn't slowed."""
+    import threading
+
+    def go():
+        for k in GAME_ICONS:
+            game_icon(k)
+    threading.Thread(target=go, daemon=True, name="finals-icons").start()
+
+
+# ---------------------------------------------------------------- little icons, drawn as a fallback
 def icon(kind, px, col=CYAN):
+    real = game_icon(kind)
+    if real is not None:
+        return real.resize((px, px), Image.LANCZOS)
+    return drawn_icon(kind, px, col)
+
+
+def drawn_icon(kind, px, col=CYAN):
     im = Image.new("RGBA", (px * 4, px * 4), (0, 0, 0, 0))
     d = ImageDraw.Draw(im)
     P = px * 4
@@ -109,43 +194,19 @@ def money(n):
     return f"${int(n):,}"
 
 
-# ---------------------------------------------------------------- the combo counter
-def render_combo(n, wipe=False, cash=0, scale=1.0):
-    """The Verse combo counter: logo, VERSE COMBO, the number of eliminations in this chain, and a
-    headline (DOUBLE / TRIPLE / QUAD / MULTI-KILL / TEAM WIPE!). Cash won in the chain underneath."""
-    from watermark import _font
-    s = scale * 2
-    accent = PINK if wipe else CYAN
-    w, h = int(232 * s), int(96 * s)
-    r = int(12 * s)
-    card = Image.new("RGBA", (w, h), (0, 0, 0, 0))
-    d = ImageDraw.Draw(card)
-    d.rounded_rectangle((0, 0, w - 1, h - 1), radius=r, fill=INK, outline=accent[:3] + (150,), width=max(1, int(s)))
-    d.rounded_rectangle((int(9 * s), int(12 * s), int(13 * s), h - int(12 * s)), radius=int(2 * s), fill=accent)
-    x = int(22 * s)
-    logo = verse_logo(int(16 * s))
-    if logo:
-        card.alpha_composite(logo, (x, int(9 * s)))
-    f_brand = _font("InterDisplay-Bold.otf", int(9.5 * s))
-    f_small = _font("Inter-SemiBold.otf", int(8.5 * s))
-    d.text((x + int(20 * s), int(11 * s)), "VERSE", font=f_brand, fill=WHITE)
-    bw = d.textlength("VERSE", font=f_brand)
-    d.text((x + int(20 * s) + bw + int(6 * s), int(12 * s)), "COMBO", font=f_small, fill=HAZE)
-    head = "TEAM WIPE!" if wipe else ("MULTI-KILL" if n >= 5 else HEADLINES.get(n, ""))
-    if head:
-        f_head = _font("InterDisplay-Bold.otf", int(13 * s))
-        hw = d.textlength(head, font=f_head)
-        d.text((w - int(12 * s) - hw, int(8 * s)), head, font=f_head, fill=accent)
-    f_big = _font("InterDisplay-Bold.otf", int(46 * s))
-    num = str(n)
-    d.text((x, int(28 * s)), num, font=f_big, fill=WHITE)
-    nw = d.textlength(num, font=f_big)
-    f_word = _font("InterDisplay-Bold.otf", int(15 * s))
-    word = "ELIMINATION" if n == 1 else "ELIMINATIONS"
-    d.text((x + nw + int(9 * s), int(45 * s)), word, font=f_word, fill=accent)
-    if cash:
-        d.text((x + nw + int(9 * s), int(66 * s)), f"+{money(cash)} this fight", font=f_small, fill=GOLD)
-    return _finish(card, s, r)
+# ---------------------------------------------------------------- the elimination pop-up
+TITLES = {1: "Elimination", 2: "Double kill", 3: "Triple kill", 4: "Quad kill"}
+
+
+def title_for(n, wipe=False):
+    return "Team wipe" if wipe else ("Multi-kill" if n >= 5 else TITLES.get(n, "Elimination"))
+
+
+def render_title(n, wipe=False, cash=0, scale=1.0):
+    """The same pop-up League's highlights use: a title ("Double kill", "Team wipe") over a detail line."""
+    from overlay import render
+    sub = "The Finals" + (f"  \u00b7  +{money(cash)}" if cash else "")
+    return render(title_for(n, wipe), accent="", sub=sub, scale=scale)
 
 
 # ---------------------------------------------------------------- your game so far
@@ -157,7 +218,7 @@ def render_box(stats, scale=1.0):
     s = scale * 2
     f = _fonts(s)
     pad, gap = int(10 * s), int(6 * s)
-    ic = int(14 * s)
+    ic = int(17 * s)
     probe = ImageDraw.Draw(Image.new("RGBA", (1, 1)))
     vals = {k: (money(stats.get(k, 0)) if k == "cash" else str(stats.get(k, 0))) for k, _ in ROWS}
     lab_w = max(probe.textlength(lab, font=f["row"]) for _, lab in ROWS)
@@ -239,9 +300,9 @@ def render_summary(summary, avg=None, scale=1.0):
         tx = pad + (i % cols) * (tile_w + tg)
         ty = y0 + (i // cols) * (tile_h + tg)
         d.rounded_rectangle((tx, ty, tx + tile_w, ty + tile_h), radius=int(8 * s), fill=(255, 255, 255, 12))
-        ic = int(12 * s)
-        card.alpha_composite(icon(k, ic, GOLD if k == "cash" else CYAN), (tx + int(8 * s), ty + int(8 * s)))
-        d.text((tx + int(8 * s) + ic + int(5 * s), ty + int(9 * s)), lab, font=f_l, fill=HAZE)
+        ic = int(15 * s)
+        card.alpha_composite(icon(k, ic, GOLD if k == "cash" else CYAN), (tx + int(7 * s), ty + int(6 * s)))
+        d.text((tx + int(7 * s) + ic + int(4 * s), ty + int(10 * s)), lab, font=f_l, fill=HAZE)
         now = summary.get(k, 0)
         v = money(now) if k == "cash" else str(now)
         d.text((tx + int(8 * s), ty + int(22 * s)), v, font=f_v, fill=GOLD if k == "cash" else WHITE)

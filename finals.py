@@ -177,7 +177,7 @@ class FinalsHighlights(GameTracker):
     def __init__(self, *a, ocr=None, on_combo=None, on_stats=None, **k):
         super().__init__(*a, **k)
         self.ocr = ocr or WindowsOcr()
-        self.on_combo = on_combo or (lambda n, wipe, cash: None)   # the combo counter
+        self.on_combo = on_combo or (lambda n, wipe, cash: None)   # the elimination pop-up
         self.on_stats = on_stats or (lambda stats: None)           # "your game so far"
         self.reset()
         self._frame = None

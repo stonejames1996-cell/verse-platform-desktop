@@ -15,8 +15,11 @@ turn these into `release-notes/<version>.md`, then clear this list.
   cashout. New Settings switches under Auto highlights: Team wipe, Cashout, Cashout steal. The Finals is
   now recognised by name (Discovery.exe with the "THE FINALS" window) and has its logo in My clips.
 * The Finals overlays (finals_overlay.py), each with its own switch in The Finals' Settings section:
-  - Combo counter: a Verse card on each elimination (DOUBLE / TRIPLE / QUAD / MULTI-KILL / TEAM WIPE!,
-    cash won in the fight). Shows in clips. Movable with Alt+Shift+M (new "Combo counter" box).
+  - Elimination pop-ups: the League-style pop-up on each elimination with its title (Elimination, Double kill,
+    Triple kill, Quad kill, Multi-kill, Team wipe) and the cash won. Shows in clips. Movable with Alt+Shift+M
+    (new "Elimination pop-up" box).
+  - The box and summary use the game's own icons (eliminated contestant, cashout station, cashbox, coins),
+    downloaded by the app from THE FINALS Wiki on first use and cut out (not in this repo); drawn icons if offline.
   - Your game so far: eliminations, team wipes, cashouts, steals, best multi kill, cash earned. Uses the
     stats box spot and the Alt+Shift+B hide shortcut. Never in clips.
   - Session summary: when the game closes, vs your usual (after 3 sessions of 5+ min, finals_history.json).
@@ -41,7 +44,7 @@ turn these into `release-notes/<version>.md`, then clear this list.
 * 1.3.2: changing the stats and item ideas shortcut in Settings, and that it works in game.
 * The Finals highlights in real matches (log: "Reading The Finals's on-screen pop-ups", "The Finals: elimination",
   "The Finals banner not understood: ..." shows cashout wording we don't know yet). Try 1080p and 1440p.
-* The Finals combo counter, box and session summary in a real game; combo shows in clips, box doesn't.
+* The Finals elimination pop-ups, box and session summary in a real game; pop-ups show in clips, box doesn't.
 * Per-game highlight switches: turning one off in one game leaves the others alone.
 * Next release: the save pop-up appears in a clip saved within 60s of another one, and Settings groups open and close.
 * 1.3.4: dragging overlays in move mode in a real game, the new chart and closed analysis in My clips.
