@@ -211,6 +211,10 @@ try:
     fo.render_box({"elims": 14, "wipes": 2, "cashouts": 3, "steals": 1, "best": 3, "cash": 4300}, 1.25).save(os.path.join(OUT, "finals_box.png"))
     fo.render_summary({"elims": 14, "wipes": 2, "cashouts": 3, "steals": 1, "best": 3, "cash": 4300, "minutes": 47},
                       {"elims": 11.2, "wipes": 2, "cashouts": 1.5, "steals": 1.4, "best": 2.2, "cash": 3100}, 1.25).save(os.path.join(OUT, "finals_summary.png"))
+    # big copies for promo graphics
+    fo.render_box({"elims": 14, "wipes": 2, "cashouts": 3, "steals": 1, "best": 3, "cash": 4300}, 3).save(os.path.join(OUT, "finals_box_big.png"))
+    fo.render_summary({"elims": 14, "wipes": 2, "cashouts": 3, "steals": 1, "best": 3, "cash": 4300, "minutes": 47},
+                      {"elims": 11.2, "wipes": 2, "cashouts": 1.5, "steals": 1.4, "best": 2.2, "cash": 3100}, 3).save(os.path.join(OUT, "finals_summary_big.png"))
     print("finals overlays drawn")
     if ok < len(samples):
         problems.append(f"The Finals banners: only {ok}/{len(samples)} read right")
