@@ -210,10 +210,10 @@
             <button class="keycap keycap-btn" id="box-hotkey-btn">ALT + SHIFT + B</button>
           </div>
           <div class="row">
-            <div class="row-text"><strong>Move the overlays shortcut</strong><span>Press it in game, drag the boxes where you want them, then press it again to save. Works for the stats box, the stats and item ideas pop-up, and the save and summary pop-ups</span></div>
+            <div class="row-text"><strong>Move the overlays shortcut</strong><span>Press it in League, drag the boxes where you want them, then press it again to save. Works for the stats box, the stats and item ideas pop-up, and the save and summary pop-ups</span></div>
             <div class="inline">
               <button class="keycap keycap-btn" id="move-hotkey-btn">ALT + SHIFT + M</button>
-              <button class="btn" id="reset-overlays">Reset spots</button>
+              <button class="btn" data-reset-game="League of Legends">Reset spots</button>
             </div>
           </div>
           <div class="row">
@@ -259,8 +259,19 @@
             <label class="switch"><input type="checkbox" data-set="finals_combo"><span></span></label>
           </div>
           <div class="row">
-            <div class="row-text"><strong>Your game so far</strong><span>A small box with your eliminations, team wipes, cashouts, steals, best multi kill and cash earned. Hide it with <span class="keycap keycap-sm" data-box-hotkey>ALT + SHIFT + B</span>, move it with <span class="keycap keycap-sm" data-move-hotkey>ALT + SHIFT + M</span>. Never shows in clips</span></div>
+            <div class="row-text"><strong>Your game so far</strong><span>A small box with your eliminations, team wipes, cashouts, steals, best multi kill and cash earned. Never shows in clips</span></div>
             <label class="switch"><input type="checkbox" data-set="finals_box"><span></span></label>
+          </div>
+          <div class="row">
+            <div class="row-text"><strong>Hide or show the box shortcut</strong><span>Click, then press the keys you want. Hides "your game so far" until you press it again. Can be the same keys as League's</span></div>
+            <button class="keycap keycap-btn" id="finals-box-hotkey-btn">ALT + SHIFT + B</button>
+          </div>
+          <div class="row">
+            <div class="row-text"><strong>Move the overlays shortcut</strong><span>Press it in The Finals, drag the box and the elimination pop-up where you want them, then press it again to save</span></div>
+            <div class="inline">
+              <button class="keycap keycap-btn" id="finals-move-hotkey-btn">ALT + SHIFT + M</button>
+              <button class="btn" data-reset-game="The Finals">Reset spots</button>
+            </div>
           </div>
           <div class="row">
             <div class="row-text"><strong>Session summary</strong><span>When you close the game, your numbers vs your usual. They also show on the session in My clips</span></div>

@@ -29,7 +29,7 @@ WHITE = (245, 245, 247, 255)
 SIGNAL = (34, 211, 238, 255)
 HAZE = (168, 172, 184, 255)
 SHOW_SECONDS = 3.2
-PLACE_KEYS = {"right": "strip", "left": "panel", "top": "popup", "combo": "combo"}   # overlay places -> saved position names
+PLACE_KEYS = {"right": "strip", "left": "panel", "top": "popup", "combo": "combo", "finals_box": "finals_box"}   # overlay places -> saved position names
 
 
 def _font(size, bold=False):
@@ -354,7 +354,7 @@ class Overlay:
             x0, y = left + margin, top + margin
             if place == "left":   # middle of the left edge, a little above centre (clear of chat)
                 y = max(top + margin, top + (bottom - top - h) // 2 - (bottom - top) // 12)
-            elif place == "right":   # right edge, a third of the way down (clear of the scoreboard and minimap)
+            elif place in ("right", "finals_box"):   # right edge, a third of the way down (clear of the scoreboard and minimap)
                 x0, y = right - margin - w, top + int((bottom - top) * 0.30)
             elif place == "combo":   # right edge, above the stats box (The Finals elimination pop-up)
                 x0, y = right - margin - w, top + int((bottom - top) * 0.13)
@@ -418,13 +418,16 @@ class MoveMode:
     the spots are saved as shares of the screen (so they survive resolution and screen changes)."""
 
     ITEMS = (("strip", "Stats box", 170, 270), ("panel", "Stats and item ideas", 330, 520), ("popup", "Save and summary pop-ups", 360, 74),
-             ("combo", "Elimination pop-up", 300, 74))
+             ("combo", "Elimination pop-up", 300, 74), ("finals_box", "Your game so far", 170, 230))
+    # each game moves its own overlays (the save pop-up is shared)
+    GAME_ITEMS = {"League of Legends": ("strip", "panel", "popup"), "The Finals": ("finals_box", "combo", "popup")}
 
-    def __init__(self, get_rect, current, on_done, key_name="Alt+Shift+M"):
+    def __init__(self, get_rect, current, on_done, key_name="Alt+Shift+M", game=""):
         """get_rect() -> (left, top, right, bottom) of the game's screen; current: saved positions;
-        on_done(positions) is called with the new spots when move mode ends."""
+        on_done(positions) is called with the new spots when move mode ends. game: only that game's boxes."""
         self.get_rect, self.current, self.on_done = get_rect, dict(current or {}), on_done
         self.key_name = key_name
+        self.game = game
         self.stop_flag = threading.Event()
         self.ok = IS_WINDOWS
         if self.ok:
@@ -539,10 +542,13 @@ class MoveMode:
             margin = int(24 * scale)
             defaults = {"strip": (right - margin - 170 * scale, top + sh * 0.30),
                         "panel": (left + margin, top + sh * 0.25), "popup": (left + margin, top + margin),
-                        "combo": (right - margin - 300 * scale, top + sh * 0.13)}
+                        "combo": (right - margin - 300 * scale, top + sh * 0.13),
+                        "finals_box": (right - margin - 170 * scale, top + sh * 0.30)}
             screen = u.GetDC(None)
             wins = {}
             for key, label, w, h in self.ITEMS:
+                if self.game in self.GAME_ITEMS and key not in self.GAME_ITEMS[self.game]:
+                    continue
                 img = self._card(label, w, h, scale)
                 iw, ih = img.size
                 pos = self.current.get(key)

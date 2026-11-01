@@ -3,7 +3,13 @@
 Changes that are in `main` but not released yet. When it's time to release, bump `APP_VERSION`,
 turn these into `release-notes/<version>.md`, then clear this list.
 
-Nothing held right now. 1.3.6 shipped The Finals highlights and overlays, per-game Settings and the tidier Settings.
+## Held
+* Separate in-game shortcuts for each game. The Finals has its own "hide or show the box" and "move the
+  overlays" shortcuts in its Settings section (League keeps its three). The same keys can be used in both
+  games: pressing them does whatever belongs to the game being played, and a game's keys do nothing in the
+  other game. With no game running, League's keys still work so spots can be set before a match.
+* Each game also has its own overlay spots (The Finals' box no longer shares League's) and its own
+  "Reset spots" button, plus its own remembered "box hidden" state. Move mode only shows that game's boxes.
 
 ## Still to confirm on a real PC
 * Link Xbox pop-up end to end (log lines: "Sign-in pop-up opened", "Sign-in finished, refreshing Verse").
@@ -23,5 +29,6 @@ Nothing held right now. 1.3.6 shipped The Finals highlights and overlays, per-ga
   "The Finals banner not understood: ..." shows cashout wording we don't know yet). Try 1080p and 1440p.
 * The Finals elimination pop-ups, box and session summary in a real game; pop-ups show in clips, box doesn't.
 * Per-game highlight switches: turning one off in one game leaves the others alone.
+* Per-game shortcuts in real games: The Finals' keys only act in The Finals, League's in League.
 * 1.3.6: the save pop-up appears in a clip saved within 60s of another one, and Settings groups open and close.
 * 1.3.4: dragging overlays in move mode in a real game, the new chart and closed analysis in My clips.

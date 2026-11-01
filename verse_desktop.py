@@ -52,7 +52,8 @@ LIVE_KEYS = {"hotkey", "buffer_seconds", "record_mode", "detect_fullscreen_apps"
              "lol_item_ideas", "lol_objective_timers", "lol_match_summary",
              "lol_benchmarks", "lol_opgg", "item_ideas_hotkey",
              "lol_box_hotkey", "lol_box_visible", "overlay_move_hotkey",
-             "finals_combo", "finals_box", "finals_summary"}
+             "finals_combo", "finals_box", "finals_summary",
+             "finals_box_hotkey", "finals_box_visible", "finals_move_hotkey"}
 
 # A small "Clips" tab added to the left edge of Verse pages inside the app, so the clip library
 # is always one click away. Verse can render its own button instead: if the page has an element
@@ -414,17 +415,47 @@ class App:
         self.register_items_hotkey()   # a bad League shortcut never stops the save shortcut working
         return True
 
+    def game_shortcuts(self):
+        """Each game's own in-game shortcuts: setting -> (game, what it does). The same keys can be set in
+        two games; pressing them does whatever belongs to the game being played."""
+        return {
+            "item_ideas_hotkey": ("League of Legends", self.item_ideas.show_now),
+            "lol_box_hotkey": ("League of Legends", self.toggle_lol_box),
+            "overlay_move_hotkey": ("League of Legends", lambda: self.toggle_move_mode("League of Legends")),
+            "finals_box_hotkey": ("The Finals", self.toggle_finals_box),
+            "finals_move_hotkey": ("The Finals", lambda: self.toggle_move_mode("The Finals")),
+        }
+
     def register_items_hotkey(self):
-        """League shortcuts: stats and item ideas (Alt+Shift+I) and hide / show the box on the right (Alt+Shift+B)."""
+        """The in-game shortcuts of every game (see game_shortcuts). Each key combo is registered once and
+        decides what to do from the game being played. In another game with shortcuts it does nothing; with no
+        such game running, the first one listed (League's) works, so overlays can be moved before a match."""
         import keyboard
         ok = True
-        for key, action in (("item_ideas_hotkey", self.item_ideas.show_now), ("lol_box_hotkey", self.toggle_lol_box),
-                            ("overlay_move_hotkey", self.toggle_move_mode)):
+        combos = {}
+        for key, (game, action) in self.game_shortcuts().items():
+            combo = str(self.cfg.get(key) or "").lower()
+            if combo:
+                combos.setdefault(combo, []).append((game, action, key))
+
+        def run(entries):
+            playing = self.rec.label if self.rec and self.rec.capturing else ""
+            if self.move_mode:   # the same key closes move mode, whichever game opened it
+                movers = [e for e in entries if e[2] in ("overlay_move_hotkey", "finals_move_hotkey")]
+                if movers:
+                    self.move_mode.stop()
+                    return
+            owners = {g for g, _ in self.game_shortcuts().values()}
+            pick = [e for e in entries if e[0] == playing]
+            if not pick and playing not in owners:   # no game with its own shortcuts running: League's (set up spots early)
+                pick = entries[:1]
+            for _, action, _ in pick[:1]:
+                action()
+        for combo, entries in combos.items():
             try:
-                if self.cfg.get(key):
-                    keyboard.add_hotkey(self.cfg[key], action)
+                keyboard.add_hotkey(combo, run, args=(entries,))
             except Exception as e:
-                log.warning("League shortcut %r can't be used: %s", self.cfg.get(key), e)
+                log.warning("Shortcut %r can't be used: %s", combo, e)
                 ok = False
         return ok
 
@@ -437,11 +468,12 @@ class App:
         except Exception:
             return False
 
-    def toggle_move_mode(self, *_):
-        """Alt+Shift+M: drag the overlays where you want them, press again to save."""
+    def toggle_move_mode(self, game="League of Legends"):
+        """Alt+Shift+M: drag that game's overlays where you want them, press again to save."""
         if self.move_mode:
             self.move_mode.stop()
             return
+        key = "finals_move_hotkey" if game == "The Finals" else "overlay_move_hotkey"
         def screen_rect_now():
             r = self.popup_screen()
             return tuple(r) if isinstance(r, (tuple, list)) else self.overlay._monitor_rect()
@@ -449,7 +481,7 @@ class App:
         self.timer_strip.hide_static()
         self.finals_combo.hide_static()
         self.move_mode = MoveMode(screen_rect_now, self.cfg.get("overlay_positions") or {}, self._move_done,
-                                  pretty_hotkey(self.cfg.get("overlay_move_hotkey") or "alt+shift+m"))
+                                  pretty_hotkey(self.cfg.get(key) or "alt+shift+m"), game=game)
         log.info("Move mode on")
 
     def _move_done(self, positions):
@@ -490,14 +522,14 @@ class App:
         if stats is not None:
             self._finals_last = stats
         stats = self._finals_last
-        show = (stats is not None and self.cfg.get("finals_box", True) and self.cfg.get("lol_box_visible", True)
+        show = (stats is not None and self.cfg.get("finals_box", True) and self.cfg.get("finals_box_visible", True)
                 and self.is_playing("The Finals") and not self.move_mode)
         if not show:
             if self.is_playing("The Finals") or stats is None:
                 self.timer_strip.hide_static()
             return
         from finals_overlay import render_box
-        self.timer_strip.show_static(render_box(stats, self._ov_scale()), place="right")
+        self.timer_strip.show_static(render_box(stats, self._ov_scale()), place="finals_box")
 
     def finals_end(self):
         """The Finals closed: hide its overlays, keep the session's numbers, show the summary."""
@@ -544,7 +576,18 @@ class App:
             self.overlay.show("Stats box is back", accent="", sub=f"Press {hk} to hide it")
         else:
             self.overlay.show("Stats box hidden", accent="", sub=f"Press {hk} to bring it back")
-        log.info("Stats box %s", "shown" if self.cfg["lol_box_visible"] else "hidden")
+        log.info("League box %s", "shown" if self.cfg["lol_box_visible"] else "hidden")
+
+    def toggle_finals_box(self, *_):
+        """The Finals' "your game so far" box: hide or bring back. Remembered between games."""
+        self.cfg["finals_box_visible"] = not self.cfg.get("finals_box_visible", True)
+        save_config(self.cfg)
+        hk = pretty_hotkey(self.cfg.get("finals_box_hotkey") or "")
+        if self.cfg["finals_box_visible"]:
+            self.overlay.show("Your game so far is back", accent="", sub=f"Press {hk} to hide it")
+        else:
+            self.overlay.show("Your game so far hidden", accent="", sub=f"Press {hk} to bring it back")
+        log.info("The Finals box %s", "shown" if self.cfg["finals_box_visible"] else "hidden")
         self.finals_stats()
 
     def save_clip_async(self, *_):
@@ -1149,8 +1192,11 @@ class Api:
             value = str(value or "").strip()[:24]
         old = a.cfg.get(key)
         a.cfg[key] = value
-        if key in ("hotkey", "item_ideas_hotkey", "lol_box_hotkey", "overlay_move_hotkey"):
-            others = [k for k in ("hotkey", "item_ideas_hotkey", "lol_box_hotkey", "overlay_move_hotkey") if k != key]
+        shortcuts = a.game_shortcuts()
+        if key == "hotkey" or key in shortcuts:
+            # the save shortcut can't match anything; a game's shortcuts can't match each other (other games may)
+            game = shortcuts[key][0] if key in shortcuts else None
+            others = ["hotkey"] + [k for k, (g, _) in shortcuts.items() if k != key and (game is None or g == game)]
             if value and any(str(value).lower() == str(a.cfg.get(o, "")).lower() for o in others):
                 a.cfg[key] = old
                 return {"message": "That's already one of your other shortcuts, pick a different one"}
@@ -1169,7 +1215,11 @@ class Api:
         if key == "lol_box_hotkey":
             return {"message": f"Hide or show the stats box with {pretty_hotkey(value)}"}
         if key == "overlay_move_hotkey":
-            return {"message": f"Move the overlays with {pretty_hotkey(value)}"}
+            return {"message": f"Move League's overlays with {pretty_hotkey(value)}"}
+        if key == "finals_box_hotkey":
+            return {"message": f"Hide or show The Finals box with {pretty_hotkey(value)}"}
+        if key == "finals_move_hotkey":
+            return {"message": f"Move The Finals' overlays with {pretty_hotkey(value)}"}
         if key == "voice_command":
             if value and not a.voice.start():
                 a.cfg[key] = False
@@ -1182,15 +1232,22 @@ class Api:
             return {"message": f"You're in squad {value}" if value else "Squad POV is off"}
         return {}
 
-    def reset_overlay_positions(self):
-        """Settings: put every overlay back in its normal spot."""
+    def reset_overlay_positions(self, game=None):
+        """Settings: put a game's overlays (or every overlay) back in their normal spots."""
         if not self._from_library():
             return None
         a = self._app
-        a.cfg["overlay_positions"] = {}
+        from overlay import MoveMode
+        keys = MoveMode.GAME_ITEMS.get(game)
+        if keys:   # the save pop-up spot is shared, so it stays
+            a.cfg["overlay_positions"] = {k: v for k, v in (a.cfg.get("overlay_positions") or {}).items()
+                                          if k not in keys or k == "popup"}
+        else:
+            a.cfg["overlay_positions"] = {}
         save_config(a.cfg)
         a.item_ideas.strip_shown = ""
-        return {"message": "Overlays are back in their normal spots"}
+        a.finals_stats()
+        return {"message": f"{game + chr(39) + 's overlays are' if game else 'Overlays are'} back in their normal spots"}
 
     def squad_new_code(self):
         if not self._from_library():
