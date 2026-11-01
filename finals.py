@@ -23,7 +23,7 @@ log = logging.getLogger("Verse Platform")
 GAME = "The Finals"
 CHAIN = 6.0          # seconds allowed between eliminations for them to count as a double, triple...
 MULTI = {2: ("double", "Double kill", 4), 3: ("triple", "Triple kill", 6),
-         4: ("quadra", "Quad kill", 9), 5: ("penta", "Penta kill", 10)}
+         4: ("quadra", "Quad kill", 9), 5: ("penta", "Multi-kill", 10)}   # 5 or more
 
 
 def is_finals(label):

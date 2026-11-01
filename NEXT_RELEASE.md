@@ -11,7 +11,7 @@ turn these into `release-notes/<version>.md`, then clear this list.
   opening one never moves the others.
 * The Finals auto highlights (new). The game has no data feed for apps, so the app reads its own
   pop-ups under the crosshair with Windows' built-in text recognition: "ELIMINATED <name>" (double,
-  triple, quad, penta within 6s of each other), "TEAM WIPE", "TEAM STOLE A CASHOUT" and your team's
+  triple, quad kill, and Multi-kill for 5 or more, each within 6s of the last), "TEAM WIPE", "TEAM STOLE A CASHOUT" and your team's
   cashout. New Settings switches under Auto highlights: Team wipe, Cashout, Cashout steal. The Finals is
   now recognised by name (Discovery.exe with the "THE FINALS" window) and has its logo in My clips.
 
