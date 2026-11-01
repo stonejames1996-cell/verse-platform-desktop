@@ -3,7 +3,10 @@
 Changes that are in `main` but not released yet. When it's time to release, bump `APP_VERSION`,
 turn these into `release-notes/<version>.md`, then clear this list.
 
-Nothing held right now. 1.3.7 shipped separate shortcuts and overlay spots for each game.
+## Held
+* The Finals elimination pop-up is now the League-style highlight card ("THE FINALS HIGHLIGHT" / "Double kill"),
+  sized like the clip card and shown exactly where the "Clipped by Verse Platform" card sits (top left). The Finals
+  auto clips skip the burned-in highlight card when it's on (`live_card`), so there's never two.
 
 ## Still to confirm on a real PC
 * Link Xbox pop-up end to end (log lines: "Sign-in pop-up opened", "Sign-in finished, refreshing Verse").

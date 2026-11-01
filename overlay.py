@@ -356,8 +356,8 @@ class Overlay:
                 y = max(top + margin, top + (bottom - top - h) // 2 - (bottom - top) // 12)
             elif place in ("right", "finals_box"):   # right edge, a third of the way down (clear of the scoreboard and minimap)
                 x0, y = right - margin - w, top + int((bottom - top) * 0.30)
-            elif place == "combo":   # right edge, above the stats box (The Finals elimination pop-up)
-                x0, y = right - margin - w, top + int((bottom - top) * 0.13)
+            elif place == "combo":   # The Finals elimination card: exactly where the "Clipped by" card sits in clips
+                x0, y = left + int((right - left) * 0.022), top + int((bottom - top) * 0.035)
             try:   # moved by the player (Alt+Shift+M): top left corner as a share of the screen
                 pos = (self.get_positions() or {}).get(PLACE_KEYS.get(place, place))
             except Exception:
@@ -418,7 +418,7 @@ class MoveMode:
     the spots are saved as shares of the screen (so they survive resolution and screen changes)."""
 
     ITEMS = (("strip", "Stats box", 170, 270), ("panel", "Stats and item ideas", 330, 520), ("popup", "Save and summary pop-ups", 360, 74),
-             ("combo", "Elimination pop-up", 300, 74), ("finals_box", "Your game so far", 170, 230))
+             ("combo", "Elimination card", 330, 106), ("finals_box", "Your game so far", 170, 230))
     # each game moves its own overlays (the save pop-up is shared)
     GAME_ITEMS = {"League of Legends": ("strip", "panel", "popup"), "The Finals": ("finals_box", "combo", "popup")}
 
@@ -542,7 +542,7 @@ class MoveMode:
             margin = int(24 * scale)
             defaults = {"strip": (right - margin - 170 * scale, top + sh * 0.30),
                         "panel": (left + margin, top + sh * 0.25), "popup": (left + margin, top + margin),
-                        "combo": (right - margin - 300 * scale, top + sh * 0.13),
+                        "combo": (left + sw * 0.022, top + sh * 0.035),
                         "finals_box": (right - margin - 170 * scale, top + sh * 0.30)}
             screen = u.GetDC(None)
             wins = {}

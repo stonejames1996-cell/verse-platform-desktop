@@ -202,11 +202,13 @@ def title_for(n, wipe=False):
     return "Team wipe" if wipe else ("Multi-kill" if n >= 5 else TITLES.get(n, "Elimination"))
 
 
-def render_title(n, wipe=False, cash=0, scale=1.0):
-    """The same pop-up League's highlights use: a title ("Double kill", "Team wipe") over a detail line."""
-    from overlay import render
-    sub = "The Finals" + (f"  \u00b7  +{money(cash)}" if cash else "")
-    return render(title_for(n, wipe), accent="", sub=sub, scale=scale)
+def render_title(n, wipe=False, cash=0, scale=1.0, screen_h=1080):
+    """The same card League's highlights get in clips ("THE FINALS HIGHLIGHT" over "Double kill"), drawn the
+    size it is in a clip of this screen's height, so it sits exactly where the "Clipped by" card was."""
+    import watermark
+    parts = watermark._card(max(0.7, screen_h / 640), "THE FINALS HIGHLIGHT",
+                            watermark._highlight_name(title_for(n, wipe)))
+    return watermark._frame(parts, watermark.HL_SECONDS / 2, watermark.HL_SECONDS)
 
 
 # ---------------------------------------------------------------- your game so far

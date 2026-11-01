@@ -508,7 +508,12 @@ class App:
         if not (self.cfg.get("finals_combo", True) and self.is_playing("The Finals")) or self.move_mode:
             return
         from finals_overlay import render_title
-        self.finals_combo.show_static(render_title(n, wipe, cash, self._ov_scale()), place="combo", in_clips=True)
+        try:
+            l, t, r, b = self.finals_combo._monitor_rect()
+            screen_h = b - t
+        except Exception:
+            screen_h = 1080
+        self.finals_combo.show_static(render_title(n, wipe, cash, screen_h=screen_h), place="combo", in_clips=True)
         self._combo_token += 1
         tok = self._combo_token
 
@@ -727,6 +732,8 @@ class App:
         # auto highlights end "highlight_after" seconds after the big moment; noting that lets the
         # watermark show the "Double kill" card right when it happens (the last 2s chunk can run a bit long)
         extra = {"moment_from_end": float(self.cfg.get("highlight_after", 5)) + 0.5} if tag else None
+        if tag and is_finals(game) and self.cfg.get("finals_combo", True):
+            extra["live_card"] = True   # The Finals' card is already in the recording, don't add a second one
         clip = self.library.add(path, game=game, highlight=tag, match=match, extra=extra)
         self.library.bump_stat("clips_saved", tag)
         self.bump()

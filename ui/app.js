@@ -1082,7 +1082,7 @@ const GROUP_INFO = {
   "Games": ["i-pad", "Which games and apps get recorded"],
   "Audio": ["i-sound", "Game sound and microphone"],
   "League of Legends": ["games/league-of-legends.png", "Highlights, pop-ups, stats box and shortcuts"],
-  "The Finals": ["games/the-finals.png", "Highlights, elimination pop-ups and your game so far"],
+  "The Finals": ["games/the-finals.png", "Highlights, elimination cards and your game so far"],
   "Counter-Strike 2": ["games/counter-strike-2.png", "Highlights from Valve's game data"],
   "Dota 2": ["games/dota-2.png", "Highlights from Valve's game data"],
   "Auto highlights": ["i-star", "On or off, clip length and death reviews"],

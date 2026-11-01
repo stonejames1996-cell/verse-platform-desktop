@@ -385,7 +385,7 @@ class ClipLibrary:
     def _highlight_at(self, clip, start, end):
         """For an auto highlight: (label, game, seconds into this cut) for the "Double kill" card, else None.
         The app notes how far before the end the big moment was ("moment_from_end") when it saves."""
-        if not clip or not clip.get("highlight") or clip.get("moment_from_end") is None:
+        if not clip or not clip.get("highlight") or clip.get("moment_from_end") is None or clip.get("live_card"):
             return None
         dur = clip.get("duration") or probe_duration(self.ff, self.abs_path(clip))
         at = dur - float(clip["moment_from_end"]) - start

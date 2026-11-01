@@ -203,7 +203,7 @@ try:
         print(f"finals sample {i} want={want} bright={finals.has_bright_text(crop)} got={got}", *lines, sep="\n   ")
     print(f"finals: {ok}/{len(samples)} banners read right (OCR available: {ocr.ok})")
     import finals_overlay as fo
-    fo.render_title(2, False, 200, 1.25).save(os.path.join(OUT, "finals_title.png"))
+    fo.render_title(2, False, 200).save(os.path.join(OUT, "finals_title.png"))
     got_icons = {k: fo.game_icon(k) is not None for k in fo.GAME_ICONS}
     print("finals game icons downloaded:", got_icons)
     if not all(got_icons.values()):
