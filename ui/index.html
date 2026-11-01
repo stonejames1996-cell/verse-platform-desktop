@@ -31,6 +31,11 @@
   <symbol id="i-sound" viewBox="0 0 24 24"><path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M15.5 9a4.2 4.2 0 0 1 0 6M18 6.5a7.8 7.8 0 0 1 0 11" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
   <symbol id="i-squad" viewBox="0 0 24 24"><circle cx="9" cy="8.5" r="3.2" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M3 19c.9-3 3.2-4.6 6-4.6s5.1 1.6 6 4.6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M15.5 5.6a3.2 3.2 0 0 1 0 6M18 14.8c1.4.7 2.4 2 3 4.2" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
   <symbol id="i-mic" viewBox="0 0 24 24"><rect x="9" y="3.5" width="6" height="10.5" rx="3" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M6 11a6 6 0 0 0 12 0M12 17v3.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
+  <symbol id="i-target" viewBox="0 0 24 24"><circle cx="12" cy="12" r="6.5" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M12 2.5v5M12 16.5v5M2.5 12h5M16.5 12h5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><circle cx="12" cy="12" r="1.4" fill="currentColor"/></symbol>
+  <symbol id="i-vault" viewBox="0 0 24 24"><rect x="3.5" y="3.5" width="17" height="17" rx="3" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="12" cy="12" r="4.2" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M12 7.8v8.4M7.8 12h8.4" stroke="currentColor" stroke-width="1.2"/></symbol>
+  <symbol id="i-swap" viewBox="0 0 24 24"><path d="M4 8.5h14m-3.5-3.5L18 8.5 14.5 12M20 15.5H6m3.5-3.5L6 15.5 9.5 19" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-bolt" viewBox="0 0 24 24"><path d="M13.5 2.5 5 13.5h6l-1 8 8.5-11h-6z" fill="currentColor"/></symbol>
+  <symbol id="i-coin" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M14.8 9.2c-.5-.9-1.6-1.4-2.8-1.4-1.6 0-2.8.8-2.8 2.1 0 2.9 5.8 1.4 5.8 4.3 0 1.3-1.3 2.1-3 2.1-1.3 0-2.5-.6-3-1.6M12 6v1.8M12 16.3V18" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></symbol>
   <symbol id="i-chev" viewBox="0 0 24 24"><path d="m7 9.5 5 5 5-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
 </svg>
 
@@ -162,8 +167,35 @@
           </div>
         </section>
 
-        <section class="set-group">
-          <h3>League of Legends in game</h3>
+        <section class="set-group" data-col="2">
+          <h3>League of Legends</h3>
+          <div class="hl-body" data-game="League of Legends">
+            <div class="hl-list" role="group" aria-label="Highlights: kills">
+              <div class="hl-head">Highlights: kills</div>
+              <label><input type="checkbox" data-hl="double"> Double kill</label>
+              <label><input type="checkbox" data-hl="triple"> Triple kill</label>
+              <label><input type="checkbox" data-hl="quadra"> Quadra kill</label>
+              <label><input type="checkbox" data-hl="penta"> Pentakill</label>
+              <label><input type="checkbox" data-hl="first_blood"> First blood</label>
+              <label><input type="checkbox" data-hl="ace"> Ace <small>you got the last kill</small></label>
+              <label><input type="checkbox" data-hl="teamfight"> Teamfight <small>3+ kills or assists in 10s</small></label>
+              <label><input type="checkbox" data-hl="every_kill"> Every kill</label>
+            </div>
+            <div class="hl-list" role="group" aria-label="Highlights: objectives">
+              <div class="hl-head">Highlights: objectives</div>
+              <label><input type="checkbox" data-hl="steal"> Steals <small>Baron, Dragon, Herald, Voidgrubs, Atakhan</small></label>
+              <label><input type="checkbox" data-hl="baron_elder"> Baron or Elder Dragon <small>your last hit</small></label>
+              <label><input type="checkbox" data-hl="dragon"> Any Dragon <small>your last hit</small></label>
+              <label><input type="checkbox" data-hl="structure"> Tower or inhibitor <small>your last hit</small></label>
+            </div>
+            <div class="hl-list" role="group" aria-label="Highlights: game">
+              <div class="hl-head">Highlights: game</div>
+              <label><input type="checkbox" data-hl="victory"> Victory <small>the Nexus falling</small></label>
+              <label><input type="checkbox" data-hl="defeat"> Defeat</label>
+              <label><input type="checkbox" data-hl="death"> Your deaths <small>blooper reel</small></label>
+            </div>
+          </div>
+          <div class="hl-head sub-head">In game</div>
           <p class="set-sub">Small pop-ups over League, using only what you can already see in game. Press <span class="keycap keycap-sm" data-items-hotkey>ALT + SHIFT + I</span> in a match to see your stats and item ideas any time. Shows in borderless or windowed mode.</p>
           <div class="row">
             <div class="row-text"><strong>Stats and item ideas shortcut</strong><span>Click, then press the keys you want. Shows the pop-up any time in a match</span></div>
@@ -202,76 +234,124 @@
           </div>
         </section>
 
-        <section class="set-group" id="hl-group">
-          <h3>Auto highlights</h3>
-          <p class="set-sub">League of Legends, Counter-Strike 2, Dota 2 and The Finals. In CS2 a 3K or 4K is counted across the round. The Finals is read from its on-screen pop-ups, so keep the game's HUD on. <span id="gsi-note"></span></p>
-          <div class="row">
-            <div class="row-text"><strong>Auto clip highlights</strong><span>Saves short clips of your plays by itself, no key needed</span></div>
-            <label class="switch"><input type="checkbox" data-set="auto_highlights"><span></span></label>
-          </div>
-          <div class="hl-body" id="hl-body">
-            <div class="hl-list" role="group" aria-label="Kills">
-              <div class="hl-head">Kills</div>
+        <section class="set-group" data-col="2">
+          <h3>The Finals</h3>
+          <p class="set-sub">The Finals doesn't share live game data with apps, so highlights come from reading its own pop-ups under the crosshair. Keep the game's HUD on. The overlays only use your own numbers.</p>
+          <div class="hl-body" data-game="The Finals">
+            <div class="hl-list" role="group" aria-label="Highlights: eliminations">
+              <div class="hl-head">Highlights: eliminations</div>
               <label><input type="checkbox" data-hl="double"> Double kill</label>
               <label><input type="checkbox" data-hl="triple"> Triple kill</label>
-              <label><input type="checkbox" data-hl="quadra"> Quadra kill</label>
-              <label><input type="checkbox" data-hl="penta"> Pentakill</label>
-              <label><input type="checkbox" data-hl="first_blood"> First blood</label>
-              <label><input type="checkbox" data-hl="ace"> Ace <small>League: you got the last kill. CS2's 5K counts as a Pentakill</small></label>
-              <label><input type="checkbox" data-hl="teamfight"> Teamfight <small>3+ kills or assists in 10s</small></label>
-              <label><input type="checkbox" data-hl="every_kill"> Every kill</label>
+              <label><input type="checkbox" data-hl="quadra"> Quad kill</label>
+              <label><input type="checkbox" data-hl="penta"> Multi-kill <small>5 or more</small></label>
+              <label><input type="checkbox" data-hl="every_kill"> Every elimination</label>
             </div>
-            <div class="hl-list" role="group" aria-label="Objectives">
-              <div class="hl-head">Objectives</div>
-              <label><input type="checkbox" data-hl="steal"> Steals <small>Baron, Dragon, Herald, Voidgrubs, Atakhan</small></label>
-              <label><input type="checkbox" data-hl="baron_elder"> Baron or Elder Dragon <small>your last hit</small></label>
-              <label><input type="checkbox" data-hl="dragon"> Any Dragon <small>your last hit</small></label>
-              <label><input type="checkbox" data-hl="structure"> Tower or inhibitor <small>your last hit</small></label>
-            </div>
-            <div class="hl-list" role="group" aria-label="Game">
-              <div class="hl-head">Game</div>
-              <label><input type="checkbox" data-hl="victory"> Victory <small>the Nexus falling</small></label>
-              <label><input type="checkbox" data-hl="defeat"> Defeat</label>
-              <label><input type="checkbox" data-hl="death"> Your deaths <small>blooper reel</small></label>
-            </div>
-            <div class="hl-list" role="group" aria-label="The Finals">
-              <div class="hl-head"><img class="hl-logo" src="games/the-finals.png" alt=""> The Finals</div>
+            <div class="hl-list" role="group" aria-label="Highlights: team and cash">
+              <div class="hl-head">Highlights: team and cash</div>
               <label><input type="checkbox" data-hl="team_wipe"> Team wipe</label>
               <label><input type="checkbox" data-hl="cashout"> Cashout <small>your team cashes out</small></label>
               <label><input type="checkbox" data-hl="cashout_steal"> Cashout steal</label>
             </div>
-            <div class="row">
-              <div class="row-text"><strong>Clip length</strong><span>Around the whole play, so a fight is one clip</span></div>
-              <div class="inline">
-                <select data-set="highlight_before" data-num aria-label="Seconds before">
-                  <option value="3">3s before</option><option value="5">5s before</option><option value="8">8s before</option>
-                  <option value="10">10s before</option><option value="15">15s before</option>
-                </select>
-                <select data-set="highlight_after" data-num aria-label="Seconds after">
-                  <option value="3">3s after</option><option value="5">5s after</option><option value="8">8s after</option>
-                  <option value="10">10s after</option>
-                </select>
-              </div>
+          </div>
+          <div class="hl-head sub-head">In game</div>
+          <div class="row">
+            <div class="row-text"><strong>Combo counter</strong><span>Pops up on each elimination and counts the chain, up to team wipes. Shows in your clips</span></div>
+            <label class="switch"><input type="checkbox" data-set="finals_combo"><span></span></label>
+          </div>
+          <div class="row">
+            <div class="row-text"><strong>Your game so far</strong><span>A small box with your eliminations, team wipes, cashouts, steals, best multi kill and cash earned. Hide it with <span class="keycap keycap-sm" data-box-hotkey>ALT + SHIFT + B</span>, move it with <span class="keycap keycap-sm" data-move-hotkey>ALT + SHIFT + M</span>. Never shows in clips</span></div>
+            <label class="switch"><input type="checkbox" data-set="finals_box"><span></span></label>
+          </div>
+          <div class="row">
+            <div class="row-text"><strong>Session summary</strong><span>When you close the game, your numbers vs your usual. They also show on the session in My clips</span></div>
+            <label class="switch"><input type="checkbox" data-set="finals_summary"><span></span></label>
+          </div>
+        </section>
+
+        <section class="set-group" data-col="2">
+          <h3>Counter-Strike 2</h3>
+          <p class="set-sub">Uses Valve's game data, set up by itself. A 3K or 4K is counted across the round. <span id="cs2-note"></span></p>
+          <div class="hl-body" data-game="Counter-Strike 2">
+            <div class="hl-list" role="group" aria-label="Highlights: kills">
+              <div class="hl-head">Highlights: kills</div>
+              <label><input type="checkbox" data-hl="double"> 2K</label>
+              <label><input type="checkbox" data-hl="triple"> 3K</label>
+              <label><input type="checkbox" data-hl="quadra"> 4K</label>
+              <label><input type="checkbox" data-hl="penta"> Ace <small>5K</small></label>
+              <label><input type="checkbox" data-hl="every_kill"> Every kill</label>
             </div>
-            <div class="row">
-              <div class="row-text"><strong>Review my deaths</strong><span>Saves the lead up to every death in a private Deaths folder inside the match, so you can see what went wrong. Doesn't count towards the limit below.</span></div>
-              <div class="inline">
-                <select data-set="death_review_before" data-num aria-label="Seconds before each death">
-                  <option value="5">5s before</option><option value="10">10s before</option><option value="15">15s before</option><option value="20">20s before</option>
-                </select>
-                <label class="switch"><input type="checkbox" data-set="death_review"><span></span></label>
-              </div>
-            </div>
-            <div class="row">
-              <div class="row-text"><strong>Most auto clips per game</strong></div>
-              <select data-set="highlight_max_per_game" data-num aria-label="Most auto clips per game">
-                <option value="5">5</option><option value="10">10</option><option value="20">20</option><option value="0">No limit</option>
-              </select>
+            <div class="hl-list" role="group" aria-label="Highlights: game">
+              <div class="hl-head">Highlights: game</div>
+              <label><input type="checkbox" data-hl="victory"> Match won</label>
+              <label><input type="checkbox" data-hl="defeat"> Match lost</label>
+              <label><input type="checkbox" data-hl="death"> Your deaths <small>blooper reel</small></label>
             </div>
           </div>
         </section>
 
-        <section class="set-group" id="squad-group">
+        <section class="set-group" data-col="2">
+          <h3>Dota 2</h3>
+          <p class="set-sub">Uses Valve's game data. Add <span class="keycap keycap-sm">-gamestateintegration</span> to Dota 2's launch options in Steam. <span id="dota-note"></span></p>
+          <div class="hl-body" data-game="Dota 2">
+            <div class="hl-list" role="group" aria-label="Highlights: kills">
+              <div class="hl-head">Highlights: kills</div>
+              <label><input type="checkbox" data-hl="double"> Double kill</label>
+              <label><input type="checkbox" data-hl="triple"> Triple kill</label>
+              <label><input type="checkbox" data-hl="quadra"> Ultra kill</label>
+              <label><input type="checkbox" data-hl="penta"> Rampage</label>
+              <label><input type="checkbox" data-hl="first_blood"> First blood</label>
+              <label><input type="checkbox" data-hl="teamfight"> Teamfight <small>3+ kills or assists in quick succession</small></label>
+              <label><input type="checkbox" data-hl="every_kill"> Every kill</label>
+            </div>
+            <div class="hl-list" role="group" aria-label="Highlights: game">
+              <div class="hl-head">Highlights: game</div>
+              <label><input type="checkbox" data-hl="victory"> Victory</label>
+              <label><input type="checkbox" data-hl="defeat"> Defeat</label>
+              <label><input type="checkbox" data-hl="death"> Your deaths <small>blooper reel</small></label>
+            </div>
+          </div>
+        </section>
+
+        <section class="set-group" id="hl-group">
+          <h3>Auto highlights</h3>
+          <p class="set-sub">Saves your best plays by itself in League of Legends, The Finals, Counter-Strike 2 and Dota 2. Pick what counts for each game in its own section.</p>
+          <div class="row">
+            <div class="row-text"><strong>Auto clip highlights</strong><span>Saves short clips of your plays by itself, no key needed</span></div>
+            <label class="switch"><input type="checkbox" data-set="auto_highlights"><span></span></label>
+          </div>
+          <div class="hl-general">
+          <div class="row">
+            <div class="row-text"><strong>Clip length</strong><span>Around the whole play, so a fight is one clip</span></div>
+            <div class="inline">
+              <select data-set="highlight_before" data-num aria-label="Seconds before">
+                <option value="3">3s before</option><option value="5">5s before</option><option value="8">8s before</option>
+                <option value="10">10s before</option><option value="15">15s before</option>
+              </select>
+              <select data-set="highlight_after" data-num aria-label="Seconds after">
+                <option value="3">3s after</option><option value="5">5s after</option><option value="8">8s after</option>
+                <option value="10">10s after</option>
+              </select>
+            </div>
+          </div>
+          <div class="row">
+            <div class="row-text"><strong>Review my deaths</strong><span>Saves the lead up to every death in a private Deaths folder inside the match, so you can see what went wrong. Doesn't count towards the limit below.</span></div>
+            <div class="inline">
+              <select data-set="death_review_before" data-num aria-label="Seconds before each death">
+                <option value="5">5s before</option><option value="10">10s before</option><option value="15">15s before</option><option value="20">20s before</option>
+              </select>
+              <label class="switch"><input type="checkbox" data-set="death_review"><span></span></label>
+            </div>
+          </div>
+          <div class="row">
+            <div class="row-text"><strong>Most auto clips per game</strong></div>
+            <select data-set="highlight_max_per_game" data-num aria-label="Most auto clips per game">
+              <option value="5">5</option><option value="10">10</option><option value="20">20</option><option value="0">No limit</option>
+            </select>
+          </div>
+          </div>
+        </section>
+
+        <section class="set-group" id="squad-group" data-col="2">
           <h3>Squad POV <small class="beta">Beta</small></h3>
           <p class="set-sub">Share a squad code with your duo or stack. When one of you gets a highlight, everyone's app clips that exact moment from their own screen, and you get both screens side by side in one video.</p>
           <div class="row">
@@ -292,7 +372,7 @@
           </div>
         </section>
 
-        <section class="set-group">
+        <section class="set-group" data-col="2">
           <h3>More ways to save a clip</h3>
           <div class="row">
             <div class="row-text"><strong>Say "clip that"</strong><span>Uses Windows speech recognition on your PC, nothing is sent anywhere. Listens on your Windows default mic.</span></div>

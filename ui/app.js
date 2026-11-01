@@ -248,7 +248,7 @@ function matchCard(m, list, latest) {
       el("div", { class: "grid m-grid" }, deaths.map(clipCard))) : null);
 }
 // the best auto clip of a game: the rarest moment wins
-const CLIP_RANK = ["penta", "steal", "quadra", "ace", "elder", "baron", "triple", "teamfight", "double", "first blood", "victory", "dragon", "kill"];
+const CLIP_RANK = ["penta", "multi-kill", "team wipe", "steal", "quadra", "quad", "ace", "elder", "baron", "cashout", "triple", "teamfight", "double", "first blood", "victory", "dragon", "kill"];
 function bestClip(plays) {
   const rank = (c) => {
     const t = (c.title || "").toLowerCase();
@@ -267,6 +267,7 @@ function lobbyStat(r) {
 }
 // end of game numbers for a League match, vs the player's own average from past games
 function matchSummary(s, plays) {
+  if (s.game === "The Finals") return finalsSummary(s, plays);
   const avg = s.avg || {};
   const stat = (value, label, now, base, fmt) => {
     let vs = "", cls = "";
@@ -286,6 +287,31 @@ function matchSummary(s, plays) {
     s.real && s.real.damage != null ? stat(Number(s.real.damage).toLocaleString(), `Damage to champions (${Math.round(s.real.dpm || 0)} a min)`) : null,
     s.real && s.real.gold != null ? stat(Number(s.real.gold).toLocaleString(), `Gold earned (${Math.round(s.real.gpm || 0)} a min)`) : null,
     s.real && s.real.lobby ? lobbyStat(s.real) : null,
+    best ? el("button", { class: "btn btn-primary ms-post", onclick: () => openPlayer(best.id) }, `Post ${best.title}`) : null);
+}
+// end of a The Finals session: your numbers vs your usual (after 3 sessions of 5+ minutes)
+const FINALS_STATS = [["elims", "Eliminations", "i-target"], ["wipes", "Team wipes", "i-squad"], ["cashouts", "Cashouts", "i-vault"],
+  ["steals", "Steals", "i-swap"], ["best", "Best multi kill", "i-bolt"], ["cash", "Cash earned", "i-coin"]];
+function finalsSummary(s, plays) {
+  const avg = s.avg || {};
+  const money = (v) => "$" + Math.round(v).toLocaleString();
+  const best = bestClip(plays);
+  const mins = s.minutes || 0;
+  return el("div", { class: "m-summary" },
+    ...FINALS_STATS.map(([k, label, ic]) => {
+      const now = s[k] || 0, base = avg[k];
+      let vs = "", cls = "";
+      if (base != null) {
+        const up = now > base * 1.04, down = now < base * 0.96;
+        vs = `usual ${k === "cash" ? money(base) : Number(base.toFixed(1))}` + (up ? " \u25b2" : down ? " \u25bc" : "");
+        cls = up ? "s-up" : down ? "s-down" : "";
+      }
+      const i = icon(ic);
+      i.setAttribute("class", "ms-ico" + (k === "cash" ? " gold" : ""));
+      return el("div", { class: "ms-stat" }, el("strong", {}, k === "cash" ? money(now) : String(now)),
+        el("span", {}, i, label), vs ? el("small", { class: cls }, vs) : null);
+    }),
+    el("div", { class: "ms-stat" }, el("strong", {}, mins >= 60 ? `${Math.floor(mins / 60)}h ${mins % 60}m` : `${mins} min`), el("span", {}, "Session length")),
     best ? el("button", { class: "btn btn-primary ms-post", onclick: () => openPlayer(best.id) }, `Post ${best.title}`) : null);
 }
 // post match analysis: a few plain sentences, CS over the game (you, your lane opponent, your usual) and CS by phase
@@ -761,14 +787,17 @@ async function loadSettings() {
     else if (b.type === "checkbox") b.checked = !!val;
     else b.value = String(val ?? "");
   }
-  const hl = Object.assign({}, r.highlight_defaults || {}, r.config.highlight_events || {});
-  for (const c of $$("[data-hl]")) c.checked = !!hl[c.dataset.hl];
-  $("#hl-body").classList.toggle("off", !r.config.auto_highlights);
+  const byGame = r.highlight_by_game || {};
+  for (const body of $$(".hl-body[data-game]")) {
+    const hl = byGame[body.dataset.game] || r.highlight_defaults || {};
+    for (const c of body.querySelectorAll("[data-hl]")) c.checked = !!hl[c.dataset.hl];
+    body.classList.toggle("off", !r.config.auto_highlights);
+  }
+  $(".hl-general").classList.toggle("off", !r.config.auto_highlights);
   const gs = r.gsi_games || {};
   const found = Object.entries(gs).filter(([, ok]) => ok).map(([g]) => g);
-  $("#gsi-note").textContent = found.length
-    ? `Set up for ${found.join(" and ")}.` + (gs["Dota 2"] ? " Dota 2 also needs -gamestateintegration in its Steam launch options." : "")
-    : "";
+  $("#cs2-note").textContent = gs["Counter-Strike 2"] ? "It's set up." : "";
+  $("#dota-note").textContent = gs["Dota 2"] ? "It's set up on this PC." : "";
   call("squad_status").then((sq) => {
     if (!sq) return;
     $("#squad-status").textContent = !sq.code ? "Make a code and send it to your mates, or paste theirs"
@@ -795,8 +824,12 @@ async function loadSettings() {
   const ih = (r.config.item_ideas_hotkey || "alt+shift+i").toUpperCase().replace(/\+/g, " + ");
   $("#items-hotkey-btn").textContent = ih;
   for (const k of $$("[data-items-hotkey]")) k.textContent = ih;
-  $("#box-hotkey-btn").textContent = (r.config.lol_box_hotkey || "alt+shift+b").toUpperCase().replace(/\+/g, " + ");
-  $("#move-hotkey-btn").textContent = (r.config.overlay_move_hotkey || "alt+shift+m").toUpperCase().replace(/\+/g, " + ");
+  const bh = (r.config.lol_box_hotkey || "alt+shift+b").toUpperCase().replace(/\+/g, " + ");
+  const mh = (r.config.overlay_move_hotkey || "alt+shift+m").toUpperCase().replace(/\+/g, " + ");
+  $("#box-hotkey-btn").textContent = bh;
+  $("#move-hotkey-btn").textContent = mh;
+  for (const k of $$("[data-box-hotkey]")) k.textContent = bh;
+  for (const k of $$("[data-move-hotkey]")) k.textContent = mh;
   $("#folder-path").textContent = r.config.clips_folder;
   $("#version").textContent = `Verse Platform for Windows ${r.version}. Updates install by themselves`;
   $("#known-games-hint").textContent = `${r.known_games.length} popular games are picked up automatically, including ${r.known_games.slice(0, 6).join(", ")}.`;
@@ -856,9 +889,17 @@ function wire() {
   document.addEventListener("change", (e) => {
     const c = e.target;
     if (!c.dataset || !c.dataset.hl) return;
-    const ev = Object.assign({}, settings.highlight_defaults || {}, settings.config.highlight_events || {});
-    ev[c.dataset.hl] = c.checked;
-    setSetting("highlight_events", ev);
+    // one set of switches per game: {"League of Legends": {...}, "The Finals": {...}, ...}
+    const body = c.closest(".hl-body[data-game]");
+    if (!body) return;
+    const all = {};
+    for (const b of $$(".hl-body[data-game]")) {
+      const vals = {};
+      for (const x of b.querySelectorAll("[data-hl]")) vals[x.dataset.hl] = x.checked;
+      all[b.dataset.game] = vals;
+    }
+    settings.highlight_by_game = Object.assign({}, settings.highlight_by_game, all);
+    setSetting("highlight_events", all);
   });
   $("#squad-new").addEventListener("click", async () => {
     const r = await call("squad_new_code");
@@ -1038,8 +1079,11 @@ const GROUP_INFO = {
   "Recording": ["i-rec", "Shortcut, clip length, quality and screen"],
   "Games": ["i-pad", "Which games and apps get recorded"],
   "Audio": ["i-sound", "Game sound and microphone"],
-  "League of Legends in game": ["games/league-of-legends.png", "Pop-ups, stats box and shortcuts"],
-  "Auto highlights": ["i-star", "Kills, objectives and wins saved by themselves"],
+  "League of Legends": ["games/league-of-legends.png", "Highlights, pop-ups, stats box and shortcuts"],
+  "The Finals": ["games/the-finals.png", "Highlights, combo counter and your game so far"],
+  "Counter-Strike 2": ["games/counter-strike-2.png", "Highlights from Valve's game data"],
+  "Dota 2": ["games/dota-2.png", "Highlights from Valve's game data"],
+  "Auto highlights": ["i-star", "On or off, clip length and death reviews"],
   "Squad POV": ["i-squad", "Clip your mates' view of the same moment"],
   "More ways to save a clip": ["i-mic", "Voice command and controller combo"],
   "Storage": ["i-folder", "Space used and auto clean"],
@@ -1093,9 +1137,8 @@ function setupGroups() {
   const settings = document.querySelector("#view-settings .settings");
   if (settings) {
     // two fixed columns, so opening a group never makes the others jump sides
-    const split = groups.findIndex((g) => g.id === "hl-group");
     const left = el("div", { class: "set-col" }), right = el("div", { class: "set-col" });
-    groups.forEach((g, i) => (split > 0 && i >= split ? right : left).append(g));
+    groups.forEach((g) => (g.dataset.col === "2" ? right : left).append(g));
     settings.classList.add("set-cols");
     settings.append(left, right);
     const all = (on) => groups.forEach((g) => { if (g.classList.contains("open") !== on) g.querySelector(".set-head").click(); });

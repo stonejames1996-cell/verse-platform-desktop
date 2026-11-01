@@ -75,9 +75,27 @@ def _names(*vals):
     return out
 
 
-def events_config(cfg):
+# what each game can clip (the Settings section of each game shows just these)
+GAME_EVENTS = {
+    "League of Legends": ["double", "triple", "quadra", "penta", "first_blood", "ace", "teamfight", "every_kill",
+                          "steal", "baron_elder", "dragon", "structure", "victory", "defeat", "death"],
+    "The Finals": ["double", "triple", "quadra", "penta", "every_kill", "team_wipe", "cashout", "cashout_steal"],
+    "Counter-Strike 2": ["double", "triple", "quadra", "penta", "every_kill", "victory", "defeat", "death"],
+    "Dota 2": ["double", "triple", "quadra", "penta", "first_blood", "teamfight", "every_kill",
+               "victory", "defeat", "death"],
+}
+
+
+def events_config(cfg, game=None):
+    """Which moments count for a game. Settings keep one set per game, e.g.
+    {"League of Legends": {"double": true, ...}, "The Finals": {...}}. Before 1.3.6 it was one shared
+    set ({"double": true, ...}); that still works and counts for every game until it's changed."""
     ev = dict(DEFAULT_EVENTS)
-    ev.update(cfg.get("highlight_events") or {})
+    raw = cfg.get("highlight_events") or {}
+    if any(isinstance(v, dict) for v in raw.values()):
+        ev.update(raw.get(game) or {})
+    else:
+        ev.update(raw)
     return ev
 
 
@@ -194,7 +212,7 @@ class LeagueHighlights:
 
     # ---------------------------------------------------------------- what counts
     def _event(self, e, cfg):
-        on = events_config(cfg)
+        on = events_config(cfg, self.GAME)
         t = self.offset + float(e.get("EventTime", 0)) if self.offset is not None else self.clock()
         name = e.get("EventName")
         hits = []   # (key, text, rank)

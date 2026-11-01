@@ -68,8 +68,20 @@ def _eliminated_name(tokens):
     return None
 
 
+def _cash(tokens):
+    """'$1,000' on the banner -> 1000 (0 if there's none, or it was misread)."""
+    for t in tokens:
+        if t.startswith("$"):
+            digits = re.sub(r"[^0-9]", "", t)
+            # the game pays in round amounts ($100 a kill, $500, $1,000...), so anything else was misread
+            if digits and re.fullmatch(r"\$[\d,.]+", t) and 50 <= int(digits) <= 100000 and int(digits) % 50 == 0:
+                return int(digits)
+    return 0
+
+
 def parse(lines):
-    """Banner lines -> list of (kind, detail). kind: 'elim' (detail = the name), 'wipe', 'steal', 'cashout'."""
+    """Banner lines -> list of (kind, detail, cash). kind: 'elim' (detail = the name), 'wipe', 'steal',
+    'cashout'. cash: the $ shown with it (0 if none)."""
     found = []
     for line in lines:
         tk = _tokens(line)
@@ -77,16 +89,19 @@ def parse(lines):
             continue
         name = _eliminated_name(tk)
         if name:
-            found.append(("elim", name))
+            found.append(("elim", name, _cash(tk)))
             continue
         text = " ".join(tk)
         cash = "CASH" in text or _has(tk, "CASHOUT", 0.75)
         if _has(tk, "WIPE") and _has(tk, "TEAM"):
-            found.append(("wipe", ""))
+            found.append(("wipe", "", _cash(tk)))
         elif cash and _has(tk, "STOLE"):
-            found.append(("steal", ""))
+            found.append(("steal", "", _cash(tk)))
         elif cash and (_has(tk, "BONUS") or "CASHED" in text or _has(tk, "COMPLETED", 0.75)):
-            found.append(("cashout", ""))
+            found.append(("cashout", "", _cash(tk)))
+        elif found and found[-1][0] == "elim" and not found[-1][2] and _cash(tk):
+            # the name and '$100' were read as separate lines
+            found[-1] = found[-1][:2] + (_cash(tk),)
     return found
 
 
@@ -159,9 +174,11 @@ class FinalsHighlights(GameTracker):
     GAME = GAME
     CHAIN = CHAIN
 
-    def __init__(self, *a, ocr=None, **k):
+    def __init__(self, *a, ocr=None, on_combo=None, on_stats=None, **k):
         super().__init__(*a, **k)
         self.ocr = ocr or WindowsOcr()
+        self.on_combo = on_combo or (lambda n, wipe, cash: None)   # the combo counter
+        self.on_stats = on_stats or (lambda stats: None)           # "your game so far"
         self.reset()
         self._frame = None
         self._wake = threading.Event()
@@ -172,6 +189,23 @@ class FinalsHighlights(GameTracker):
         self.kills = []         # times of the eliminations in the current chain
         self.last = {}          # 'wipe' / 'steal' / 'cashout' -> when it was last counted
         self.lines_logged = 0
+        self.chain_cash = 0     # $ won in the current chain of eliminations
+        self.stats = {"elims": 0, "wipes": 0, "cashouts": 0, "steals": 0, "best": 0, "cash": 0}
+        self.started = self.clock()
+
+    def new_session(self):
+        """The Finals just started being recorded: fresh numbers and a session folder in My clips."""
+        self.reset()
+        when = time.strftime("%Y%m%d-%H%M%S")
+        self.new_match(f"finals-{when}", "The Finals", "Session", " \u00b7 ", icon_url="games/the-finals.png")
+        self.on_stats(dict(self.stats))
+
+    def end_session(self):
+        """The game closed: this session's numbers (with how long it was), or None if nothing happened."""
+        s = dict(self.stats, minutes=round((self.clock() - self.started) / 60))
+        if not any(s[k] for k in ("elims", "wipes", "cashouts", "steals")):
+            return None
+        return s
 
     def handle(self, data, now):   # not used: no game data feed
         pass
@@ -213,18 +247,18 @@ class FinalsHighlights(GameTracker):
         if lines and not events and self.lines_logged < 40 and any("CASH" in ln.upper() for ln in lines):
             self.lines_logged += 1   # helps us learn banners we don't know yet (e.g. other cashout wording)
             log.info("The Finals banner not understood: %s", " / ".join(lines)[:120])
-        for kind, detail in events:
+        for kind, detail, cash in events:
             if kind == "elim":
-                self._elim(detail, t)
+                self._elim(detail, t, cash)
             else:
                 gap = {"wipe": 8, "steal": 15, "cashout": 15}[kind]
                 if t - self.last.get(kind, 0) > gap:
                     self.last[kind] = t
-                    self._moment(kind, t)
+                    self._moment(kind, t, cash)
         for n in [n for n, seen in self.names.items() if t - seen > 4]:
             del self.names[n]
 
-    def _elim(self, name, t):
+    def _elim(self, name, t, cash=0):
         key = re.sub(r"[^A-Z0-9]", "", name.upper())
         same = None
         for k, seen in self.names.items():
@@ -240,15 +274,40 @@ class FinalsHighlights(GameTracker):
             self.kills.append(t)
         else:
             self.kills = [t]
+            self.chain_cash = 0
         n = len(self.kills)
+        self.chain_cash += cash
+        st = self.stats
+        st["elims"] += 1
+        st["cash"] += cash
+        st["best"] = max(st["best"], n)
+        self._tell(n, False)
         log.info("The Finals: elimination (%d in a row)", n)
         self.hit("every_kill", "Kill", 1, t)
         if n >= 2:
             key2, text, rank = MULTI[min(n, 5)]
             self.hit(key2, text, rank, t, start=self.kills[0])
 
-    def _moment(self, kind, t):
+    def _tell(self, n, wipe):
+        for fn, args in ((self.on_combo, (n, wipe, self.chain_cash)), (self.on_stats, (dict(self.stats),))):
+            try:
+                fn(*args)
+            except Exception:
+                log.debug("The Finals overlay", exc_info=True)
+
+    def _moment(self, kind, t, cash=0):
         start = self.kills[0] if self.kills and t - self.kills[-1] <= CHAIN else None
+        st = self.stats
+        st["cash"] += cash
+        st[{"wipe": "wipes", "steal": "steals", "cashout": "cashouts"}[kind]] += 1
+        if kind == "wipe":
+            self.chain_cash += cash
+            self._tell(max(1, len(self.kills)) if start is not None else 1, True)
+        else:
+            try:
+                self.on_stats(dict(st))
+            except Exception:
+                log.debug("The Finals overlay", exc_info=True)
         if kind == "wipe":
             self.hit("team_wipe", "Team wipe", 8, t, start=start)
         elif kind == "steal":

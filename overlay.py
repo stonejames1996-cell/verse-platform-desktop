@@ -29,7 +29,7 @@ WHITE = (245, 245, 247, 255)
 SIGNAL = (34, 211, 238, 255)
 HAZE = (168, 172, 184, 255)
 SHOW_SECONDS = 3.2
-PLACE_KEYS = {"right": "strip", "left": "panel", "top": "popup"}   # overlay places -> saved position names
+PLACE_KEYS = {"right": "strip", "left": "panel", "top": "popup", "combo": "combo"}   # overlay places -> saved position names
 
 
 def _font(size, bold=False):
@@ -177,10 +177,11 @@ class Overlay:
         if self.ok:
             self.q.put(("img", img, seconds, until, place, in_clips))
 
-    def show_static(self, img, place="right"):
-        """Shows (or replaces) a picture that stays up with no animation until hide_static()."""
+    def show_static(self, img, place="right", in_clips=False):
+        """Shows (or replaces) a picture that stays up with no animation until hide_static().
+        in_clips: let it show up in recordings (The Finals combo counter does)."""
         if self.ok:
-            self.q.put(("static", img, place))
+            self.q.put(("static", img, place, in_clips))
 
     def hide_static(self):
         if self.ok:
@@ -212,7 +213,7 @@ class Overlay:
                 if item[0] == "img":
                     self._present(*item[1:])
                 elif item[0] == "static":
-                    self._present(item[1], 0, None, item[2], static=True)
+                    self._present(item[1], 0, None, item[2], in_clips=item[3], static=True)
                 elif item[0] == "hide":
                     self.u.ShowWindow(self.hwnd, 0)
                 else:
@@ -355,6 +356,8 @@ class Overlay:
                 y = max(top + margin, top + (bottom - top - h) // 2 - (bottom - top) // 12)
             elif place == "right":   # right edge, a third of the way down (clear of the scoreboard and minimap)
                 x0, y = right - margin - w, top + int((bottom - top) * 0.30)
+            elif place == "combo":   # right edge, above the stats box
+                x0, y = right - margin - w, top + int((bottom - top) * 0.13)
             try:   # moved by the player (Alt+Shift+M): top left corner as a share of the screen
                 pos = (self.get_positions() or {}).get(PLACE_KEYS.get(place, place))
             except Exception:
@@ -414,7 +417,8 @@ class MoveMode:
     """Alt+Shift+M: a labelled box for each overlay that the player can drag anywhere. Press it again and
     the spots are saved as shares of the screen (so they survive resolution and screen changes)."""
 
-    ITEMS = (("strip", "Stats box", 170, 270), ("panel", "Stats and item ideas", 330, 520), ("popup", "Save and summary pop-ups", 360, 74))
+    ITEMS = (("strip", "Stats box", 170, 270), ("panel", "Stats and item ideas", 330, 520), ("popup", "Save and summary pop-ups", 360, 74),
+             ("combo", "Combo counter", 240, 100))
 
     def __init__(self, get_rect, current, on_done, key_name="Alt+Shift+M"):
         """get_rect() -> (left, top, right, bottom) of the game's screen; current: saved positions;
@@ -534,7 +538,8 @@ class MoveMode:
             sw, sh = right - left, bottom - top
             margin = int(24 * scale)
             defaults = {"strip": (right - margin - 170 * scale, top + sh * 0.30),
-                        "panel": (left + margin, top + sh * 0.25), "popup": (left + margin, top + margin)}
+                        "panel": (left + margin, top + sh * 0.25), "popup": (left + margin, top + margin),
+                        "combo": (right - margin - 240 * scale, top + sh * 0.13)}
             screen = u.GetDC(None)
             wins = {}
             for key, label, w, h in self.ITEMS:

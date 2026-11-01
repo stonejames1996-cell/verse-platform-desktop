@@ -108,6 +108,9 @@ DEFAULT_CONFIG = {
     "lol_objective_timers": True,  # League: Dragon, Baron and inhibitor respawn timers on the right
     "lol_benchmarks": True,        # League: CS, gold, kill share, KDA and level vs your average, on the right
     "lol_match_summary": True,     # League: a summary card when the game ends
+    "finals_combo": True,          # The Finals: Verse combo counter on each elimination (shows in clips)
+    "finals_box": True,            # The Finals: "your game so far" box (never in clips)
+    "finals_summary": True,        # The Finals: session summary when the game closes
     "lol_opgg": True,              # League: your rank and rank / top player comparisons from OP.GG
     "item_ideas_hotkey": "alt+shift+i",
     "lol_box_hotkey": "alt+shift+b",   # hide / show the League box on the right

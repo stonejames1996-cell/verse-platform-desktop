@@ -198,10 +198,16 @@ try:
             got = finals.parse(read)
             if got:
                 break
-        hit = [k for k, _ in got] == [want]   # exactly the one moment, no made-up extra kills
+        hit = [g[0] for g in got] == [want]   # exactly the one moment, no made-up extra kills
         ok += hit
         print(f"finals sample {i} want={want} bright={finals.has_bright_text(crop)} got={got}", *lines, sep="\n   ")
     print(f"finals: {ok}/{len(samples)} banners read right (OCR available: {ocr.ok})")
+    import finals_overlay as fo
+    fo.render_combo(3, True, 800, 1.25).save(os.path.join(OUT, "finals_combo.png"))
+    fo.render_box({"elims": 14, "wipes": 2, "cashouts": 3, "steals": 1, "best": 3, "cash": 4300}, 1.25).save(os.path.join(OUT, "finals_box.png"))
+    fo.render_summary({"elims": 14, "wipes": 2, "cashouts": 3, "steals": 1, "best": 3, "cash": 4300, "minutes": 47},
+                      {"elims": 11.2, "wipes": 2, "cashouts": 1.5, "steals": 1.4, "best": 2.2, "cash": 3100}, 1.25).save(os.path.join(OUT, "finals_summary.png"))
+    print("finals overlays drawn")
     if ok < len(samples):
         problems.append(f"The Finals banners: only {ok}/{len(samples)} read right")
 except Exception as e:

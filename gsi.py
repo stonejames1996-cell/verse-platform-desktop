@@ -181,7 +181,7 @@ class GameTracker:
     # called by subclasses
     def hit(self, key, text, rank, t, start=None, hold=0.0):
         cfg = self.get_cfg()
-        if not cfg.get("auto_highlights", True) or not events_config(cfg).get(key):
+        if not cfg.get("auto_highlights", True) or not events_config(cfg, self.GAME).get(key):
             return False
         with self.lock:
             start = min(t, start if start is not None else t)

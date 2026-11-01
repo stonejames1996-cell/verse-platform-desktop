@@ -232,7 +232,8 @@ video { display: block; width: 100%; aspect-ratio: 16 / 9; max-height: calc(100v
 .btn-update[hidden] { display: none; }
 .up.auto { background: rgba(10, 10, 10, .82); color: var(--signal); }
 
-.hl-body.off { opacity: .45; pointer-events: none; }
+.hl-body.off, .hl-general.off { opacity: .45; pointer-events: none; }
+.sub-head { border-top: 1px solid var(--seam); padding-top: 14px; margin-top: 4px; }
 .hl-list { border-top: 1px solid var(--seam); padding: 12px 0 12px; display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 8px 16px; }
 .hl-head { grid-column: 1 / -1; font-size: 12px; font-weight: 600; color: var(--haze); text-transform: uppercase; letter-spacing: .06em; padding-bottom: 2px; }
 .hl-body .inline select { width: 130px; }
@@ -504,3 +505,5 @@ input[type="text"]:focus { outline: 2px solid var(--signal); outline-offset: 1px
 .set-col > .set-group { margin: 0; }
 .set-inner > .set-sub:first-child { margin-top: 14px; }
 .hl-logo { width: 16px; height: 16px; border-radius: 4px; vertical-align: -3px; margin-right: 4px; }
+.ms-ico { width: 13px; height: 13px; vertical-align: -2px; margin-right: 5px; color: var(--signal); }
+.ms-ico.gold { color: #facc15; }

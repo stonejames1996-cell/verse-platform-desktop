@@ -41,6 +41,10 @@ saves clips on a hotkey or automatically on highlights, and hands clips to the w
 - `finals.py`: The Finals highlights. No game data feed, so the recorder adds a "tap" output (rewind_core TAP_W/TAP_CROP:
   a 960x216 grey copy of the banner area under the crosshair, 4 fps, on ffmpeg's stdout) and Windows' built-in OCR
   (pywinrt `winrt-*` packages) reads "ELIMINATED <name>", "TEAM WIPE", "TEAM STOLE A CASHOUT", cashouts. Checked in win_checks.
+  Keeps session numbers (incl. $ from banners) for `finals_overlay.py`: combo counter (own "combo" overlay spot, in clips),
+  "your game so far" box (stats box spot), session summary (finals_history.json) and a session folder in My clips.
+  Embark/EAC: only the player's own numbers from their own pop-ups, nothing about enemies.
+- Highlight switches are per game: `highlights.GAME_EVENTS` + `events_config(cfg, game)`; Settings has one section per game.
 - `triggers.py`: "clip that" voice command (Windows System.Speech) and controller combos (XInput).
 - `lol_live.py`: League companion loop: objective timers strip, the panel while dead (own stats vs `lol_history.json` averages,
   lane item gold, item ideas), match summary card + `summary` on the match. Riot policy: no enemy cooldowns, no win rates.

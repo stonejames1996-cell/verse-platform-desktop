@@ -29,7 +29,7 @@ from rewind_core import (APP_NAME, APP_VERSION, DATA_DIR, IS_WINDOWS, KNOWN_GAME
 from library import ALLOWED_ORIGINS, ClipLibrary, ExportError, MediaServer
 from updater import Updater
 from overlay import MoveMode, Overlay, secs_text
-from highlights import DEFAULT_EVENTS, LeagueHighlights
+from highlights import DEFAULT_EVENTS, GAME_EVENTS, LeagueHighlights, events_config
 from lol_live import LeagueCompanion
 from triggers import COMBOS, ControllerTrigger, VoiceTrigger
 from gsi import CS2Highlights, DotaHighlights, GSIServer, install_cfgs
@@ -51,7 +51,8 @@ LIVE_KEYS = {"hotkey", "buffer_seconds", "record_mode", "detect_fullscreen_apps"
              "controller_combo", "auto_clean_days", "auto_clean_permanent", "follow_game_screen",
              "lol_item_ideas", "lol_objective_timers", "lol_match_summary",
              "lol_benchmarks", "lol_opgg", "item_ideas_hotkey",
-             "lol_box_hotkey", "lol_box_visible", "overlay_move_hotkey"}
+             "lol_box_hotkey", "lol_box_visible", "overlay_move_hotkey",
+             "finals_combo", "finals_box", "finals_summary"}
 
 # A small "Clips" tab added to the left edge of Verse pages inside the app, so the clip library
 # is always one click away. Verse can render its own button instead: if the page has an element
@@ -238,7 +239,12 @@ class App:
         self.gsi_setup = {}
         # The Finals: no game data feed, so highlights come from reading its on-screen pop-ups
         self.finals = FinalsHighlights(lambda: self.cfg, self.is_playing, self.save_highlight,
-                                       on_match=self.on_match, on_death=self.on_death)
+                                       on_match=self.on_match, on_death=self.on_death,
+                                       on_combo=self.finals_combo_show, on_stats=self.finals_stats)
+        self.finals_combo = Overlay(self.popup_screen, name="VersePlatformCombo",
+                                    get_positions=lambda: self.cfg.get("overlay_positions") or {})
+        self._combo_token = 0
+        self._finals_last = None
         self.squad = Squad(self)
         try:
             with open(INSTANCE_FILE, "w", encoding="utf-8") as f:
@@ -441,6 +447,7 @@ class App:
             return tuple(r) if isinstance(r, (tuple, list)) else self.overlay._monitor_rect()
         self.item_ideas.paused = True
         self.timer_strip.hide_static()
+        self.finals_combo.hide_static()
         self.move_mode = MoveMode(screen_rect_now, self.cfg.get("overlay_positions") or {}, self._move_done,
                                   pretty_hotkey(self.cfg.get("overlay_move_hotkey") or "alt+shift+m"))
         log.info("Move mode on")
@@ -454,6 +461,78 @@ class App:
             self.overlay.show("Overlay spots saved", accent="", sub="Reset them any time in Settings")
         self.item_ideas.paused = False
         self.item_ideas.strip_shown = ""     # redraw the box in its new spot
+        self.finals_stats()
+
+    # ------------------------------------------------------------ The Finals overlays
+    def _ov_scale(self):
+        try:
+            return self.overlay._scale()
+        except Exception:
+            return 1.0
+
+    def finals_combo_show(self, n, wipe, cash):
+        """The Verse combo counter: up on each elimination, gone 3.5s after the last one. Shows in clips."""
+        if not (self.cfg.get("finals_combo", True) and self.is_playing("The Finals")) or self.move_mode:
+            return
+        from finals_overlay import render_combo
+        self.finals_combo.show_static(render_combo(n, wipe, cash, self._ov_scale()), place="combo", in_clips=True)
+        self._combo_token += 1
+        tok = self._combo_token
+
+        def gone():
+            if tok == self._combo_token:
+                self.finals_combo.hide_static()
+        threading.Timer(4.5 if wipe else 3.5, gone).start()
+
+    def finals_stats(self, stats=None):
+        """'Your game so far' box on the right. Never in clips. Hidden with the stats box shortcut."""
+        if stats is not None:
+            self._finals_last = stats
+        stats = self._finals_last
+        show = (stats is not None and self.cfg.get("finals_box", True) and self.cfg.get("lol_box_visible", True)
+                and self.is_playing("The Finals") and not self.move_mode)
+        if not show:
+            if self.is_playing("The Finals") or stats is None:
+                self.timer_strip.hide_static()
+            return
+        from finals_overlay import render_box
+        self.timer_strip.show_static(render_box(stats, self._ov_scale()), place="right")
+
+    def finals_end(self):
+        """The Finals closed: hide its overlays, keep the session's numbers, show the summary."""
+        self.timer_strip.hide_static()
+        self.finals_combo.hide_static()
+        self._finals_last = None
+        summary = self.finals.end_session()
+        if not summary:
+            return
+        hist_path = os.path.join(DATA_DIR, "finals_history.json")
+        try:
+            with open(hist_path, encoding="utf-8") as f:
+                hist = json.load(f)
+        except (OSError, ValueError):
+            hist = []
+        past = [h for h in hist if h.get("minutes", 0) >= 5][-20:]
+        avg = None
+        if len(past) >= 3:   # "your usual" needs a few sessions first
+            avg = {k: sum(h.get(k, 0) for h in past) / len(past)
+                   for k in ("elims", "wipes", "cashouts", "steals", "best", "cash")}
+        if summary["minutes"] >= 5:
+            hist.append(dict(summary, date=time.strftime("%Y-%m-%dT%H:%M:%S")))
+            try:
+                with open(hist_path, "w", encoding="utf-8") as f:
+                    json.dump(hist[-200:], f)
+            except OSError:
+                log.warning("Couldn't save The Finals history", exc_info=True)
+        m = self.finals.match
+        if m:
+            m = dict(m, summary=dict(summary, game="The Finals", avg=avg))
+            self.finals.match = m
+            self.on_match_summary(m)
+        log.info("The Finals session: %s", summary)
+        if self.cfg.get("finals_summary", True):
+            from finals_overlay import render_summary
+            self.overlay.show_image(render_summary(summary, avg, self._ov_scale()), seconds=12, place="top")
 
     def toggle_lol_box(self, *_):
         """The League box on the right (benchmarks and timers): hide or bring back. Remembered between games."""
@@ -464,7 +543,8 @@ class App:
             self.overlay.show("Stats box is back", accent="", sub=f"Press {hk} to hide it")
         else:
             self.overlay.show("Stats box hidden", accent="", sub=f"Press {hk} to bring it back")
-        log.info("League box %s", "shown" if self.cfg["lol_box_visible"] else "hidden")
+        log.info("Stats box %s", "shown" if self.cfg["lol_box_visible"] else "hidden")
+        self.finals_stats()
 
     def save_clip_async(self, *_):
         if self.rec:
@@ -633,21 +713,25 @@ class App:
                         self.subtitle = f"Always on. Press {hk} to save the last {length_text(c['buffer_seconds'])}"
                     else:
                         game = self.watcher.detect()
+                        if is_finals(game):
+                            game = "The Finals"     # same name whichever way it was spotted
                         if game:
                             last_seen = now
                             self.follow_game_screen(rec)
                             if not rec.capturing:
                                 rec.subfolder = ""          # new game: the next match folder comes from its details
                                 self.current_match = None
-                                if is_finals(game):
-                                    self.finals.reset()
                                 rec.begin_capture(game)
+                                if is_finals(game):
+                                    self.finals.new_session()
                                 self.notify(f"Recording {game}", f"Press {hk} to save a clip")
                             rec.label = game
                             self.title = game
                             self.subtitle = f"Recording. Press {hk} to save the last {length_text(c['buffer_seconds'])}"
                         elif rec.capturing:
                             if now - last_seen > c.get("stop_delay_seconds", 20):
+                                if is_finals(rec.label):
+                                    self.finals_end()
                                 rec.end_capture()
                             else:
                                 self.title = rec.label or "Recording"
@@ -1042,6 +1126,8 @@ class Api:
             "running_apps": running,
             "version": APP_VERSION,
             "highlight_defaults": DEFAULT_EVENTS,
+            # each game's own switches, already merged with the defaults (and old shared settings)
+            "highlight_by_game": {g: events_config(a.cfg, g) for g in GAME_EVENTS},
             "controller_combos": {k: v[0] for k, v in COMBOS.items()},
             "gsi_games": {g: bool(p) for g, p in a.gsi_setup.items()},
             "squad_error": a.squad.error,
