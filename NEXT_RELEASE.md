@@ -3,12 +3,10 @@
 Changes that are in `main` but not released yet. When it's time to release, bump `APP_VERSION`,
 turn these into `release-notes/<version>.md`, then clear this list.
 
-## Held
-* The Finals elimination pop-up is now the League-style highlight card ("THE FINALS HIGHLIGHT" / "Double kill"),
-  sized like the clip card and shown exactly where the "Clipped by Verse Platform" card sits (top left). The Finals
-  auto clips skip the burned-in highlight card when it's on (`live_card`), so there's never two.
+Nothing held right now. 1.3.8 shipped The Finals elimination cards in the Clipped by spot.
 
 ## Still to confirm on a real PC
+* 1.3.8: The Finals elimination card shows top left in game and in clips, no second card burned on auto clips.
 * Link Xbox pop-up end to end (log lines: "Sign-in pop-up opened", "Sign-in finished, refreshing Verse").
 * New "Clipped by" tag and save pop-up look right in real clips and games (1.2.7).
 * Highlight card lands at the right moment in real CS2, Dota 2 and League highlights.

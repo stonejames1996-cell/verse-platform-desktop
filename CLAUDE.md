@@ -41,7 +41,7 @@ saves clips on a hotkey or automatically on highlights, and hands clips to the w
 - `finals.py`: The Finals highlights. No game data feed, so the recorder adds a "tap" output (rewind_core TAP_W/TAP_CROP:
   a 960x216 grey copy of the banner area under the crosshair, 4 fps, on ffmpeg's stdout) and Windows' built-in OCR
   (pywinrt `winrt-*` packages) reads "ELIMINATED <name>", "TEAM WIPE", "TEAM STOLE A CASHOUT", cashouts. Checked in win_checks.
-  Keeps session numbers (incl. $ from banners) for `finals_overlay.py`: elimination title pop-up (own "combo" overlay spot, in clips; game icons downloaded from thefinals.wiki to DATA_DIR/finals_icons),
+  Keeps session numbers (incl. $ from banners) for `finals_overlay.py`: elimination card (League-style highlight card, "combo" spot = the Clipped by card's spot, in clips; game icons downloaded from thefinals.wiki to DATA_DIR/finals_icons),
   "your game so far" box (stats box spot), session summary (finals_history.json) and a session folder in My clips.
   Embark/EAC: only the player's own numbers from their own pop-ups, nothing about enemies.
 - Highlight switches are per game: `highlights.GAME_EVENTS` + `events_config(cfg, game)`; Settings has one section per game.
@@ -99,7 +99,7 @@ Ask for `%APPDATA%\Verse Platform\verse_platform.log` (and `crash.log` if there 
 The "Ready." line shows encoder, capture method and "(GPU only)". Useful lines: "Capture froze", "Switching from",
 "Sound output changed", "Saved with no audio", "Told the squad".
 
-## Still to confirm on a real PC (as of 1.3.7)
+## Still to confirm on a real PC (as of 1.3.8)
 - GPU-only recording ("(GPU only)" in the log, lower FFmpeg CPU in Task Manager).
 - Default sound device following ("Sound output changed, recording follows it").
 - Squad POV end to end between two PCs (needs the Base44 squadRelay function published; the upload size limit is untested).
@@ -119,6 +119,7 @@ The "Ready." line shows encoder, capture method and "(GPU only)". Useful lines: 
 - 1.3.6 The Finals: highlights in real matches ("Reading The Finals's on-screen pop-ups", "The Finals: elimination",
   "The Finals banner not understood: ..." for unknown cashout wording), 1080p/1440p, elimination pop-ups in clips, box and
   session summary, game icons downloading. Per-game highlight switches. Save pop-up showing in the next clip.
+- 1.3.8: The Finals elimination card (League-style highlight card, top left where Clipped by sits; auto clips marked live_card skip the burned card).
 - 1.3.7: per-game shortcuts (The Finals' keys only act in The Finals, League's in League) and per-game overlay spots.
 
 ## Ideas not built yet
