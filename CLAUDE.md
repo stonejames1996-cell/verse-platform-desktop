@@ -99,7 +99,7 @@ Ask for `%APPDATA%\Verse Platform\verse_platform.log` (and `crash.log` if there 
 The "Ready." line shows encoder, capture method and "(GPU only)". Useful lines: "Capture froze", "Switching from",
 "Sound output changed", "Saved with no audio", "Told the squad".
 
-## Still to confirm on a real PC (as of 1.3.6)
+## Still to confirm on a real PC (as of 1.3.7)
 - GPU-only recording ("(GPU only)" in the log, lower FFmpeg CPU in Task Manager).
 - Default sound device following ("Sound output changed, recording follows it").
 - Squad POV end to end between two PCs (needs the Base44 squadRelay function published; the upload size limit is untested).
@@ -119,6 +119,7 @@ The "Ready." line shows encoder, capture method and "(GPU only)". Useful lines: 
 - 1.3.6 The Finals: highlights in real matches ("Reading The Finals's on-screen pop-ups", "The Finals: elimination",
   "The Finals banner not understood: ..." for unknown cashout wording), 1080p/1440p, elimination pop-ups in clips, box and
   session summary, game icons downloading. Per-game highlight switches. Save pop-up showing in the next clip.
+- 1.3.7: per-game shortcuts (The Finals' keys only act in The Finals, League's in League) and per-game overlay spots.
 
 ## Ideas not built yet
 Slow-mo on the big moment, end card with K/D/A and verseplatform.gg,

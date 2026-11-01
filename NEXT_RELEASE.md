@@ -3,13 +3,7 @@
 Changes that are in `main` but not released yet. When it's time to release, bump `APP_VERSION`,
 turn these into `release-notes/<version>.md`, then clear this list.
 
-## Held
-* Separate in-game shortcuts for each game. The Finals has its own "hide or show the box" and "move the
-  overlays" shortcuts in its Settings section (League keeps its three). The same keys can be used in both
-  games: pressing them does whatever belongs to the game being played, and a game's keys do nothing in the
-  other game. With no game running, League's keys still work so spots can be set before a match.
-* Each game also has its own overlay spots (The Finals' box no longer shares League's) and its own
-  "Reset spots" button, plus its own remembered "box hidden" state. Move mode only shows that game's boxes.
+Nothing held right now. 1.3.7 shipped separate shortcuts and overlay spots for each game.
 
 ## Still to confirm on a real PC
 * Link Xbox pop-up end to end (log lines: "Sign-in pop-up opened", "Sign-in finished, refreshing Verse").
