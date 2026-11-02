@@ -3,9 +3,12 @@
 Changes that are in `main` but not released yet. When it's time to release, bump `APP_VERSION`,
 turn these into `release-notes/<version>.md`, then clear this list.
 
-Nothing held right now. 1.3.9 shipped the lighter background (page unloaded in the tray), cheaper overlay redraws and the resource log.
+Nothing held right now. 1.4.0 shipped as a quick fix for FPS: the window pauses while a game is on and unloads when minimised.
 
 ## Still to confirm on a real PC
+* 1.4.0: window swaps to the paused page when a game starts (log "Window paused while ... is on"), goes back to the
+  same page when it ends ("Window back from pause"), Open anyway sticks for that game, minimising unloads the page
+  ("Window minimized, page unloaded"). Resource use lines should say "paused for the game" with tiny window numbers.
 * 1.3.9: League FPS steadier with the stats box up; window reopens on the right page after closing to tray;
   "Resource use" lines in the log (window MB should drop to near nothing once closed to the tray).
 * 1.3.8: The Finals elimination card shows top left in game and in clips, no second card burned on auto clips.

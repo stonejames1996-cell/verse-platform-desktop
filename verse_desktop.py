@@ -208,6 +208,9 @@ class App:
         self.parked = background       # page unloaded while closed to the tray (see park)
         self.park_url = ""
         self.win_minimized = False
+        self.game_paused = False       # a game is on: the window shows the plain paused page (see pause_for_game)
+        self.pause_skip = False        # they clicked "Open anyway" (or opened a page themselves) during this game
+        self._view_lock = threading.RLock()
         self.icon = None
         self.clips_rev = 0
         self.lock = threading.RLock()
@@ -297,14 +300,29 @@ class App:
         if cmd == "show":
             self.show_window()
 
+    def paused_url(self):
+        return self.media.url("ui", "paused.html")
+
+    def _wake_url(self):
+        """The page to show when the window comes back: the paused page while a game is on, otherwise
+        wherever they were."""
+        return self.paused_url() if self.game_paused else (self.park_url or (self.verse + "/Home"))
+
+    def _remember_page(self):
+        """Keep the page they're on, so it can come back later. Never the blank or paused page."""
+        url = self.current_url()
+        if url.startswith("http") and not url.startswith(self.paused_url()):
+            self.park_url = url
+
     def show_window(self, *_):
         """Bring the window back only if it's hidden or minimized. Never touch its size,
         so a maximized window stays maximized."""
         if not self.window:
             return
-        if self.parked:   # the page was unloaded when it closed to the tray: bring back where they were
-            self.parked = False
-            self.window.load_url(self.park_url or (self.verse + "/Home"))
+        with self._view_lock:
+            if self.parked:   # the page was unloaded (tray or minimized): bring back where they were
+                self.parked = False
+                self.window.load_url(self._wake_url())
         if self.win_hidden:
             self.window.show()
             self.win_hidden = False
@@ -312,32 +330,92 @@ class App:
             self.window.restore()
             self.win_minimized = False
 
-    def park(self):
-        """Closed to the tray: unload the page so the website (and its videos) stops running in the background.
-        The recorder, overlays and highlights don't need it. show_window brings the same page back."""
-        if self.parked or not self.window or self.quitting:
-            return
-        url = self.current_url()
-        if url.startswith("http"):
-            self.park_url = url
-        try:
-            self.window.load_html(PARKED_HTML)
-            self.parked = True
-            log.info("Window closed to the tray, page unloaded until it's opened again")
-        except Exception:
-            log.debug("couldn't unload the page", exc_info=True)
+    def park(self, why="closed to the tray"):
+        """Closed to the tray or minimized: unload the page so the website (and its videos), or My clips,
+        stops running in the background. The recorder, overlays and highlights don't need it.
+        show_window brings the same page back."""
+        with self._view_lock:
+            if self.parked or not self.window or self.quitting:
+                return
+            if why == "minimized" and not self.win_minimized:
+                return      # restored again before it got going
+            self._remember_page()
+            try:
+                self.window.load_html(PARKED_HTML)
+                self.parked = True
+                log.info("Window %s, page unloaded until it's opened again", why)
+            except Exception:
+                log.debug("couldn't unload the page", exc_info=True)
+
+    def on_restored_window(self):
+        """Back from minimized: load the page again (the paused page if a game is still on)."""
+        self.win_minimized = False
+        if self.parked and not self.win_hidden:
+            with self._view_lock:
+                if self.parked:
+                    self.parked = False
+                    self.window.load_url(self._wake_url())
+
+    # ------------------------------------------------------------ quiet window while a game is on
+    def pause_for_game(self, game):
+        """A game started: swap whatever page is open (Verse, My clips, Settings) for a plain page with
+        nothing running, so the window takes nothing from the game. Recording, highlights and overlays
+        don't use the window. Clicking "Open anyway" (or opening a page themselves) leaves it alone
+        until the next game."""
+        with self._view_lock:
+            if self.game_paused or self.pause_skip or not self.window or self.quitting:
+                return
+            self.game_paused = True
+            if self.parked:      # already unloaded (tray or minimized): it opens on the paused page
+                log.info("Window paused while %s is on", game)
+                return
+            self._remember_page()
+            try:
+                self.window.load_url(self.paused_url())
+                log.info("Window paused while %s is on", game)
+            except Exception:
+                log.debug("couldn't pause the window", exc_info=True)
+
+    def resume_after_game(self, opened=False):
+        """The game ended (or they clicked "Open anyway"): go back to the page they were on."""
+        with self._view_lock:
+            if opened:
+                self.pause_skip = True
+            if not self.game_paused:
+                return
+            self.game_paused = False
+            if not self.window or self.parked or self.quitting:
+                return       # it comes back on the right page when they open it
+            try:
+                self.window.load_url(self.park_url or (self.verse + "/Home"))
+                log.info("Window back from pause%s", " (opened anyway)" if opened else "")
+            except Exception:
+                log.debug("couldn't bring the page back", exc_info=True)
+
+    def game_over_for_window(self):
+        self.pause_skip = False
+        self.resume_after_game()
+
+    def _opened_on_purpose(self):
+        """They opened a page themselves (tray menu, a link): that counts as "Open anyway" for this game."""
+        if self.game_paused or (self.rec and self.rec.capturing and self.rec.label):
+            self.pause_skip = True
+        self.game_paused = False
+        self.parked = False
 
     def open_library(self, *_):
         if self.window:
-            self.parked = False
-            self.window.load_url(self.library_url())
+            with self._view_lock:
+                self._opened_on_purpose()
+                self.window.load_url(self.library_url())
             self.show_window()
 
     def open_verse(self, path="/Home"):
         if self.window:
             path = path if str(path).startswith("/") else "/" + str(path)
-            self.parked = False
-            self.window.load_url(self.verse + path)
+            with self._view_lock:
+                self._opened_on_purpose()
+                self.window.load_url(self.verse + path)
             self.show_window()
 
     # ------------------------------------------------------------ sign-in pop-up (Link Xbox)
@@ -704,7 +782,7 @@ class App:
                 log.info("Resource use%s: %d MB in all (app %d MB %.1f%%, recorder %d MB %.1f%%, window %d MB %.1f%%%s)",
                          f" while recording {playing}" if playing else "", total, u["app"][0], u["app"][1],
                          u["recorder"][0], u["recorder"][1], u["window"][0], u["window"][1],
-                         ", page unloaded" if self.parked else "")
+                         ", page unloaded" if self.parked else (", paused for the game" if self.game_paused else ""))
             except Exception:
                 log.debug("usage check", exc_info=True)
             time.sleep(300)
@@ -835,6 +913,8 @@ class App:
                             rec.begin_capture("")
                         rec.label = ""
                         self.title = "Recording"
+                        if self.game_paused:
+                            self.game_over_for_window()
                         self.subtitle = f"Always on. Press {hk} to save the last {length_text(c['buffer_seconds'])}"
                     else:
                         game = self.watcher.detect()
@@ -854,12 +934,15 @@ class App:
                                 self.notify(f"Recording {game}", f"Press {hk} to save a clip")
                             rec.label = game
                             self.title = game
+                            if self.cfg.get("pause_window_in_game", True):
+                                self.pause_for_game(game)
                             self.subtitle = f"Recording. Press {hk} to save the last {length_text(c['buffer_seconds'])}"
                         elif rec.capturing:
                             if now - last_seen > c.get("stop_delay_seconds", 20):
                                 if is_finals(rec.label):
                                     self.finals_end()
                                 rec.end_capture()
+                                self.game_over_for_window()
                             else:
                                 self.title = rec.label or "Recording"
                                 self.subtitle = "Game closed. Recording stops in a moment"
@@ -1144,6 +1227,21 @@ class Api:
             "notice": a.notices.pop(0) if a.notices else "",
             "update": a.updater.version,
         }
+
+    def open_anyway(self):
+        """The paused page's button: show the page they were on, even though a game is on."""
+        if not self._from_library():
+            return None
+        threading.Timer(0.05, self._app.resume_after_game, kwargs={"opened": True}).start()
+        return True
+
+    def pause_info(self):
+        """What the paused page shows: the game and the save shortcut."""
+        if not self._from_library():
+            return None
+        a = self._app
+        return {"game": (a.rec.label if a.rec and a.rec.capturing else "") or "your game",
+                "hotkey": pretty_hotkey(a.cfg["hotkey"])}
 
     def update_now(self):
         if not self._from_library():
@@ -1560,9 +1658,11 @@ def main():
 
     def on_minimized():
         app.win_minimized = True
+        threading.Timer(0.3, app.park, args=("minimized",)).start()
 
     def on_restored():
         app.win_minimized = False
+        threading.Timer(0.05, app.on_restored_window).start()
 
     app.window.events.minimized += on_minimized
     app.window.events.restored += on_restored

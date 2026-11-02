@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Verse Platform</title>
+<style>
+  /* Shown while a game is on. Deliberately still: no animation, no timers, nothing checking in,
+     so the window costs the game nothing. */
+  :root { color-scheme: dark; }
+  html, body { margin: 0; height: 100%; }
+  body {
+    background: #0a0a0a; color: #fafafa;
+    font: 400 15px/1.5 ui-sans-serif, system-ui, "Segoe UI", Roboto, sans-serif;
+    display: grid; place-items: center; user-select: none;
+  }
+  .card { text-align: center; max-width: 420px; padding: 24px; }
+  .logo { width: 64px; height: 64px; opacity: .95; }
+  h1 { font-size: 22px; margin: 18px 0 6px; letter-spacing: -.01em; }
+  p { margin: 0 0 6px; color: #a3a3a3; }
+  .rec { display: inline-flex; align-items: center; gap: 8px; margin: 14px 0 22px; padding: 6px 12px;
+         border: 1px solid #262626; border-radius: 9999px; background: #111; color: #fafafa; font-size: 13px; }
+  .rec i { width: 8px; height: 8px; border-radius: 50%; background: #ef4444; }
+  kbd { font: 600 12px/1 ui-monospace, Consolas, monospace; background: #1a1a1a; border: 1px solid #262626;
+        border-radius: 6px; padding: 3px 6px; color: #fafafa; }
+  button { font: 600 14px/1 ui-sans-serif, system-ui, "Segoe UI", Roboto, sans-serif; color: #0a0a0a; background: #22d3ee; border: 0; border-radius: 9999px;
+           padding: 11px 20px; cursor: pointer; }
+  button:hover { background: #06b6d4; }
+  button:focus-visible { outline: 2px solid #22d3ee; outline-offset: 3px; }
+  .small { font-size: 12.5px; margin-top: 14px; }
+</style>
+</head>
+<body>
+<main class="card">
+  <img class="logo" src="logo.png" alt="Verse Platform">
+  <h1>Verse is paused while you play</h1>
+  <p>So the app takes nothing from your game.</p>
+  <div class="rec"><i></i><span id="what">Still recording your game</span></div>
+  <p id="keys">Press <kbd id="hk">your save shortcut</kbd> to save a clip, same as always.</p>
+  <p style="margin-bottom:22px">New clips show up in My clips the moment you're back.</p>
+  <button id="open" type="button">Open anyway</button>
+  <p class="small">Verse comes back by itself when the game closes.</p>
+</main>
+<script>
+  function ready() {
+    var api = window.pywebview && window.pywebview.api;
+    if (!api) return;
+    document.getElementById("open").onclick = function () {
+      this.disabled = true;
+      this.textContent = "Opening...";
+      api.open_anyway();
+    };
+    api.pause_info().then(function (r) {
+      if (!r) return;
+      document.getElementById("what").textContent = "Still recording " + r.game;
+      document.getElementById("hk").textContent = r.hotkey;
+    }).catch(function () {});
+  }
+  if (window.pywebview && window.pywebview.api) ready();
+  else window.addEventListener("pywebviewready", ready, { once: true });
+</script>
+</body>
+</html>

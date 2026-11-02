@@ -22,7 +22,9 @@ saves clips on a hotkey or automatically on highlights, and hands clips to the w
 - Use icons wherever we can (rank crests, champion and item pictures, objective icons) instead of plain text.
 
 ## Code map (Python 3, PyInstaller, pywebview / WebView2, FFmpeg)
-- `verse_desktop.py`: the app. Window (closing to the tray unloads the page, `App.park`; `show_window` reloads it), tray, `App` (recording control, save queue, death review, watermark queue,
+- `verse_desktop.py`: the app. Window (closing to the tray or minimising unloads the page, `App.park`; `show_window` reloads it;
+  while a game is on the window shows `ui/paused.html`, `App.pause_for_game`/`resume_after_game`, "Open anyway" = `Api.open_anyway`,
+  config `pause_window_in_game` defaults on), tray, `App` (recording control, save queue, death review, watermark queue,
   overlay, highlights wiring, Squad, auto clean) and `Api` (everything the UI and the Verse website call).
 - `rewind_core.py`: config (`%APPDATA%\Verse Platform\config.json`, log `verse_platform.log`), `APP_VERSION`,
   `Recorder` (FFmpeg segment recorder writing 2s .ts chunks to a temp buffer; `save_clip` stitches them).
@@ -99,7 +101,8 @@ Ask for `%APPDATA%\Verse Platform\verse_platform.log` (and `crash.log` if there 
 The "Ready." line shows encoder, capture method and "(GPU only)". Useful lines: "Resource use ..." (every 5 min: app / recorder / window MB and CPU), "Capture froze", "Switching from",
 "Sound output changed", "Saved with no audio", "Told the squad".
 
-## Still to confirm on a real PC (as of 1.3.9)
+## Still to confirm on a real PC (as of 1.4.0)
+- 1.4.0: window pauses while a game is on and comes back to the same page after; minimising unloads it.
 - GPU-only recording ("(GPU only)" in the log, lower FFmpeg CPU in Task Manager).
 - Default sound device following ("Sound output changed, recording follows it").
 - Squad POV end to end between two PCs (needs the Base44 squadRelay function published; the upload size limit is untested).
