@@ -39,6 +39,9 @@ from library import highlight_score
 
 log = logging.getLogger(APP_NAME)
 INSTANCE_FILE = os.path.join(DATA_DIR, "instance.json")
+# what the window shows while it's closed to the tray: nothing, so the Verse site (feed videos and all) isn't
+# running in the background while people play
+PARKED_HTML = "<html><body style='margin:0;background:#0A0A0A'></body></html>"
 
 # settings that need capture restarted to take effect
 RESTART_KEYS = {"fps", "bitrate", "output_height", "monitor", "record_desktop_audio", "mic_device",
@@ -202,6 +205,8 @@ class App:
         self.mics = []
         self.window = None
         self.win_hidden = background   # closed to the tray
+        self.parked = background       # page unloaded while closed to the tray (see park)
+        self.park_url = ""
         self.win_minimized = False
         self.icon = None
         self.clips_rev = 0
@@ -297,6 +302,9 @@ class App:
         so a maximized window stays maximized."""
         if not self.window:
             return
+        if self.parked:   # the page was unloaded when it closed to the tray: bring back where they were
+            self.parked = False
+            self.window.load_url(self.park_url or (self.verse + "/Home"))
         if self.win_hidden:
             self.window.show()
             self.win_hidden = False
@@ -304,14 +312,31 @@ class App:
             self.window.restore()
             self.win_minimized = False
 
+    def park(self):
+        """Closed to the tray: unload the page so the website (and its videos) stops running in the background.
+        The recorder, overlays and highlights don't need it. show_window brings the same page back."""
+        if self.parked or not self.window or self.quitting:
+            return
+        url = self.current_url()
+        if url.startswith("http"):
+            self.park_url = url
+        try:
+            self.window.load_html(PARKED_HTML)
+            self.parked = True
+            log.info("Window closed to the tray, page unloaded until it's opened again")
+        except Exception:
+            log.debug("couldn't unload the page", exc_info=True)
+
     def open_library(self, *_):
         if self.window:
+            self.parked = False
             self.window.load_url(self.library_url())
             self.show_window()
 
     def open_verse(self, path="/Home"):
         if self.window:
             path = path if str(path).startswith("/") else "/" + str(path)
+            self.parked = False
             self.window.load_url(self.verse + path)
             self.show_window()
 
@@ -635,6 +660,55 @@ class App:
         if self.rec and (self.rec.capturing or self.rec.segments()):
             self.rec.save_clip()
 
+    def usage(self):
+        """How much memory and processor the app uses right now, split into the app itself, the recorder
+        (FFmpeg) and the window (Edge WebView2). CPU is % of the whole PC, averaged over a second."""
+        import psutil
+        me = psutil.Process()
+        groups = {"app": [me], "recorder": [], "window": []}
+        for c in me.children(recursive=True):
+            try:
+                n = c.name().lower()
+            except psutil.Error:
+                continue
+            groups["recorder" if "ffmpeg" in n else "window" if "webview" in n else "app"].append(c)
+        for ps in groups.values():
+            for p in ps:
+                try:
+                    p.cpu_percent(None)
+                except psutil.Error:
+                    pass
+        time.sleep(1.0)
+        cores = psutil.cpu_count() or 1
+        out = {}
+        for k, ps in groups.items():
+            mb = cpu = 0.0
+            for p in ps:
+                try:
+                    mb += p.memory_info().rss / 2 ** 20
+                    cpu += p.cpu_percent(None) / cores
+                except psutil.Error:
+                    pass
+            out[k] = (round(mb), round(cpu, 1))
+        return out
+
+    def _usage_loop(self):
+        """Every 5 minutes while a game is recording (and once a minute after start): note the app's own memory
+        and processor use in the log, so we can quote real numbers."""
+        time.sleep(60)
+        while not self.quitting:
+            try:
+                u = self.usage()
+                total = sum(v[0] for v in u.values())
+                playing = self.rec.label if self.rec and self.rec.capturing else ""
+                log.info("Resource use%s: %d MB in all (app %d MB %.1f%%, recorder %d MB %.1f%%, window %d MB %.1f%%%s)",
+                         f" while recording {playing}" if playing else "", total, u["app"][0], u["app"][1],
+                         u["recorder"][0], u["recorder"][1], u["window"][0], u["window"][1],
+                         ", page unloaded" if self.parked else "")
+            except Exception:
+                log.debug("usage check", exc_info=True)
+            time.sleep(300)
+
     def _auto_clean_loop(self):
         """Once a day: clips older than the chosen number of days that aren't starred or posted go."""
         time.sleep(90)
@@ -866,6 +940,7 @@ class App:
         if self.cfg.get("voice_command"):
             self.voice.start()
         threading.Thread(target=self._auto_clean_loop, daemon=True, name="autoclean").start()
+        threading.Thread(target=self._usage_loop, daemon=True, name="usage").start()
 
     # ------------------------------------------------------------ updates
     def on_update_ready(self, version, allow_auto=True):
@@ -1464,8 +1539,9 @@ def main():
 
     # links that leave Verse (Discord, YouTube...) open in the normal browser
     webview.settings["OPEN_EXTERNAL_LINKS_IN_BROWSER"] = True
+    app.park_url = app.verse + "/Home"
     app.window = webview.create_window(
-        APP_NAME, app.verse + "/Home", js_api=api,
+        APP_NAME, None if background else app.verse + "/Home", html=PARKED_HTML if background else None, js_api=api,
         width=1360, height=860, min_size=(960, 640), background_color="#0A0A0A", hidden=background)
 
     def on_closing():
@@ -1473,6 +1549,7 @@ def main():
             return True
         app.win_hidden = True
         threading.Timer(0.05, app.window.hide).start()  # closing the window keeps recording in the tray
+        threading.Timer(0.3, app.park).start()
         if not getattr(app, "_told_tray", False):
             app._told_tray = True
             app.notify(APP_NAME, "Still recording in the background. Find Verse in the system tray.")

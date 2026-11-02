@@ -216,6 +216,7 @@ class Overlay:
                     self._present(item[1], 0, None, item[2], in_clips=item[3], static=True)
                 elif item[0] == "hide":
                     self.u.ShowWindow(self.hwnd, 0)
+                    self._static_up = False
                 else:
                     self._play(*item[1:])
             except Exception:
@@ -324,10 +325,13 @@ class Overlay:
 
     def _present(self, img, seconds, until, place, in_clips=False, static=False):
         ct, wt, u, g = self.ct, self.wt, self.u, self.g
-        try:   # notices stay out of recordings; the save pop-up and item ideas can be in them
-            u.SetWindowDisplayAffinity(self.hwnd, 0 if in_clips else 0x11)
-        except Exception:
-            pass
+        want = 0 if in_clips else 0x11
+        if getattr(self, "_affinity", None) != want:   # only when it changes: it makes Windows redo the window
+            try:   # notices stay out of recordings; the save pop-up and item ideas can be in them
+                u.SetWindowDisplayAffinity(self.hwnd, want)
+                self._affinity = want
+            except Exception:
+                pass
         scale = self._scale()
         w, h = img.size
         # premultiplied BGRA, which is what UpdateLayeredWindow wants
@@ -378,8 +382,13 @@ class Overlay:
 
             if static:   # no animation, stays up until replaced or hidden
                 frame(255, 0)
-                u.SetWindowPos(self.hwnd, wt.HWND(-1), 0, 0, 0, 0, 0x0001 | 0x0002 | 0x0010 | 0x0040)
+                if not getattr(self, "_static_up", False):
+                    # put it on top once. Doing this on every redraw (the League timers redraw each second)
+                    # makes Windows re-layer the window over the game each time, which can cost frames
+                    u.SetWindowPos(self.hwnd, wt.HWND(-1), 0, 0, 0, 0, 0x0001 | 0x0002 | 0x0010 | 0x0040)
+                    self._static_up = True
                 return
+            self._static_up = False
             frame(0, -16 * scale)
             u.SetWindowPos(self.hwnd, wt.HWND(-1), 0, 0, 0, 0, 0x0001 | 0x0002 | 0x0010 | 0x0040)  # topmost, show, no activate
             ease = lambda t: 1 - (1 - t) ** 3

@@ -22,7 +22,7 @@ saves clips on a hotkey or automatically on highlights, and hands clips to the w
 - Use icons wherever we can (rank crests, champion and item pictures, objective icons) instead of plain text.
 
 ## Code map (Python 3, PyInstaller, pywebview / WebView2, FFmpeg)
-- `verse_desktop.py`: the app. Window, tray, `App` (recording control, save queue, death review, watermark queue,
+- `verse_desktop.py`: the app. Window (closing to the tray unloads the page, `App.park`; `show_window` reloads it), tray, `App` (recording control, save queue, death review, watermark queue,
   overlay, highlights wiring, Squad, auto clean) and `Api` (everything the UI and the Verse website call).
 - `rewind_core.py`: config (`%APPDATA%\Verse Platform\config.json`, log `verse_platform.log`), `APP_VERSION`,
   `Recorder` (FFmpeg segment recorder writing 2s .ts chunks to a temp buffer; `save_clip` stitches them).
@@ -96,7 +96,7 @@ Every build runs `tools/win_checks.py` on the Windows runner and pushes its resu
 
 ## Debugging
 Ask for `%APPDATA%\Verse Platform\verse_platform.log` (and `crash.log` if there is one) plus a broken clip.
-The "Ready." line shows encoder, capture method and "(GPU only)". Useful lines: "Capture froze", "Switching from",
+The "Ready." line shows encoder, capture method and "(GPU only)". Useful lines: "Resource use ..." (every 5 min: app / recorder / window MB and CPU), "Capture froze", "Switching from",
 "Sound output changed", "Saved with no audio", "Told the squad".
 
 ## Still to confirm on a real PC (as of 1.3.8)
