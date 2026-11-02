@@ -3,18 +3,10 @@
 Changes that are in `main` but not released yet. When it's time to release, bump `APP_VERSION`,
 turn these into `release-notes/<version>.md`, then clear this list.
 
-## Held
-* Lighter in the background: closing the window to the tray now unloads the page (the Verse site and its feed
-  videos) instead of just hiding it, and starting with Windows no longer loads the site at all until the window
-  is opened. Opening it again brings back the same page. Only the recorder, overlays and highlights run while you play.
-* Overlays: the League stats box (which redraws every second while a timer counts down) no longer re-layers its
-  window on top of the game and resets its capture setting on every redraw, only when it first appears. Aimed at
-  the FPS going down and up in League.
-* The log now notes the app's own memory and processor use every 5 minutes ("Resource use while recording ...:
-  N MB in all (app, recorder, window)"), so we can quote real numbers.
+Nothing held right now. 1.3.9 shipped the lighter background (page unloaded in the tray), cheaper overlay redraws and the resource log.
 
 ## Still to confirm on a real PC
-* Next release: League FPS steadier with the stats box up; window reopens on the right page after closing to tray;
+* 1.3.9: League FPS steadier with the stats box up; window reopens on the right page after closing to tray;
   "Resource use" lines in the log (window MB should drop to near nothing once closed to the tray).
 * 1.3.8: The Finals elimination card shows top left in game and in clips, no second card burned on auto clips.
 * Link Xbox pop-up end to end (log lines: "Sign-in pop-up opened", "Sign-in finished, refreshing Verse").

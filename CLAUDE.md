@@ -99,7 +99,7 @@ Ask for `%APPDATA%\Verse Platform\verse_platform.log` (and `crash.log` if there 
 The "Ready." line shows encoder, capture method and "(GPU only)". Useful lines: "Resource use ..." (every 5 min: app / recorder / window MB and CPU), "Capture froze", "Switching from",
 "Sound output changed", "Saved with no audio", "Told the squad".
 
-## Still to confirm on a real PC (as of 1.3.8)
+## Still to confirm on a real PC (as of 1.3.9)
 - GPU-only recording ("(GPU only)" in the log, lower FFmpeg CPU in Task Manager).
 - Default sound device following ("Sound output changed, recording follows it").
 - Squad POV end to end between two PCs (needs the Base44 squadRelay function published; the upload size limit is untested).
@@ -120,6 +120,7 @@ The "Ready." line shows encoder, capture method and "(GPU only)". Useful lines: 
   "The Finals banner not understood: ..." for unknown cashout wording), 1080p/1440p, elimination pop-ups in clips, box and
   session summary, game icons downloading. Per-game highlight switches. Save pop-up showing in the next clip.
 - 1.3.8: The Finals elimination card (League-style highlight card, top left where Clipped by sits; auto clips marked live_card skip the burned card).
+- 1.3.9: League FPS steadier with the stats box; window reopens on the right page after the tray; "Resource use" log lines.
 - 1.3.7: per-game shortcuts (The Finals' keys only act in The Finals, League's in League) and per-game overlay spots.
 
 ## Ideas not built yet
