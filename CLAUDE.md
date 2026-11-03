@@ -87,6 +87,12 @@ saves clips on a hotkey or automatically on highlights, and hands clips to the w
 - Events tab order: Verse Brackets, Team Up, Community. Team Up (published 3 Nov 2026) = Tryouts (Tryout +
   TryoutApplication, anyone can post: just me / Verse team / pro team) and one combined Looking for team board (region
   flag pickers everywhere). Untested end to end with real accounts.
+- Game icons: one shared icon map in the app's code (clip page, Upload picker, tournaments). Admin-only /IconReview
+  page (open it in the editor's Preview, the standalone preview isn't signed in) shows current vs candidate icons;
+  the builder has server tools to find candidates (Steam clienticon, App Store artworkUrl512, official site icons,
+  Wikimedia logos) and convert to 128px PNG. No light tiles: dark single-colour logos are recoloured white, EA-style
+  badges use a knockout (dark to white, white to transparent). Every icon is checked by eye before it goes in the map.
+  Images we supply go on the repo's `site-assets` branch (raw.githubusercontent URL). As of 3 Nov 2026: 70 games with icons.
 - Known privacy gap (not fixed yet, owner to decide): UserProfile records still hold emails readable by other users
   (Messages relies on it).
 
