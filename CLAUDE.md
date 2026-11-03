@@ -81,10 +81,14 @@ saves clips on a hotkey or automatically on highlights, and hands clips to the w
 - Preview and live share ONE database. Test tournaments use is_test (host-only, never counted). A finished
   "TEST CS2 Cup" exists for reference; ask the builder to "delete all is_test tournament data" to remove it.
 - Not yet tested with real accounts: disputes/30 min timeout, team invites, team sign-up and team check-in.
-- Pro team Roster + Tryouts tabs (Nov 2026, built, not published yet): pro team = UserProfile with is_pro_team.
-  Tables RosterMember, TryoutApplication, TeamGameSettings (server-only edits by the team account or admins).
-  Roles per game in one shared list (Coach/Manager/Analyst staff, Content creator section, "Player" for other games).
-  Existing UserProfile.team assignments show in a private "Needs sorting" list. Untested end to end with real accounts.
+- Pro team Roster tab (published 3 Nov 2026): pro team = UserProfile with is_pro_team. RosterMember, TeamGameSettings
+  (server-only edits by the team account or admins). Roles per game in one shared list (Coach/Manager/Analyst staff,
+  Content creator section, "Player" for other games). Old UserProfile.team assignments show in a private "Needs sorting" list.
+- Events tab order: Verse Brackets, Team Up, Community. Team Up (published 3 Nov 2026) = Tryouts (Tryout +
+  TryoutApplication, anyone can post: just me / Verse team / pro team) and one combined Looking for team board (region
+  flag pickers everywhere). Untested end to end with real accounts.
+- Known privacy gap (not fixed yet, owner to decide): UserProfile records still hold emails readable by other users
+  (Messages relies on it).
 
 ## Releases (fully automatic)
 1. Bump `APP_VERSION` in `rewind_core.py`.
