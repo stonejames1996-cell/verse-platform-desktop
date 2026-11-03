@@ -81,6 +81,10 @@ saves clips on a hotkey or automatically on highlights, and hands clips to the w
 - Preview and live share ONE database. Test tournaments use is_test (host-only, never counted). A finished
   "TEST CS2 Cup" exists for reference; ask the builder to "delete all is_test tournament data" to remove it.
 - Not yet tested with real accounts: disputes/30 min timeout, team invites, team sign-up and team check-in.
+- Pro team Roster + Tryouts tabs (Nov 2026, built, not published yet): pro team = UserProfile with is_pro_team.
+  Tables RosterMember, TryoutApplication, TeamGameSettings (server-only edits by the team account or admins).
+  Roles per game in one shared list (Coach/Manager/Analyst staff, Content creator section, "Player" for other games).
+  Existing UserProfile.team assignments show in a private "Needs sorting" list. Untested end to end with real accounts.
 
 ## Releases (fully automatic)
 1. Bump `APP_VERSION` in `rewind_core.py`.
@@ -130,5 +134,6 @@ The "Ready." line shows encoder, capture method and "(GPU only)". Useful lines: 
 Slow-mo on the big moment, end card with K/D/A and verseplatform.gg,
 mic noise removal, auto match montage, in-game replay viewer, auto-post drafts to Verse, Clip of the Week on the site,
 quieter Discord posts for small fix releases.
-Waiting on Riot's production key (app 897128): loading screen info (ranks), skill order / rune ideas. Not doing: augment
+Waiting on Riot's production key (app 897128): loading screen info (ranks), skill order / rune ideas. On the website, swap the red "R" placeholder
+for the real Riot logo on linked account badges (Tryouts) when Riot linking goes live. Not doing: augment
 pick/win rates (Riot bans augment win rates), enemy ult timers (banned), jungle pathing.
