@@ -101,8 +101,13 @@ saves clips on a hotkey or automatically on highlights, and hands clips to the w
   folder returned 403 on 4 Nov so retail icons are used until it works). Blizzard terms: keep data max 30 days, so a
   scheduled job refreshes anything older than 25 days (locked to admin or scheduler secret). Guides > WoW: Forever
   (admin only for now): class > spec > Talents (real trees), Build path / Gear path / Levelling still "coming soon".
-  Plan: gear path = stat priority per spec + items/loot (journal-instance empty until launch); builds and levelling
-  drafted (marked draft) and checked by W; personalised page; desktop overlay (needs the Forever exe name).
+  Built 4 Nov (not published): 5,916 Forever items (WowItem, class rules from full item docs and item sets, class
+  weapon/armor proficiency table, junk filter), WowStatPriority (draft weights, 27 specs), gear path per spec for
+  1-10 ... 51-59, 60 Levelling/Dungeons/Raid/PvP (score = stats x weights; dungeon/raid sources empty until Blizzard
+  fills journal data), WowBuildPath drafts (talent rules from tree connections + 5 points per row; hidden from
+  non-admins until marked checked), WowLevelRoute drafts (Alliance/Horde incl. Skyborne/Zephras Isle, own words),
+  admin "Edit guide" panel with history/restore and talent rule checks, personalised "Your characters" (next
+  upgrades by score, next talents; refresh reads specializations). Untested with real characters yet.
 - Known privacy gap (not fixed yet, owner to decide): UserProfile records still hold emails readable by other users
   (Messages relies on it).
 
