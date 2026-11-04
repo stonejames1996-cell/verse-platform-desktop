@@ -108,6 +108,10 @@ saves clips on a hotkey or automatically on highlights, and hands clips to the w
   non-admins until marked checked), WowLevelRoute drafts (Alliance/Horde incl. Skyborne/Zephras Isle, own words),
   admin "Edit guide" panel with history/restore and talent rule checks, personalised "Your characters" (next
   upgrades by score, next talents; refresh reads specializations). Untested with real characters yet.
+  Levelling steps show zone icons from each zone's "Explore <zone>" achievement (stored, in the 25-day refresh).
+  Icon downloads reject non-images (Blizzard's forever image folder returned error pages on 4 Nov). Game Stats WoW
+  card has "Open my guide" per character (owner only); the guide shows a "Link Battle.net" prompt to signed-in users
+  without characters.
 - Known privacy gap (not fixed yet, owner to decide): UserProfile records still hold emails readable by other users
   (Messages relies on it).
 
