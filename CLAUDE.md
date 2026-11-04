@@ -93,14 +93,14 @@ saves clips on a hotkey or automatically on highlights, and hands clips to the w
   Wikimedia logos) and convert to 128px PNG. No light tiles: dark single-colour logos are recoloured white, EA-style
   badges use a knockout (dark to white, white to transparent). Every icon is checked by eye before it goes in the map.
   Images we supply go on the repo's `site-assets` branch (raw.githubusercontent URL). As of 3 Nov 2026: 156 games with icons. The review page has "To review" and "All icons" tabs and is kept permanently; the builder must never add to the map before approval. Still letters (no usable logo found): Helldivers 2, Sea of Thieves, Black Desert Online, Pokémon FireRed, Sons of the Forest, R.E.P.O., Starfield, Fallout 4, StarCraft II, Smash Bros Ultimate, Phasmophobia, Cuphead.
-- WoW: Forever (built 4 Nov 2026, not published yet): Blizzard API namespaces static-forever-REGION,
+- WoW: Forever (built 4 Nov 2026, published by W that night): Blizzard API namespaces static-forever-REGION,
   dynamic-forever-REGION, profile-forever-REGION work (not in Blizzard's docs yet). Admin probe function
   blizzardForeverProbe. Battle.net link now asks openid + wow.profile, reads Forever characters once (token never stored),
   WowCharacter refreshed with the app token (once a day when viewed); deleted on unlink or when Blizzard says gone.
   Data store: WowClass/WowSpec/WowTalentTree (940 nodes)/WowItem (lazy)/WowIcon (our own copies; the forever icon
   folder returned 403 on 4 Nov so retail icons are used until it works). Blizzard terms: keep data max 30 days, so a
   scheduled job refreshes anything older than 25 days (locked to admin or scheduler secret). Guides > WoW: Forever
-  (admin only for now): class > spec > Talents (real trees), Build path / Gear path / Levelling still "coming soon".
+  (public from 4 Nov): class > spec > Talents (real trees), Gear path, Levelling (Draft badges); Build path shows "coming soon" to non-admins until a spec is marked checked.
   Built 4 Nov (not published): 5,916 Forever items (WowItem, class rules from full item docs and item sets, class
   weapon/armor proficiency table, junk filter), WowStatPriority (draft weights, 27 specs), gear path per spec for
   1-10 ... 51-59, 60 Levelling/Dungeons/Raid/PvP (score = stats x weights; dungeon/raid sources empty until Blizzard
