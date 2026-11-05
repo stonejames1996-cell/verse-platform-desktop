@@ -6,7 +6,7 @@ turn these into `release-notes/<version>.md`, then clear this list.
 Nothing held right now. 1.4.5 shipped the Clipped by card fixes, WoW freeze fix, certificate fix and WoW session logo.
 
 ## Still to confirm on a real PC
-* 1.4.5: Clipped by card added after closing WoW even if the app is quit straight after ("Clipped by card added" in the log after the next start); no "Switching from gfxcapture" in WoW; no "Update check failed" with certificate errors.
+* 1.4.5: CONFIRMED on W's PC 5 Nov: Clipped by card on WoW clips and the save pop-up showing in the next clip. Still to see: no "Switching from gfxcapture" in WoW, no certificate errors on update checks.
 * 1.4.4: WoW save pop-up top middle, Alt+Shift+M in WoW shows only the save pop-up box, League/Finals spots kept after moving WoW's.
 * 1.4.3: new dark square icon on desktop/taskbar/tray and installer; Check for updates while downloading says so.
 * 1.4.2: the Verse add-on lands in _forever_\Interface\AddOns\VersePlatform (log "WoW: Verse add-on installed"), loads after /reload (chat "Verse Platform: combat log on"), and the Settings switch removes it.
