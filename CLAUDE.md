@@ -186,6 +186,9 @@ WoW (W, 6 Nov): character card on Game Stats (Verse style, not a copy of Blizzar
 the chat log (need a WoWChatLog.txt sample), quest helper add-on fed by our levelling routes, and later dungeon data:
 Blizzard journal (loot, bosses; still empty) + the player's own runs from the combat log (ENCOUNTER_START/END: clear
 time, bosses, deaths, wipes) shown on Game Stats and the guides.
+Guilds on Verse (W, 6 Nov, later): likely built on Verse Teams (a team type "WoW guild"), linked to the real guild via
+Blizzard's guild endpoints once Forever's guild data works (check realmless naming), members confirmed through their own
+linked characters, a guild page with members' clips (boss kills first), and recruiting through Team Up / Tryouts.
 Waiting on Riot's production key (app 897128): loading screen info (ranks), skill order / rune ideas. On the website, swap the red "R" placeholder
 for the real Riot logo on linked account badges (Tryouts) when Riot linking goes live. Not doing: augment
 pick/win rates (Riot bans augment win rates), enemy ult timers (banned), jungle pathing.
