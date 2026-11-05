@@ -4,6 +4,7 @@ Changes that are in `main` but not released yet. When it's time to release, bump
 turn these into `release-notes/<version>.md`, then clear this list.
 
 * My clips: WoW session folders show the WoW logo instead of a plain "S" square (old sessions too).
+* Fix: the "Clipped by Verse Platform" card is no longer lost when the app closes or updates before it was added (it's remembered and added next time), and it's tried again if the clip was open in a player. Clips from the last 3 days that missed it get it once.
 
 ## Still to confirm on a real PC
 * 1.4.4: WoW save pop-up top middle, Alt+Shift+M in WoW shows only the save pop-up box, League/Finals spots kept after moving WoW's.

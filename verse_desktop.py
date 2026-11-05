@@ -15,6 +15,7 @@ Run with --background to start hidden in the tray (used by "Start with Windows")
 import json
 import logging
 import os
+import datetime
 import queue
 import subprocess
 import sys
@@ -223,7 +224,21 @@ class App:
         self.overlay = Overlay(self.popup_screen, get_positions=self.overlay_positions)
         self.move_mode = None
         self.wm_queue = queue.Queue()
+        self.wm_tries = {}
         threading.Thread(target=self._watermark_loop, daemon=True, name="watermark").start()
+        # clips still waiting for their "Clipped by" card when the app last closed (an update, a restart,
+        # quitting from the tray) get it now; the queue itself only lives in memory
+        catch_up = not self.cfg.get("wm_catchup_done") and self.cfg.get("clip_watermark", True)
+        recent = (datetime.datetime.now() - datetime.timedelta(days=3)).isoformat(timespec="seconds")
+        for c in self.library.list():
+            if c.get("watermarked") or c.get("review") or c.get("squad"):
+                continue
+            # once (1.4.5): clips from the last 3 days that lost their card to a restart before this fix
+            if c.get("wm_pending") or (catch_up and c.get("created", "") >= recent):
+                self.wm_queue.put(c["id"])
+        if catch_up:
+            self.cfg["wm_catchup_done"] = True
+            save_config(self.cfg)
         self.current_match = None
         self.voice = VoiceTrigger(self.trigger_save)
         self.pad = ControllerTrigger(lambda: self.cfg.get("controller_combo", ""), self.trigger_save)
@@ -741,9 +756,26 @@ class App:
                 self.wait_for_game_end()
                 encoder = self.rec.encoder if self.rec else "libx264"
                 if self.library.add_watermark(clip_id, encoder):
+                    self.wm_tries.pop(clip_id, None)
+                    log.info("Clipped by card added to %s", clip_id)
                     self.bump()
+                    continue
             except Exception:
                 log.exception("Watermark failed")
+            # didn't work (often the clip was open in a player): try again in a couple of minutes, a few times
+            clip = self.library.get(clip_id)
+            if clip and not clip.get("watermarked"):
+                n = self.wm_tries[clip_id] = self.wm_tries.get(clip_id, 0) + 1
+                if n <= 5:
+                    log.info("Clipped by card for %s will be tried again (try %d)", clip_id, n)
+                    threading.Timer(120, self.wm_queue.put, args=(clip_id,)).start()
+                else:
+                    log.warning("Gave up adding the Clipped by card to %s", clip_id)
+
+    def queue_watermark(self, clip_id):
+        """Adds the "Clipped by" card once no game is on. Remembered in clips.json so a restart doesn't lose it."""
+        self.library.mark(clip_id, wm_pending=True)
+        self.wm_queue.put(clip_id)
 
     def on_match(self, m):
         """League match details came in or changed: clips from now on go in that match's folder."""
@@ -890,7 +922,7 @@ class App:
         clip = self.library.add(path, game=game, highlight=label, match=match, extra=extra)
         self.bump()
         if clip and watermark and not clip.get("watermarked"):
-            self.wm_queue.put(clip["id"])
+            self.queue_watermark(clip["id"])
         return clip
 
     def flash(self, title, sub=""):
@@ -919,7 +951,7 @@ class App:
         self.library.bump_stat("clips_saved", tag)
         self.bump()
         if clip and self.cfg.get("clip_watermark", True):
-            self.wm_queue.put(clip["id"])
+            self.queue_watermark(clip["id"])
         if tag:
             self.notice(f"Highlight saved: {tag}")
             # always on, and visible in recordings: Verse should be seen in people's clips
@@ -1531,7 +1563,7 @@ class Api:
             log.exception("Recap failed")
             return {"error": f"Couldn't make the recap ({e})"}
         if a.cfg.get("clip_watermark", True):
-            a.wm_queue.put(c["id"])
+            a.queue_watermark(c["id"])
         a.bump()
         return {"ok": True, "id": c["id"], "title": c["title"]}
 

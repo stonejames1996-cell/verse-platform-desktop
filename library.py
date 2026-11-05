@@ -571,6 +571,18 @@ class ClipLibrary:
         return self.get(new["id"])
 
     # ---- stars and storage
+    def mark(self, clip_id, **fields):
+        """Sets (or with None, removes) little flags on a clip, e.g. wm_pending."""
+        with self.lock:
+            c = self.clips.get(clip_id)
+            if c is not None:
+                for k, v in fields.items():
+                    if v is None:
+                        c.pop(k, None)
+                    else:
+                        c[k] = v
+                self._save()
+
     def set_star(self, clip_id, on):
         with self.lock:
             if clip_id in self.clips:
@@ -645,6 +657,7 @@ class ClipLibrary:
         with self.lock:
             if clip_id in self.clips:
                 self.clips[clip_id]["watermarked"] = True
+                self.clips[clip_id].pop("wm_pending", None)
                 self.clips[clip_id]["size"] = os.path.getsize(src)
                 self._save()
         return True
