@@ -51,6 +51,8 @@ saves clips on a hotkey or automatically on highlights, and hands clips to the w
   biggest hit/heal (crit fields read from the line end), PvP killing blows and multis, deaths. Moments that arrive in
   one burst but happened apart get separate clips. Settings key "World of Warcraft"; `rewind_core.FOLDER_GAMES` names
   the flavour from the install folder (WoW: Forever etc). Blizzard's web API can't do live data.
+  1.4.2: the app installs a tiny add-on (Interface\AddOns\VersePlatform, LoggingCombat(true) on PLAYER_ENTERING_WORLD)
+  into every WoW flavour folder so players never type /combatlog; setting `wow_auto_combatlog`. Forever interface = 16001.
 - Highlight switches are per game: `highlights.GAME_EVENTS` + `events_config(cfg, game)`; Settings has one section per game.
 - In-game shortcuts are per game: `App.game_shortcuts()` (League: item_ideas/lol_box/overlay_move_hotkey; The Finals:
   finals_box/finals_move_hotkey). Each combo is registered once and acts for the game being played. Overlay spots per game
@@ -140,7 +142,8 @@ Ask for `%APPDATA%\Verse Platform\verse_platform.log` (and `crash.log` if there 
 The "Ready." line shows encoder, capture method and "(GPU only)". Useful lines: "Resource use ..." (every 5 min: app / recorder / window MB and CPU), "Capture froze", "Switching from",
 "Sound output changed", "Saved with no audio", "Told the squad".
 
-## Still to confirm on a real PC (as of 1.4.1)
+## Still to confirm on a real PC (as of 1.4.2)
+- 1.4.2: the Verse WoW add-on installs and loads (chat "Verse Platform: combat log on").
 - 1.4.1 WoW highlights: a real boss kill, big pull and PvP kill (combat log format, own flag 0x511 and crits already checked with W's logs).
 - 1.4.0: confirmed 5 Nov (pause, back to the same page, Open anyway); minimising unloading the page still to check.
 - GPU-only recording ("(GPU only)" in the log, lower FFmpeg CPU in Task Manager).

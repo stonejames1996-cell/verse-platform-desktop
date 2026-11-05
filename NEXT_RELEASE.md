@@ -3,14 +3,10 @@
 Changes that are in `main` but not released yet. When it's time to release, bump `APP_VERSION`,
 turn these into `release-notes/<version>.md`, then clear this list.
 
-* WoW: the combat log turns on by itself. A tiny "Verse Platform" add-on (Interface\AddOns\VersePlatform, a .toc and
-  a few lines of Lua that call LoggingCombat(true) on PLAYER_ENTERING_WORLD) is installed into every WoW flavour folder
-  found (running game, registry, usual install spots) at app start and when a WoW session starts. Setting
-  `wow_auto_combatlog` (on by default) in Settings > World of Warcraft; switching it off removes our folder only.
-  The toc's Interface number comes from .build.info (1.60.1 -> 16001) plus fallbacks. First time: /reload or relog.
-  Forever's interface number CONFIRMED 16001 by W in game (5 Nov). Still to see: the add-on loading and its chat line.
+Nothing held right now. 1.4.2 shipped the automatic WoW combat log add-on.
 
 ## Still to confirm on a real PC
+* 1.4.2: the Verse add-on lands in _forever_\Interface\AddOns\VersePlatform (log "WoW: Verse add-on installed"), loads after /reload (chat "Verse Platform: combat log on"), and the Settings switch removes it.
 * 1.4.1 WoW highlights: a real boss kill, big pull and PvP kill (only seen in test logs so far), plus a real Forever combat log (log lines "WoW highlights: reading ...", "WoW: boss down ...",
   "World of Warcraft highlight moment: ..."), and that crits are read right (biggest hit numbers match the game).
 * WoW: Forever clips are tagged "WoW: Forever" (log: "Recording WoW: Forever" or similar when the game starts).
