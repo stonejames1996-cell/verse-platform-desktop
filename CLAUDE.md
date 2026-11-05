@@ -46,6 +46,11 @@ saves clips on a hotkey or automatically on highlights, and hands clips to the w
   Keeps session numbers (incl. $ from banners) for `finals_overlay.py`: elimination card (League-style highlight card, "combo" spot = the Clipped by card's spot, in clips; game icons downloaded from thefinals.wiki to DATA_DIR/finals_icons),
   "your game so far" box (stats box spot), session summary (finals_history.json) and a session folder in My clips.
   Embark/EAC: only the player's own numbers from their own pop-ups, nothing about enemies.
+- `wow.py`: World of Warcraft highlights (Forever, Classic, retail) from WoW's combat log file (/combatlog), tailed from
+  `<install>\_<flavour>_\Logs\WoWCombatLog*.txt`: boss kills/wipes (ENCOUNTER_END), big pulls (PARTY_KILL of 4+ mobs),
+  biggest hit/heal (crit fields read from the line end), PvP killing blows and multis, deaths. Moments that arrive in
+  one burst but happened apart get separate clips. Settings key "World of Warcraft"; `rewind_core.FOLDER_GAMES` names
+  the flavour from the install folder (WoW: Forever etc). Blizzard's web API can't do live data.
 - Highlight switches are per game: `highlights.GAME_EVENTS` + `events_config(cfg, game)`; Settings has one section per game.
 - In-game shortcuts are per game: `App.game_shortcuts()` (League: item_ideas/lol_box/overlay_move_hotkey; The Finals:
   finals_box/finals_move_hotkey). Each combo is registered once and acts for the game being played. Overlay spots per game

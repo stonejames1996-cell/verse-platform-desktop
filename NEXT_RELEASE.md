@@ -7,7 +7,18 @@ turn these into `release-notes/<version>.md`, then clear this list.
   folder: `_forever_` = "WoW: Forever" (also `_classic_era_` = WoW Classic Era, `_classic_` = WoW Classic). Clips get the
   right game name instead of "World of Warcraft". (`rewind_core.FOLDER_GAMES`, `GameWatcher.folder_name`)
 
+* World of Warcraft auto highlights (`wow.py`), from WoW's own combat log (player types /combatlog in chat; the app
+  only reads `<WoW folder>\_forever_\Logs\WoWCombatLog*.txt`). Clips: boss kills, boss wipes (off), big pulls (4+ mobs
+  within 6s), biggest hit and biggest heal of the session (new best crit, at least 1.5x the usual, max one per 3 min),
+  killing blows on enemy players plus double/triple/quadra/penta, deaths (off, also feeds death review). One Settings
+  section "World of Warcraft" covers Forever, Classic and retail. Session folder in My clips. A reminder pops up if no
+  combat log is being written after 90s. The per game highlight cap counts per hour for WoW.
+  NOT CHECKED AGAINST A REAL FOREVER LOG YET: field positions are read from the end of each line; check with W's log
+  before releasing.
+
 ## Still to confirm on a real PC
+* WoW highlights with a real Forever combat log (log lines "WoW highlights: reading ...", "WoW: boss down ...",
+  "World of Warcraft highlight moment: ..."), and that crits are read right (biggest hit numbers match the game).
 * WoW: Forever clips are tagged "WoW: Forever" (log: "Recording WoW: Forever" or similar when the game starts).
 * 1.4.0 (paused page CONFIRMED on W's PC 5 Nov with WoW: Forever; still to check: back to same page after, Open anyway, minimise): window swaps to the paused page when a game starts (log "Window paused while ... is on"), goes back to the
   same page when it ends ("Window back from pause"), Open anyway sticks for that game, minimising unloads the page

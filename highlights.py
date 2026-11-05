@@ -31,6 +31,7 @@ DEFAULT_EVENTS = {
     "steal": True, "baron_elder": True, "dragon": False, "structure": False,
     "victory": True, "defeat": False, "death": False,
     "team_wipe": True, "cashout": True, "cashout_steal": True,     # The Finals
+    "boss_kill": True, "boss_wipe": False, "aoe": True, "big_crit": True, "big_heal": True,   # World of Warcraft
 }
 MULTI = {2: ("double", "Double kill", 4), 3: ("triple", "Triple kill", 6),
          4: ("quadra", "Quadra kill", 9), 5: ("penta", "Pentakill", 10)}
@@ -83,7 +84,13 @@ GAME_EVENTS = {
     "Counter-Strike 2": ["double", "triple", "quadra", "penta", "every_kill", "victory", "defeat", "death"],
     "Dota 2": ["double", "triple", "quadra", "penta", "first_blood", "teamfight", "every_kill",
                "victory", "defeat", "death"],
+    "World of Warcraft": ["boss_kill", "boss_wipe", "aoe", "big_crit", "big_heal", "every_kill",
+                          "double", "triple", "quadra", "penta", "death"],
 }
+
+
+# where a game's defaults differ from the shared ones (in WoW a player kill is rare and worth a clip)
+GAME_DEFAULTS = {"World of Warcraft": {"every_kill": True}}
 
 
 def events_config(cfg, game=None):
@@ -91,6 +98,7 @@ def events_config(cfg, game=None):
     {"League of Legends": {"double": true, ...}, "The Finals": {...}}. Before 1.3.6 it was one shared
     set ({"double": true, ...}); that still works and counts for every game until it's changed."""
     ev = dict(DEFAULT_EVENTS)
+    ev.update(GAME_DEFAULTS.get(game) or {})
     raw = cfg.get("highlight_events") or {}
     if any(isinstance(v, dict) for v in raw.values()):
         ev.update(raw.get(game) or {})

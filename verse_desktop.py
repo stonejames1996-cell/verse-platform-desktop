@@ -34,6 +34,7 @@ from lol_live import LeagueCompanion
 from triggers import COMBOS, ControllerTrigger, VoiceTrigger
 from gsi import CS2Highlights, DotaHighlights, GSIServer, install_cfgs
 from finals import FinalsHighlights, is_finals
+from wow import WowHighlights, is_wow
 from squad import Squad, make_code
 from library import highlight_score
 
@@ -250,6 +251,9 @@ class App:
         self.finals = FinalsHighlights(lambda: self.cfg, self.is_playing, self.save_highlight,
                                        on_match=self.on_match, on_death=self.on_death,
                                        on_combo=self.finals_combo_show, on_stats=self.finals_stats)
+        # World of Warcraft: highlights from the game's own combat log (/combatlog in chat)
+        self.wow = WowHighlights(lambda: self.cfg, self.is_playing, self.save_highlight,
+                                 on_match=self.on_match, on_death=self.on_death, on_hint=self.wow_hint)
         self.finals_combo = Overlay(self.popup_screen, name="VersePlatformCombo",
                                     get_positions=lambda: self.cfg.get("overlay_positions") or {})
         self._combo_token = 0
@@ -686,6 +690,12 @@ class App:
             self.overlay.show("Stats box hidden", accent="", sub=f"Press {hk} to bring it back")
         log.info("League box %s", "shown" if self.cfg["lol_box_visible"] else "hidden")
 
+    def wow_hint(self, text):
+        """WoW highlights need the game's combat log: remind once a session if it isn't on."""
+        if self.cfg.get("auto_highlights", True):
+            self.notice(text)
+            self.notify(APP_NAME, text)
+
     def toggle_finals_box(self, *_):
         """The Finals' "your game so far" box: hide or bring back. Remembered between games."""
         self.cfg["finals_box_visible"] = not self.cfg.get("finals_box_visible", True)
@@ -931,6 +941,8 @@ class App:
                                     self.finals.new_session()
                                     from finals_overlay import preload_icons
                                     preload_icons()
+                                elif is_wow(game):
+                                    self.wow.new_session(game)
                                 self.notify(f"Recording {game}", f"Press {hk} to save a clip")
                             rec.label = game
                             self.title = game
@@ -941,6 +953,8 @@ class App:
                             if now - last_seen > c.get("stop_delay_seconds", 20):
                                 if is_finals(rec.label):
                                     self.finals_end()
+                                elif is_wow(rec.label):
+                                    self.wow.end_session()
                                 rec.end_capture()
                                 self.game_over_for_window()
                             else:
