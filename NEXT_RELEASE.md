@@ -15,7 +15,9 @@ turn these into `release-notes/<version>.md`, then clear this list.
   combat log is being written after 90s. The per game highlight cap counts per hour for WoW.
   Checked 5 Nov against W's first Forever log (COMBAT_LOG_VERSION 22, build 1.60.1): time stamps, damage and heal
   amounts read right; Forever logs most deaths without PARTY_KILL, so a unit dying within 6s of my hit counts as my kill.
-  Still to check: the player's own lines (flag 0x511) and a crit; W's first log had none of his own actions.
+  Second log (W's warrior \"Verse-Platform-PvP-US\"): own actions carry flag 0x511 as in retail, PARTY_KILL is logged for
+  the player's own kills, crits read right (amount is the field before baseAmount, e.g. '9,4,...,1' = 9 crit).
+  Still to see in a real log: a boss (ENCOUNTER_END), a big pull and a PvP kill.
 
 ## Still to confirm on a real PC
 * WoW highlights with a real Forever combat log (log lines "WoW highlights: reading ...", "WoW: boss down ...",

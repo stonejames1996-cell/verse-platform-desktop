@@ -110,10 +110,11 @@ def _trim(f):
     return f
 
 
-def damage_info(f):
-    """(amount, crit) from a damage line, reading from the end. The tail is
-    ... amount, overkill, school, resisted, blocked, absorbed, critical, glancing, crushing[, isOffHand]
-    where the last three or four are '1' or 'nil' (some clients leave out isOffHand)."""
+def damage_info(f, base=True):
+    """(amount, crit) from a damage line, reading from the end. WoW: Forever (log version 22) writes
+    ... amount, baseAmount, overkill, school, resisted, blocked, absorbed, critical, glancing, crushing
+    e.g. a melee crit '9,4,-1,1,0,0,0,1,nil,nil' did 9 (4 before the crit). Some clients add isOffHand at
+    the end, and very old ones have no baseAmount (base=False)."""
     f = _trim(f)
     if len(f) < 12:
         return 0, False
@@ -123,15 +124,16 @@ def damage_info(f):
     if tail < 3:
         return 0, False
     crit_i = len(f) - tail
-    return num(f[crit_i - 6]), f[crit_i] == "1"
+    return num(f[crit_i - (7 if base else 6)]), f[crit_i] == "1"
 
 
-def heal_info(f):
-    """(amount, crit) from a heal line: ... amount, overhealing, absorbed, critical"""
+def heal_info(f, base=True):
+    """(amount actually healed, crit) from a heal line: ... amount, [baseAmount,] overhealing, absorbed, critical"""
     f = _trim(f)
     if len(f) < 12:
         return 0, False
-    return max(0, num(f[-4]) - num(f[-3])), f[-1] == "1"
+    amount = num(f[-5] if base else f[-4])
+    return max(0, amount - num(f[-3])), f[-1] == "1"
 
 
 def is_me(flag):
@@ -210,6 +212,7 @@ class WowHighlights(GameTracker):
         self.started = time.time()
         self.hinted = False
         self.lines = 0
+        self.base = True            # log version 20+ has baseAmount after amount
         self.encounters = {}        # encounter id -> start time
         self.pvp_kills = []         # times of enemy player kills in the current chain
         self.mob_kills = []         # times of mob kills in the current pull
@@ -341,7 +344,10 @@ class WowHighlights(GameTracker):
 
     # --- the moments
     def event(self, ev, f, t):
-        if ev == "ENCOUNTER_START" and len(f) >= 3:
+        if ev == "COMBAT_LOG_VERSION" and len(f) >= 2:
+            self.base = num(f[1]) >= 20
+            log.info("WoW combat log version %s", f[1])
+        elif ev == "ENCOUNTER_START" and len(f) >= 3:
             self.encounters[f[1]] = t
             log.info("WoW: pulled %s", f[2])
         elif ev == "ENCOUNTER_END" and len(f) >= 6:
@@ -387,12 +393,12 @@ class WowHighlights(GameTracker):
                 if len(self.my_targets) > 500:
                     for k in sorted(self.my_targets, key=self.my_targets.get)[:250]:
                         del self.my_targets[k]
-                amount, crit = damage_info(f)
+                amount, crit = damage_info(f, self.base)
                 if crit and amount > 0:
                     self._big("big_crit", "Biggest hit", amount, t, self.crits)
         elif ev in HEALS and len(f) >= 9:
             if is_me(flags(f[3])):
-                amount, crit = heal_info(f)
+                amount, crit = heal_info(f, self.base)
                 if crit and amount > 0:
                     self._big("big_heal", "Biggest heal", amount, t, self.heals)
 
