@@ -3,7 +3,7 @@
 Changes that are in `main` but not released yet. When it's time to release, bump `APP_VERSION`,
 turn these into `release-notes/<version>.md`, then clear this list.
 
-Nothing held right now. 1.4.4 shipped the WoW pop-up spot, WoW move shortcut and WoW logo.
+* My clips: WoW session folders show the WoW logo instead of a plain "S" square (old sessions too).
 
 ## Still to confirm on a real PC
 * 1.4.4: WoW save pop-up top middle, Alt+Shift+M in WoW shows only the save pop-up box, League/Finals spots kept after moving WoW's.

@@ -139,6 +139,11 @@ async function loadClips() {
 const GAME_LOGOS = new Set(["apex-legends", "counter-strike-2", "dead-by-daylight", "destiny-2", "dota-2", "escape-from-tarkov", "fortnite", "gta-v", "league-of-legends", "marvel-rivals", "minecraft", "old-school-runescape", "overwatch-2", "pubg", "rainbow-six-siege", "roblox", "rust", "the-finals", "valorant", "world-of-warcraft"]);
 // Games that share another game's logo (WoW flavours are named from the install folder)
 const LOGO_ALIASES = { "wow-forever": "world-of-warcraft", "wow-classic": "world-of-warcraft", "wow-classic-era": "world-of-warcraft" };
+function logoSrc(name) {   // the game's logo picture, or "" when we don't have one
+  let slug = String(name || "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+  slug = LOGO_ALIASES[slug] || slug;
+  return GAME_LOGOS.has(slug) ? `games/${slug}.png` : "";
+}
 function gameLogo(name) {
   if (!name || name === "All") return null;
   let slug = name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
@@ -206,8 +211,9 @@ function matchCard(m, list, latest) {
   const open = openMatches.has(m.id) || (latest && !closedMatches.has(m.id));
   const deaths = list.filter((c) => c.review), plays = list.filter((c) => !c.review);
   const icon = el("span", { class: "m-champ" }, (m.champion || "?")[0]);
-  if (m.icon_url) {
-    const img = el("img", { src: m.icon_url, alt: "" });
+  const iconUrl = m.icon_url || (m.champion_key ? "" : logoSrc(m.game || m.mode));   // sessions without a picture get the game's logo
+  if (iconUrl) {
+    const img = el("img", { src: iconUrl, alt: "" });
     img.onerror = () => img.remove();
     icon.append(img);
   } else if (m.champion_key && ddVersion && ddVersion !== "pending") {

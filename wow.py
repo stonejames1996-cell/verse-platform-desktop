@@ -380,7 +380,7 @@ class WowHighlights(GameTracker):
         self._active = True
         when = time.strftime("%Y%m%d-%H%M%S")
         # folder names can't have a colon ("WoW: Forever" -> "WoW Forever")
-        self.new_match(f"wow-{when}", re.sub(r'[\\/:*?"<>|]', "", label), "Session", " \u00b7 ", icon_url="")
+        self.new_match(f"wow-{when}", re.sub(r'[\\/:*?"<>|]', "", label), "Session", " \u00b7 ", icon_url="games/world-of-warcraft.png")
         self.match["game"] = label        # clips are recorded under the name the app shows (WoW: Forever)
         self.on_match(dict(self.match))
         self.addon = "off"
