@@ -1271,12 +1271,16 @@ class Api:
         u = self._app.updater
         if not u.enabled:
             return {"message": "Updates aren't set up in this build"}
-        if not u.version:
-            try:
-                u.check()
-            except Exception as e:
-                log.warning("Manual update check failed: %s", e)
+        if u.busy:
+            return {"message": "Getting the newest version now, it'll be ready to install in a minute"}
+        try:
+            u.check()      # also finds a newer one than an update that's already downloaded
+        except Exception as e:
+            log.warning("Manual update check failed: %s", e)
+            if not u.version:
                 return {"message": "Couldn't reach the update server, try again soon"}
+        if u.busy:
+            return {"message": "Getting the newest version now, it'll be ready to install in a minute"}
         if u.version:
             return {"message": f"Version {u.version} is ready. Click Update at the top to install it"}
         return {"message": f"You're on the latest version ({APP_VERSION})"}

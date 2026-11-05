@@ -94,8 +94,17 @@ class Updater:
                 log.warning("Update check failed", exc_info=True)
             time.sleep(CHECK_EVERY)
 
-    def check(self):
-        if self.version or not self._busy.acquire(blocking=False):
+    @property
+    def busy(self):
+        return self._busy.locked()
+
+    def check(self, wait=0):
+        """Looks for a newer release. Also replaces an already downloaded update when an even newer one is
+        out (two releases in a day). wait: seconds to wait if a check or download is already running."""
+        if self.installing:
+            return
+        got = self._busy.acquire(timeout=wait) if wait else self._busy.acquire(blocking=False)
+        if not got:
             return
         try:
             req = urllib.request.Request(f"https://api.github.com/repos/{UPDATE_REPO}/releases/latest",
@@ -103,6 +112,8 @@ class Updater:
             with urllib.request.urlopen(req, timeout=20) as r:
                 rel = json.load(r)
             latest = rel.get("tag_name", "")
+            if self.version and _ver(latest) <= _ver(self.version):
+                return
             if _ver(latest) <= _ver(APP_VERSION):
                 log.info("Up to date (%s, latest %s)", APP_VERSION, latest)
                 return

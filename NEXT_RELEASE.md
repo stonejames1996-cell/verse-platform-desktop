@@ -3,7 +3,12 @@
 Changes that are in `main` but not released yet. When it's time to release, bump `APP_VERSION`,
 turn these into `release-notes/<version>.md`, then clear this list.
 
-Nothing held right now. 1.4.2 shipped the automatic WoW combat log add-on.
+* New look for the app icon: the inside of the V is filled black (desktop, taskbar and tray icon, in-app logo,
+  installer icon), and the installer's side and corner pictures were redrawn from the same artwork so they're sharp.
+  (assets/logo.png, assets/logo.ico, ui/logo.png, assets/wizard_large.bmp, assets/wizard_small.bmp)
+* Update check fix: "Check for updates" said "You're on the latest version" while an update was still downloading,
+  and an app that had already downloaded one update never noticed an even newer one (1.4.1 then 1.4.2 the same day).
+  Now it says it's getting the newest version, and a newer release replaces the older download. (updater.py)
 
 ## Still to confirm on a real PC
 * 1.4.2: the Verse add-on lands in _forever_\Interface\AddOns\VersePlatform (log "WoW: Verse add-on installed"), loads after /reload (chat "Verse Platform: combat log on"), and the Settings switch removes it.
