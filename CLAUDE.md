@@ -112,6 +112,7 @@ saves clips on a hotkey or automatically on highlights, and hands clips to the w
   Icon downloads reject non-images (Blizzard's forever image folder returned error pages on 4 Nov). Game Stats WoW
   card has "Open my guide" per character (owner only); the guide shows a "Link Battle.net" prompt to signed-in users
   without characters.
+- WoW: Forever launch day check (5 Nov 2026, not published yet): static-forever data matches what we imported (9 classes, 27 specs, 470 unique talent nodes; our 940 counts class trees once per spec), build 1.60.1_70399. dynamic-forever and profile-forever still 404 (us/eu), so no characters can load yet; the journal is still empty, so Dungeons/Raid gear sources are empty. The Forever icon folder now works: all 1,504 WowIcon copies switched from retail to Forever. Builds and last-modified dates are saved per import and shown on the admin Edit guide panel. Items above level 60 are hidden from gear paths (only the Swami Hat). Zephras Isle zone icon = "Master of Darkspear Islands" achievement icon. New WowForeverStatus + wowForeverWatch: a daily 3:30am Sydney admin-only check of realms/characters/journal; it shows a green banner on the Edit guide panel when any goes live and fills Dungeons/Raid sources once when the journal does (a later loot change needs a manual rerun). Character refreshes are skipped until profile answers.
 - Known privacy gap (not fixed yet, owner to decide): UserProfile records still hold emails readable by other users
   (Messages relies on it).
 
