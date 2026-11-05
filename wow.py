@@ -213,6 +213,8 @@ class WowHighlights(GameTracker):
         self.encounters = {}        # encounter id -> start time
         self.pvp_kills = []         # times of enemy player kills in the current chain
         self.mob_kills = []         # times of mob kills in the current pull
+        self.my_targets = {}        # unit id -> last time I (or my pet) damaged it
+        self.counted = set()        # unit ids already counted as my kill
         self.crits = []
         self.heals = []
         self.best_crit = 0
@@ -357,20 +359,34 @@ class WowHighlights(GameTracker):
             self.zone = f[2]
             self.set_match(zone=self.zone)
         elif ev == "PARTY_KILL" and len(f) >= 9:
-            if not is_mine(flags(f[3])):
+            if not is_mine(flags(f[3])) or f[5] in self.counted:
                 return
+            self.counted.add(f[5])
             dest = flags(f[7])
             if dest & TYPE_PLAYER and dest & HOSTILE:
                 self._pvp_kill(name_only(f[6]), t)
             else:
                 self._mob_kill(t)
         elif ev == "UNIT_DIED" and len(f) >= 9:
-            if is_me(flags(f[7])):
+            dest = flags(f[7])
+            if is_me(dest):
                 self.stats["deaths"] += 1
                 self.hit("death", "Died", 1, t)
                 self.death(t)
+            elif f[5] not in self.counted and t - self.my_targets.get(f[5], -1e9) <= 6:
+                # WoW: Forever logs most deaths without a killer (no PARTY_KILL), so a unit that dies
+                # within a few seconds of my last hit on it counts as my kill
+                self.counted.add(f[5])
+                if dest & TYPE_PLAYER and dest & HOSTILE:
+                    self._pvp_kill(name_only(f[6]), t)
+                elif not dest & TYPE_PLAYER:
+                    self._mob_kill(t)
         elif ev in DAMAGE and len(f) >= 9:
             if is_mine(flags(f[3])):
+                self.my_targets[f[5]] = t
+                if len(self.my_targets) > 500:
+                    for k in sorted(self.my_targets, key=self.my_targets.get)[:250]:
+                        del self.my_targets[k]
                 amount, crit = damage_info(f)
                 if crit and amount > 0:
                     self._big("big_crit", "Biggest hit", amount, t, self.crits)

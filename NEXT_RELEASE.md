@@ -13,8 +13,9 @@ turn these into `release-notes/<version>.md`, then clear this list.
   killing blows on enemy players plus double/triple/quadra/penta, deaths (off, also feeds death review). One Settings
   section "World of Warcraft" covers Forever, Classic and retail. Session folder in My clips. A reminder pops up if no
   combat log is being written after 90s. The per game highlight cap counts per hour for WoW.
-  NOT CHECKED AGAINST A REAL FOREVER LOG YET: field positions are read from the end of each line; check with W's log
-  before releasing.
+  Checked 5 Nov against W's first Forever log (COMBAT_LOG_VERSION 22, build 1.60.1): time stamps, damage and heal
+  amounts read right; Forever logs most deaths without PARTY_KILL, so a unit dying within 6s of my hit counts as my kill.
+  Still to check: the player's own lines (flag 0x511) and a crit; W's first log had none of his own actions.
 
 ## Still to confirm on a real PC
 * WoW highlights with a real Forever combat log (log lines "WoW highlights: reading ...", "WoW: boss down ...",
