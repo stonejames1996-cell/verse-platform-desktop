@@ -189,6 +189,151 @@ def newest_log(dirs):
     return best, best_t
 
 
+# ------------------------------------------------------------------------- the Verse add-on
+# WoW forgets /combatlog every time you log out. A tiny add-on turns it back on at every login, using
+# WoW's own LoggingCombat() (the same thing combat log add-ons do). It does nothing else.
+
+ADDON = "VersePlatform"
+ADDON_VERSION = "1"
+ADDON_LUA = """-- Verse Platform: turns on WoW's combat log at every login so the Verse Platform app
+-- can clip your highlights. It does nothing else. https://verseplatform.gg
+local f = CreateFrame("Frame")
+f:RegisterEvent("PLAYER_ENTERING_WORLD")
+f:SetScript("OnEvent", function()
+  if not LoggingCombat() then
+    LoggingCombat(true)
+    DEFAULT_CHAT_FRAME:AddMessage("|cff3fd0e6Verse Platform|r: combat log on, auto highlights ready")
+  end
+end)
+"""
+# interface numbers for the toc, newest known first; WoW loads the add-on if any one matches
+FALLBACK_INTERFACES = ["16001", "11508", "11507", "50503", "110205", "110207"]
+FLAVOUR_PRODUCTS = {"_retail_": ("wow",), "_classic_": ("wow_classic",), "_classic_era_": ("wow_classic_era",),
+                    "_forever_": ("forever",)}
+
+
+def interface_for(version):
+    """'1.60.1.70399' -> '16001' (major*10000 + minor*100 + patch, WoW's own rule)."""
+    m = re.match(r"(\d+)\.(\d+)\.(\d+)", version or "")
+    return str(int(m.group(1)) * 10000 + int(m.group(2)) * 100 + int(m.group(3))) if m else None
+
+
+def game_version(flavour_dir):
+    """The game version from Battle.net's .build.info next to the flavour folders, e.g. 1.60.1.70399."""
+    root, flavour = os.path.dirname(flavour_dir), os.path.basename(flavour_dir)
+    try:
+        with open(os.path.join(root, ".build.info"), encoding="utf-8", errors="replace") as f:
+            rows = [ln.rstrip("\n").split("|") for ln in f if ln.strip()]
+    except OSError:
+        return None
+    if not rows:
+        return None
+    head = [h.split("!")[0].strip().lower() for h in rows[0]]
+    if "version" not in head:
+        return None
+    vi, pi = head.index("version"), head.index("product") if "product" in head else None
+    known = {p for ps in FLAVOUR_PRODUCTS.values() for p in ps}
+    want = FLAVOUR_PRODUCTS.get(flavour, ())
+    fallback = None
+    for r in rows[1:]:
+        if len(r) <= vi:
+            continue
+        prod = r[pi].lower() if pi is not None and len(r) > pi else ""
+        if prod in want or (flavour == "_forever_" and "forever" in prod):
+            return r[vi]
+        if flavour == "_forever_" and prod and prod not in known and prod.startswith("wow"):
+            fallback = fallback or r[vi]
+    return fallback
+
+
+def flavour_dirs():
+    """Every installed WoW flavour folder (_forever_, _retail_...), from running games, the registry
+    and the usual install spots."""
+    out = [os.path.dirname(d) for d in logs_dirs()]
+    roots = [r"C:\Program Files (x86)\World of Warcraft", r"C:\Program Files\World of Warcraft"]
+    try:
+        import winreg
+        for key in (r"SOFTWARE\WOW6432Node\Blizzard Entertainment\World of Warcraft",
+                    r"SOFTWARE\Blizzard Entertainment\World of Warcraft"):
+            try:
+                with winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, key) as k:
+                    p = os.path.normpath(winreg.QueryValueEx(k, "InstallPath")[0])
+                    roots.append(os.path.dirname(p) if os.path.basename(p).startswith("_") else p)
+            except OSError:
+                pass
+    except ImportError:
+        pass
+    for root in roots:
+        for flavour in FLAVOUR_PRODUCTS:
+            d = os.path.join(root, flavour)
+            if os.path.isfile(os.path.join(d, "Wow.exe")) or os.path.isfile(os.path.join(d, "WowClassic.exe")):
+                out.append(d)
+    seen, res = set(), []
+    for d in out:
+        k = os.path.normcase(os.path.normpath(d))
+        if k not in seen and os.path.isdir(d):
+            seen.add(k)
+            res.append(d)
+    return res
+
+
+def install_addon(flavour_dir):
+    """Puts (or updates) the Verse add-on in Interface\\AddOns. Returns 'new', 'updated', 'ok' or 'failed'."""
+    folder = os.path.join(flavour_dir, "Interface", "AddOns", ADDON)
+    iface = interface_for(game_version(flavour_dir))
+    ifaces = ", ".join(dict.fromkeys(([iface] if iface else []) + FALLBACK_INTERFACES))
+    toc = (f"## Interface: {ifaces}\n## Title: Verse Platform\n"
+           "## Notes: Turns on the combat log at every login so the Verse Platform app can clip your highlights\n"
+           f"## Author: Verse Platform\n## Version: {ADDON_VERSION}\n\n{ADDON}.lua\n")
+    files = {f"{ADDON}.toc": toc, f"{ADDON}.lua": ADDON_LUA}
+    try:
+        existed = os.path.isdir(folder)
+        same = existed and all(_read(os.path.join(folder, n)) == body for n, body in files.items())
+        if same:
+            return "ok"
+        os.makedirs(folder, exist_ok=True)
+        for n, body in files.items():
+            with open(os.path.join(folder, n), "w", encoding="utf-8", newline="\n") as f:
+                f.write(body)
+        log.info("WoW: Verse add-on %s in %s (interface %s)", "updated" if existed else "installed", folder, ifaces)
+        return "updated" if existed else "new"
+    except OSError:
+        log.warning("WoW: couldn't put the Verse add-on in %s", folder, exc_info=True)
+        return "failed"
+
+
+def _read(path):
+    try:
+        with open(path, encoding="utf-8") as f:
+            return f.read()
+    except OSError:
+        return None
+
+
+def install_everywhere():
+    return {d: install_addon(d) for d in flavour_dirs()}
+
+
+def remove_everywhere():
+    """Setting switched off: take our add-on folder back out (only ours, nothing else)."""
+    import shutil
+    for d in flavour_dirs():
+        folder = os.path.join(d, "Interface", "AddOns", ADDON)
+        if os.path.isfile(os.path.join(folder, f"{ADDON}.toc")):
+            try:
+                shutil.rmtree(folder)
+                log.info("WoW: removed the Verse add-on from %s", folder)
+            except OSError:
+                log.warning("WoW: couldn't remove %s", folder, exc_info=True)
+
+
+def sync_addon(on):
+    try:
+        return install_everywhere() if on else remove_everywhere()
+    except Exception:
+        log.debug("WoW add-on", exc_info=True)
+
+
 # ------------------------------------------------------------------------- turning the log into highlights
 
 class WowHighlights(GameTracker):
@@ -238,6 +383,14 @@ class WowHighlights(GameTracker):
         self.new_match(f"wow-{when}", re.sub(r'[\\/:*?"<>|]', "", label), "Session", " \u00b7 ", icon_url="")
         self.match["game"] = label        # clips are recorded under the name the app shows (WoW: Forever)
         self.on_match(dict(self.match))
+        self.addon = "off"
+        if self.get_cfg().get("wow_auto_combatlog", True):
+            try:
+                got = install_everywhere()
+                self.addon = "new" if any(v in ("new", "updated") for v in got.values()) else \
+                    ("ok" if any(v == "ok" for v in got.values()) else "failed")
+            except Exception:
+                log.debug("WoW add-on", exc_info=True)
         self.path, mtime = newest_log(self.find_dirs())
         if self.path:
             # only new lines count; a log written in the last few seconds is read from the start
@@ -249,6 +402,11 @@ class WowHighlights(GameTracker):
             log.info("WoW highlights: reading %s", self.path)
         else:
             log.info("WoW highlights: no combat log yet (type /combatlog in WoW)")
+
+    def hint_text(self):
+        if getattr(self, "addon", "off") == "new":
+            return "WoW highlights are set up. Type /reload in WoW once (or log in again) to start them"
+        return "Type /combatlog in WoW chat to turn on WoW highlights"
 
     def end_session(self):
         self._active = False
@@ -303,7 +461,7 @@ class WowHighlights(GameTracker):
         if not self.path:
             if not self.hinted and self.clock() - self.started > 90:
                 self.hinted = True
-                self.on_hint("Type /combatlog in WoW chat to turn on WoW highlights")
+                self.on_hint(self.hint_text())
             return
         try:
             size = os.path.getsize(self.path)
@@ -314,7 +472,7 @@ class WowHighlights(GameTracker):
         if size == self.pos:
             if not self.hinted and self.lines == 0 and self.clock() - self.started > 90:
                 self.hinted = True
-                self.on_hint("Type /combatlog in WoW chat to turn on WoW highlights")
+                self.on_hint(self.hint_text())
             return
         with open(self.path, "rb") as f:
             f.seek(self.pos)

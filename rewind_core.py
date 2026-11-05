@@ -111,6 +111,7 @@ DEFAULT_CONFIG = {
     "finals_combo": True,          # The Finals: a title pop-up on each elimination, like League's (shows in clips)
     "finals_box": True,            # The Finals: "your game so far" box (never in clips)
     "finals_summary": True,        # The Finals: session summary when the game closes
+    "wow_auto_combatlog": True,    # WoW: install the tiny Verse add-on that turns the combat log on at every login
     "lol_opgg": True,              # League: your rank and rank / top player comparisons from OP.GG
     "item_ideas_hotkey": "alt+shift+i",
     "lol_box_hotkey": "alt+shift+b",   # hide / show the League box on the right

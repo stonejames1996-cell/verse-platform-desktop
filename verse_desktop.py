@@ -34,7 +34,7 @@ from lol_live import LeagueCompanion
 from triggers import COMBOS, ControllerTrigger, VoiceTrigger
 from gsi import CS2Highlights, DotaHighlights, GSIServer, install_cfgs
 from finals import FinalsHighlights, is_finals
-from wow import WowHighlights, is_wow
+from wow import WowHighlights, is_wow, sync_addon
 from squad import Squad, make_code
 from library import highlight_score
 
@@ -57,7 +57,7 @@ LIVE_KEYS = {"hotkey", "buffer_seconds", "record_mode", "detect_fullscreen_apps"
              "lol_benchmarks", "lol_opgg", "item_ideas_hotkey",
              "lol_box_hotkey", "lol_box_visible", "overlay_move_hotkey",
              "finals_combo", "finals_box", "finals_summary",
-             "finals_box_hotkey", "finals_box_visible", "finals_move_hotkey"}
+             "finals_box_hotkey", "finals_box_visible", "finals_move_hotkey", "wow_auto_combatlog"}
 
 # A small "Clips" tab added to the left edge of Verse pages inside the app, so the clip library
 # is always one click away. Verse can render its own button instead: if the page has an element
@@ -254,6 +254,9 @@ class App:
         # World of Warcraft: highlights from the game's own combat log (/combatlog in chat)
         self.wow = WowHighlights(lambda: self.cfg, self.is_playing, self.save_highlight,
                                  on_match=self.on_match, on_death=self.on_death, on_hint=self.wow_hint)
+        # the tiny Verse add-on that turns WoW's combat log on at every login (ready before the game starts)
+        threading.Thread(target=sync_addon, args=(self.cfg.get("wow_auto_combatlog", True),), daemon=True,
+                         name="wow-addon").start()
         self.finals_combo = Overlay(self.popup_screen, name="VersePlatformCombo",
                                     get_positions=lambda: self.cfg.get("overlay_positions") or {})
         self._combo_token = 0
@@ -1424,6 +1427,10 @@ class Api:
             return {"message": 'Say "clip that" to save a clip' if value else "Voice command off"}
         if key == "squad_code":
             return {"message": f"You're in squad {value}" if value else "Squad POV is off"}
+        if key == "wow_auto_combatlog":
+            threading.Thread(target=sync_addon, args=(bool(value),), daemon=True).start()
+            return {"message": "WoW combat log turns on by itself from your next login" if value
+                    else "Verse add-on removed. Type /combatlog in WoW to get highlights"}
         return {}
 
     def reset_overlay_positions(self, game=None):

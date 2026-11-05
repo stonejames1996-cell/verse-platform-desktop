@@ -3,7 +3,12 @@
 Changes that are in `main` but not released yet. When it's time to release, bump `APP_VERSION`,
 turn these into `release-notes/<version>.md`, then clear this list.
 
-Nothing held right now. 1.4.1 shipped WoW highlights and the WoW: Forever name.
+* WoW: the combat log turns on by itself. A tiny "Verse Platform" add-on (Interface\AddOns\VersePlatform, a .toc and
+  a few lines of Lua that call LoggingCombat(true) on PLAYER_ENTERING_WORLD) is installed into every WoW flavour folder
+  found (running game, registry, usual install spots) at app start and when a WoW session starts. Setting
+  `wow_auto_combatlog` (on by default) in Settings > World of Warcraft; switching it off removes our folder only.
+  The toc's Interface number comes from .build.info (1.60.1 -> 16001) plus fallbacks. First time: /reload or relog.
+  NOT YET CONFIRMED: Forever's real interface number (ask W for `/dump select(4, GetBuildInfo())`) and that WoW loads it.
 
 ## Still to confirm on a real PC
 * 1.4.1 WoW highlights: a real boss kill, big pull and PvP kill (only seen in test logs so far), plus a real Forever combat log (log lines "WoW highlights: reading ...", "WoW: boss down ...",
