@@ -1390,9 +1390,11 @@ def list_mics(ff):
 
 def load_icon_image():
     from PIL import Image
-    for p in (os.path.join(RES, "assets", "logo.png"), os.path.join(HERE, "assets", "logo.png")):
-        if os.path.exists(p):
-            return Image.open(p)
+    # the tray icon uses the dark square version (like the desktop icon); clips and pop-ups use logo.png
+    for name in ("logo_tile.png", "logo.png"):
+        for p in (os.path.join(RES, "assets", name), os.path.join(HERE, "assets", name)):
+            if os.path.exists(p):
+                return Image.open(p)
     from PIL import ImageDraw  # fallback if the logo file went missing
     img = Image.new("RGBA", (64, 64), (0, 0, 0, 0))
     ImageDraw.Draw(img).ellipse((8, 8, 56, 56), fill=(30, 120, 200, 255))

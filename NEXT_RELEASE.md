@@ -3,8 +3,8 @@
 Changes that are in `main` but not released yet. When it's time to release, bump `APP_VERSION`,
 turn these into `release-notes/<version>.md`, then clear this list.
 
-* New look for the app icon: the inside of the V is filled black (desktop, taskbar and tray icon, in-app logo,
-  installer icon), and the installer's side and corner pictures were redrawn from the same artwork so they're sharp.
+* New look for the app icon (W picked it): the V filled black on a dark square for the desktop, taskbar, tray and
+  installer icon (assets/logo_tile.png -> logo.ico); clips, pop-ups and the in-app logo use the filled V without the square, and the installer's side and corner pictures were redrawn from the same artwork so they're sharp.
   (assets/logo.png, assets/logo.ico, ui/logo.png, assets/wizard_large.bmp, assets/wizard_small.bmp)
 * Update check fix: "Check for updates" said "You're on the latest version" while an update was still downloading,
   and an app that had already downloaded one update never noticed an even newer one (1.4.1 then 1.4.2 the same day).
