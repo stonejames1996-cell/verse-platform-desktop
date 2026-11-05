@@ -3,13 +3,10 @@
 Changes that are in `main` but not released yet. When it's time to release, bump `APP_VERSION`,
 turn these into `release-notes/<version>.md`, then clear this list.
 
-* Settings: the World of Warcraft section now has the WoW logo instead of a gear.
-* My clips: WoW: Forever (and Classic) clips show the WoW logo instead of letters, and the WoW logo is sharper.
-* WoW: the "saved" pop-up now sits top middle in WoW so it doesn't cover your character frame, and Alt+Shift+M in WoW lets you drag it anywhere (own shortcut and Reset spot in Settings > World of Warcraft).
-* Fix: moving overlays in one game no longer resets the spots you picked in another game.
+Nothing held right now. 1.4.4 shipped the WoW pop-up spot, WoW move shortcut and WoW logo.
 
 ## Still to confirm on a real PC
-* Next: WoW save pop-up top middle, Alt+Shift+M in WoW shows only the save pop-up box, League/Finals spots kept after moving WoW's.
+* 1.4.4: WoW save pop-up top middle, Alt+Shift+M in WoW shows only the save pop-up box, League/Finals spots kept after moving WoW's.
 * 1.4.3: new dark square icon on desktop/taskbar/tray and installer; Check for updates while downloading says so.
 * 1.4.2: the Verse add-on lands in _forever_\Interface\AddOns\VersePlatform (log "WoW: Verse add-on installed"), loads after /reload (chat "Verse Platform: combat log on"), and the Settings switch removes it.
 * 1.4.1 WoW highlights: a real boss kill, big pull and PvP kill (only seen in test logs so far), plus a real Forever combat log (log lines "WoW highlights: reading ...", "WoW: boss down ...",
