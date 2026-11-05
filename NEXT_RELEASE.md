@@ -9,7 +9,7 @@ turn these into `release-notes/<version>.md`, then clear this list.
 
 ## Still to confirm on a real PC
 * WoW: Forever clips are tagged "WoW: Forever" (log: "Recording WoW: Forever" or similar when the game starts).
-* 1.4.0: window swaps to the paused page when a game starts (log "Window paused while ... is on"), goes back to the
+* 1.4.0 (paused page CONFIRMED on W's PC 5 Nov with WoW: Forever; still to check: back to same page after, Open anyway, minimise): window swaps to the paused page when a game starts (log "Window paused while ... is on"), goes back to the
   same page when it ends ("Window back from pause"), Open anyway sticks for that game, minimising unloads the page
   ("Window minimized, page unloaded"). Resource use lines should say "paused for the game" with tiny window numbers.
 * 1.3.9: League FPS steadier with the stats box up; window reopens on the right page after closing to tray;

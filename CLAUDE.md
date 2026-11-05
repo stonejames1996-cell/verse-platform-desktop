@@ -136,7 +136,7 @@ The "Ready." line shows encoder, capture method and "(GPU only)". Useful lines: 
 "Sound output changed", "Saved with no audio", "Told the squad".
 
 ## Still to confirm on a real PC (as of 1.4.0)
-- 1.4.0: window pauses while a game is on and comes back to the same page after; minimising unloads it.
+- 1.4.0: window pauses while a game is on (pause confirmed 5 Nov with WoW: Forever) and comes back to the same page after; minimising unloads it.
 - GPU-only recording ("(GPU only)" in the log, lower FFmpeg CPU in Task Manager).
 - Default sound device following ("Sound output changed, recording follows it").
 - Squad POV end to end between two PCs (needs the Base44 squadRelay function published; the upload size limit is untested).
