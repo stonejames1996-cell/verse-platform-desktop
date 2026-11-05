@@ -140,8 +140,9 @@ Ask for `%APPDATA%\Verse Platform\verse_platform.log` (and `crash.log` if there 
 The "Ready." line shows encoder, capture method and "(GPU only)". Useful lines: "Resource use ..." (every 5 min: app / recorder / window MB and CPU), "Capture froze", "Switching from",
 "Sound output changed", "Saved with no audio", "Told the squad".
 
-## Still to confirm on a real PC (as of 1.4.0)
-- 1.4.0: window pauses while a game is on (pause confirmed 5 Nov with WoW: Forever) and comes back to the same page after; minimising unloads it.
+## Still to confirm on a real PC (as of 1.4.1)
+- 1.4.1 WoW highlights: a real boss kill, big pull and PvP kill (combat log format, own flag 0x511 and crits already checked with W's logs).
+- 1.4.0: confirmed 5 Nov (pause, back to the same page, Open anyway); minimising unloading the page still to check.
 - GPU-only recording ("(GPU only)" in the log, lower FFmpeg CPU in Task Manager).
 - Default sound device following ("Sound output changed, recording follows it").
 - Squad POV end to end between two PCs (needs the Base44 squadRelay function published; the upload size limit is untested).

@@ -3,27 +3,13 @@
 Changes that are in `main` but not released yet. When it's time to release, bump `APP_VERSION`,
 turn these into `release-notes/<version>.md`, then clear this list.
 
-* WoW: Forever is now recognised by name. Blizzard uses the same Wow.exe for every WoW, so the app checks the install
-  folder: `_forever_` = "WoW: Forever" (also `_classic_era_` = WoW Classic Era, `_classic_` = WoW Classic). Clips get the
-  right game name instead of "World of Warcraft". (`rewind_core.FOLDER_GAMES`, `GameWatcher.folder_name`)
-
-* World of Warcraft auto highlights (`wow.py`), from WoW's own combat log (player types /combatlog in chat; the app
-  only reads `<WoW folder>\_forever_\Logs\WoWCombatLog*.txt`). Clips: boss kills, boss wipes (off), big pulls (4+ mobs
-  within 6s), biggest hit and biggest heal of the session (new best crit, at least 1.5x the usual, max one per 3 min),
-  killing blows on enemy players plus double/triple/quadra/penta, deaths (off, also feeds death review). One Settings
-  section "World of Warcraft" covers Forever, Classic and retail. Session folder in My clips. A reminder pops up if no
-  combat log is being written after 90s. The per game highlight cap counts per hour for WoW.
-  Checked 5 Nov against W's first Forever log (COMBAT_LOG_VERSION 22, build 1.60.1): time stamps, damage and heal
-  amounts read right; Forever logs most deaths without PARTY_KILL, so a unit dying within 6s of my hit counts as my kill.
-  Second log (W's warrior \"Verse-Platform-PvP-US\"): own actions carry flag 0x511 as in retail, PARTY_KILL is logged for
-  the player's own kills, crits read right (amount is the field before baseAmount, e.g. '9,4,...,1' = 9 crit).
-  Still to see in a real log: a boss (ENCOUNTER_END), a big pull and a PvP kill.
+Nothing held right now. 1.4.1 shipped WoW highlights and the WoW: Forever name.
 
 ## Still to confirm on a real PC
-* WoW highlights with a real Forever combat log (log lines "WoW highlights: reading ...", "WoW: boss down ...",
+* 1.4.1 WoW highlights: a real boss kill, big pull and PvP kill (only seen in test logs so far), plus a real Forever combat log (log lines "WoW highlights: reading ...", "WoW: boss down ...",
   "World of Warcraft highlight moment: ..."), and that crits are read right (biggest hit numbers match the game).
 * WoW: Forever clips are tagged "WoW: Forever" (log: "Recording WoW: Forever" or similar when the game starts).
-* 1.4.0 (paused page CONFIRMED on W's PC 5 Nov with WoW: Forever; still to check: back to same page after, Open anyway, minimise): window swaps to the paused page when a game starts (log "Window paused while ... is on"), goes back to the
+* 1.4.0 (CONFIRMED on W's PC 5 Nov with WoW: Forever: paused page, back to the same page, Open anyway): window swaps to the paused page when a game starts (log "Window paused while ... is on"), goes back to the
   same page when it ends ("Window back from pause"), Open anyway sticks for that game, minimising unloads the page
   ("Window minimized, page unloaded"). Resource use lines should say "paused for the game" with tiny window numbers.
 * 1.3.9: League FPS steadier with the stats box up; window reopens on the right page after closing to tray;
