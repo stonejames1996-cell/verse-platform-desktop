@@ -137,9 +137,12 @@ async function loadClips() {
 }
 // game logos for the filter tabs and headings (ui/games), or a letter badge for games without one
 const GAME_LOGOS = new Set(["apex-legends", "counter-strike-2", "dead-by-daylight", "destiny-2", "dota-2", "escape-from-tarkov", "fortnite", "gta-v", "league-of-legends", "marvel-rivals", "minecraft", "old-school-runescape", "overwatch-2", "pubg", "rainbow-six-siege", "roblox", "rust", "the-finals", "valorant", "world-of-warcraft"]);
+// Games that share another game's logo (WoW flavours are named from the install folder)
+const LOGO_ALIASES = { "wow-forever": "world-of-warcraft", "wow-classic": "world-of-warcraft", "wow-classic-era": "world-of-warcraft" };
 function gameLogo(name) {
   if (!name || name === "All") return null;
-  const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+  let slug = name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+  slug = LOGO_ALIASES[slug] || slug;
   if (GAME_LOGOS.has(slug)) return el("img", { class: "g-logo", src: `games/${slug}.png`, alt: "" });
   const letters = name.split(/\s+/).filter((w) => /[A-Za-z0-9]/.test(w[0])).map((w) => w[0]).join("").slice(0, 2).toUpperCase();
   return el("span", { class: "g-logo g-letter", "aria-hidden": "true" }, letters || "?");
@@ -1083,6 +1086,7 @@ const GROUP_INFO = {
   "Audio": ["i-sound", "Game sound and microphone"],
   "League of Legends": ["games/league-of-legends.png", "Highlights, pop-ups, stats box and shortcuts"],
   "The Finals": ["games/the-finals.png", "Highlights, elimination cards and your game so far"],
+  "World of Warcraft": ["games/world-of-warcraft.png", "Highlights from WoW's combat log, switched on for you"],
   "Counter-Strike 2": ["games/counter-strike-2.png", "Highlights from Valve's game data"],
   "Dota 2": ["games/dota-2.png", "Highlights from Valve's game data"],
   "Auto highlights": ["i-star", "On or off, clip length and death reviews"],

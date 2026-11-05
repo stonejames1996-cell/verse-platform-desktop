@@ -3,7 +3,8 @@
 Changes that are in `main` but not released yet. When it's time to release, bump `APP_VERSION`,
 turn these into `release-notes/<version>.md`, then clear this list.
 
-Nothing held right now. 1.4.3 shipped the new icon and the update check fix.
+* Settings: the World of Warcraft section now has the WoW logo instead of a gear.
+* My clips: WoW: Forever (and Classic) clips show the WoW logo instead of letters, and the WoW logo is sharper.
 
 ## Still to confirm on a real PC
 * 1.4.3: new dark square icon on desktop/taskbar/tray and installer; Check for updates while downloading says so.
