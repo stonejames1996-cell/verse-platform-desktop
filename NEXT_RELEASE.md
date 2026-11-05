@@ -8,7 +8,7 @@ turn these into `release-notes/<version>.md`, then clear this list.
   found (running game, registry, usual install spots) at app start and when a WoW session starts. Setting
   `wow_auto_combatlog` (on by default) in Settings > World of Warcraft; switching it off removes our folder only.
   The toc's Interface number comes from .build.info (1.60.1 -> 16001) plus fallbacks. First time: /reload or relog.
-  NOT YET CONFIRMED: Forever's real interface number (ask W for `/dump select(4, GetBuildInfo())`) and that WoW loads it.
+  Forever's interface number CONFIRMED 16001 by W in game (5 Nov). Still to see: the add-on loading and its chat line.
 
 ## Still to confirm on a real PC
 * 1.4.1 WoW highlights: a real boss kill, big pull and PvP kill (only seen in test logs so far), plus a real Forever combat log (log lines "WoW highlights: reading ...", "WoW: boss down ...",
