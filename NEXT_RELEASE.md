@@ -3,9 +3,12 @@
 Changes that are in `main` but not released yet. When it's time to release, bump `APP_VERSION`,
 turn these into `release-notes/<version>.md`, then clear this list.
 
-Nothing held right now. 1.4.0 shipped as a quick fix for FPS: the window pauses while a game is on and unloads when minimised.
+* WoW: Forever is now recognised by name. Blizzard uses the same Wow.exe for every WoW, so the app checks the install
+  folder: `_forever_` = "WoW: Forever" (also `_classic_era_` = WoW Classic Era, `_classic_` = WoW Classic). Clips get the
+  right game name instead of "World of Warcraft". (`rewind_core.FOLDER_GAMES`, `GameWatcher.folder_name`)
 
 ## Still to confirm on a real PC
+* WoW: Forever clips are tagged "WoW: Forever" (log: "Recording WoW: Forever" or similar when the game starts).
 * 1.4.0: window swaps to the paused page when a game starts (log "Window paused while ... is on"), goes back to the
   same page when it ends ("Window back from pause"), Open anyway sticks for that game, minimising unloads the page
   ("Window minimized, page unloaded"). Resource use lines should say "paused for the game" with tiny window numbers.

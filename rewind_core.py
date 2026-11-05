@@ -1009,6 +1009,14 @@ KNOWN_GAMES = {
     "wow.exe": "World of Warcraft",
 }
 
+# Games that share one exe name and only differ by install folder. Blizzard ships every
+# WoW flavour as Wow.exe; WoW: Forever lives in "World of Warcraft\\_forever_\\Wow.exe".
+# First folder match wins, otherwise the KNOWN_GAMES name is used.
+FOLDER_GAMES = {
+    "wow.exe": [("_forever_", "WoW: Forever"), ("_classic_era_", "WoW Classic Era"),
+                ("_classic_", "WoW Classic")],
+}
+
 # Games that share a generic exe, matched by exe + window title instead
 TITLE_GAMES = [
     ("javaw.exe", "Minecraft", "Minecraft"),   # Minecraft Java (and modpacks like Cobblemon)
@@ -1225,6 +1233,32 @@ class GameWatcher:
             g.pop(ign.lower(), None)
         return g
 
+    def folder_name(self, exe, name):
+        """Same exe, different game (WoW: Forever vs retail): look at the install folder.
+        Only reads the program's path, never its memory."""
+        rules = FOLDER_GAMES.get(exe)
+        if not rules:
+            return name
+        try:
+            import psutil
+            path = ""
+            w = self.game_window
+            if w and getattr(w, "pid", None):
+                path = psutil.Process(w.pid).exe()
+            if not path:
+                for p in psutil.process_iter(["name", "exe"]):
+                    if (p.info.get("name") or "").lower() == exe:
+                        path = p.info.get("exe") or ""
+                        if path:
+                            break
+        except Exception:
+            return name
+        low = path.lower().replace("/", "\\")
+        for folder, label in rules:
+            if "\\" + folder + "\\" in low:
+                return label
+        return name
+
     def detect(self):
         """Returns the name of the game being played, or None."""
         cfg = self.get_cfg()
@@ -1238,7 +1272,7 @@ class GameWatcher:
                 mine = [w for w in windows if w.exe == exe and w.hwnd]
                 # the window in front, else the biggest one (games often have small helper windows)
                 self.game_window = max(mine, key=lambda w: (w.foreground, w.area)) if mine else self.game_window
-                return games[exe]
+                return self.folder_name(exe, games[exe])
         windows = windows if windows is not None else self.list_windows()
         for w in windows:
             for exe, title, name in TITLE_GAMES:
