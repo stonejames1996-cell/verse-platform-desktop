@@ -127,6 +127,8 @@ saves clips on a hotkey or automatically on highlights, and hands clips to the w
   realmless /profile/wow/character/{name}-{surname} not routed yet. Our builder got 404 on dynamic-forever-us on 5 Nov,
   so compare our calls (host, token type, namespace) with these, fix, then W logs out of WoW and reconnects Battle.net.
   Armory shows characters from level 10. Then: character on Game Stats + personalised guides.
+  W hit level 10 (5 Nov) and the linked account still showed nothing. Note: characters are only read at link time
+  (user token not stored), so a reconnect is needed after levelling/logging out; check the link code's call too.
 - Known privacy gap (not fixed yet, owner to decide): UserProfile records still hold emails readable by other users
   (Messages relies on it).
 
