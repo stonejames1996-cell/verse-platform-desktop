@@ -794,10 +794,14 @@ class Recorder:
             open_since = (open_since or now) if starts > ends else None
             if now - self.last_freeze < 30:
                 continue          # just restarted, give it a moment
+            # slow games (WoW: standing still, reading quests, AFK) show the same picture for ages, so
+            # there a still picture only counts if you pressed or moved something and it didn't change
+            calm = is_calm_game(self.label)
             if open_since and now - open_since > FREEZE_SECONDS - 2:
-                return "frozen"   # one picture for 8s straight
+                if not calm or input_since(open_since + 1):
+                    return "frozen"   # one picture for 8s straight
             # loading screens can be still for a while, so only judge after the first 2 minutes
-            if len(recent) >= 4 and now - started > 120 and self.capture != "gdigrab":
+            if len(recent) >= 4 and now - started > 120 and self.capture != "gdigrab" and not calm:
                 return "starved"  # the picture keeps stalling: capture is being starved
         return None
 
@@ -1014,6 +1018,29 @@ KNOWN_GAMES = {
 # Games that share one exe name and only differ by install folder. Blizzard ships every
 # WoW flavour as Wow.exe; WoW: Forever lives in "World of Warcraft\\_forever_\\Wow.exe".
 # First folder match wins, otherwise the KNOWN_GAMES name is used.
+def is_calm_game(label):
+    """Games where the picture is often still for a long time on purpose (MMOs)."""
+    s = (label or "").strip().lower()
+    return s == "world of warcraft" or s.startswith("wow")
+
+
+def input_since(t):
+    """Did the player press a key, click or move the mouse after time.time() value t? (Windows only)"""
+    if not IS_WINDOWS:
+        return True
+    try:
+        import ctypes
+        class LASTINPUTINFO(ctypes.Structure):
+            _fields_ = [("cbSize", ctypes.c_uint), ("dwTime", ctypes.c_uint)]
+        info = LASTINPUTINFO(ctypes.sizeof(LASTINPUTINFO), 0)
+        if not ctypes.windll.user32.GetLastInputInfo(ctypes.byref(info)):
+            return True
+        idle = ((ctypes.windll.kernel32.GetTickCount() - info.dwTime) & 0xFFFFFFFF) / 1000.0
+        return time.time() - idle > t
+    except Exception:
+        return True
+
+
 FOLDER_GAMES = {
     "wow.exe": [("_forever_", "WoW: Forever"), ("_classic_era_", "WoW Classic Era"),
                 ("_classic_", "WoW Classic")],

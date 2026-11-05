@@ -223,5 +223,20 @@ except Exception as e:
     traceback.print_exc()
     problems.append(f"The Finals check crashed: {e}")
 
+# https certificates checked by Windows itself (truststore), like the app does for updates
+try:
+    import time, truststore, urllib.request
+    truststore.inject_into_ssl()
+    with urllib.request.urlopen("https://api.github.com/repos/stonejames1996-cell/verse-platform-desktop/releases/latest", timeout=20) as r:
+        print("truststore https ok:", r.status)
+    sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    import rewind_core as rc
+    print("calm game WoW: Forever:", rc.is_calm_game("WoW: Forever"), "League:", rc.is_calm_game("League of Legends"),
+          "input since 1h ago:", rc.input_since(time.time() - 3600))
+except Exception as e:
+    import traceback
+    traceback.print_exc()
+    problems.append(f"truststore / calm check failed: {e}")
+
 print("\nPROBLEMS:" if problems else "\nAll good", *problems, sep="\n  ")
 sys.exit(1 if problems else 0)

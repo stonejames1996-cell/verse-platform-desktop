@@ -5,8 +5,11 @@ turn these into `release-notes/<version>.md`, then clear this list.
 
 * My clips: WoW session folders show the WoW logo instead of a plain "S" square (old sessions too).
 * Fix: the "Clipped by Verse Platform" card is no longer lost when the app closes or updates before it was added (it's remembered and added next time), and it's tried again if the clip was open in a player. Clips from the last 3 days that missed it get it once.
+* Fix: update checks failing with "certificate verify failed" (seen on W's PC 5 Nov). https is now checked by Windows itself (truststore).
+* WoW: standing still, reading quests or going AFK no longer counts as the recording "freezing", so it stops dropping to the old slow capture method mid-session. A still picture in WoW only counts if you pressed something and nothing changed.
 
 ## Still to confirm on a real PC
+* 1.4.5: Clipped by card added after closing WoW even if the app is quit straight after ("Clipped by card added" in the log after the next start); no "Switching from gfxcapture" in WoW; no "Update check failed" with certificate errors.
 * 1.4.4: WoW save pop-up top middle, Alt+Shift+M in WoW shows only the save pop-up box, League/Finals spots kept after moving WoW's.
 * 1.4.3: new dark square icon on desktop/taskbar/tray and installer; Check for updates while downloading says so.
 * 1.4.2: the Verse add-on lands in _forever_\Interface\AddOns\VersePlatform (log "WoW: Verse add-on installed"), loads after /reload (chat "Verse Platform: combat log on"), and the Settings switch removes it.

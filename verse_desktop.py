@@ -13,6 +13,11 @@ Run with --background to start hidden in the tray (used by "Start with Windows")
 """
 
 import json
+try:   # check https certificates with Windows itself, like Edge does. Python's own copy of Windows'
+    import truststore   # list can miss roots Windows hasn't fetched yet ("unable to get issuer certificate")
+    truststore.inject_into_ssl()
+except Exception:
+    pass
 import logging
 import os
 import datetime
