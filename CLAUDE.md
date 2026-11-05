@@ -182,6 +182,10 @@ The "Ready." line shows encoder, capture method and "(GPU only)". Useful lines: 
 Slow-mo on the big moment, end card with K/D/A and verseplatform.gg,
 mic noise removal, auto match montage, in-game replay viewer, auto-post drafts to Verse, Clip of the Week on the site,
 quieter Discord posts for small fix releases.
+WoW (W, 6 Nov): character card on Game Stats (Verse style, not a copy of Blizzard's Armory), level-up/quest highlights via
+the chat log (need a WoWChatLog.txt sample), quest helper add-on fed by our levelling routes, and later dungeon data:
+Blizzard journal (loot, bosses; still empty) + the player's own runs from the combat log (ENCOUNTER_START/END: clear
+time, bosses, deaths, wipes) shown on Game Stats and the guides.
 Waiting on Riot's production key (app 897128): loading screen info (ranks), skill order / rune ideas. On the website, swap the red "R" placeholder
 for the real Riot logo on linked account badges (Tryouts) when Riot linking goes live. Not doing: augment
 pick/win rates (Riot bans augment win rates), enemy ult timers (banned), jungle pathing.
