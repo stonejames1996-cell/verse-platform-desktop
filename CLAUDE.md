@@ -56,7 +56,8 @@ saves clips on a hotkey or automatically on highlights, and hands clips to the w
 - Highlight switches are per game: `highlights.GAME_EVENTS` + `events_config(cfg, game)`; Settings has one section per game.
 - In-game shortcuts are per game: `App.game_shortcuts()` (League: item_ideas/lol_box/overlay_move_hotkey; The Finals:
   finals_box/finals_move_hotkey). Each combo is registered once and acts for the game being played. Overlay spots per game
-  via `MoveMode.GAME_ITEMS` (the save pop-up spot is shared).
+  via `MoveMode.GAME_ITEMS` (the save pop-up spot is shared, except WoW: `wow_popup`, top middle by default, swapped in by
+  `App.overlay_positions`; `App.playing_game` counts every WoW flavour as World of Warcraft; `wow_move_hotkey`).
 - `triggers.py`: "clip that" voice command (Windows System.Speech) and controller combos (XInput).
 - `lol_live.py`: League companion loop: objective timers strip, the panel while dead (own stats vs `lol_history.json` averages,
   lane item gold, item ideas), match summary card + `summary` on the match. Riot policy: no enemy cooldowns, no win rates.

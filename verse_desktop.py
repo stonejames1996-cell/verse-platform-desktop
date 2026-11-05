@@ -57,7 +57,7 @@ LIVE_KEYS = {"hotkey", "buffer_seconds", "record_mode", "detect_fullscreen_apps"
              "lol_benchmarks", "lol_opgg", "item_ideas_hotkey",
              "lol_box_hotkey", "lol_box_visible", "overlay_move_hotkey",
              "finals_combo", "finals_box", "finals_summary",
-             "finals_box_hotkey", "finals_box_visible", "finals_move_hotkey", "wow_auto_combatlog"}
+             "finals_box_hotkey", "finals_box_visible", "finals_move_hotkey", "wow_auto_combatlog", "wow_move_hotkey"}
 
 # A small "Clips" tab added to the left edge of Verse pages inside the app, so the clip library
 # is always one click away. Verse can render its own button instead: if the page has an element
@@ -220,7 +220,7 @@ class App:
         self.library = ClipLibrary(self.cfg["clips_folder"], DATA_DIR, ff)
         self.media = MediaServer(self.library, os.path.join(RES, "ui"), self.on_command)
         self.updater = Updater(self.on_update_ready)
-        self.overlay = Overlay(self.popup_screen, get_positions=lambda: self.cfg.get("overlay_positions") or {})
+        self.overlay = Overlay(self.popup_screen, get_positions=self.overlay_positions)
         self.move_mode = None
         self.wm_queue = queue.Queue()
         threading.Thread(target=self._watermark_loop, daemon=True, name="watermark").start()
@@ -229,7 +229,7 @@ class App:
         self.pad = ControllerTrigger(lambda: self.cfg.get("controller_combo", ""), self.trigger_save)
         # League: objective timers, the panel while you're dead (stats, lane gold, item ideas), match summary
         self.timer_strip = Overlay(self.popup_screen, name="VersePlatformTimers",
-                                   get_positions=lambda: self.cfg.get("overlay_positions") or {})
+                                   get_positions=self.overlay_positions)
         self.item_ideas = LeagueCompanion(
             lambda: self.cfg, self.is_playing, self.overlay, self.timer_strip, DATA_DIR,
             get_match=lambda: self.highlights.match, on_summary=self.on_match_summary, notify=self.notify,
@@ -258,7 +258,7 @@ class App:
         threading.Thread(target=sync_addon, args=(self.cfg.get("wow_auto_combatlog", True),), daemon=True,
                          name="wow-addon").start()
         self.finals_combo = Overlay(self.popup_screen, name="VersePlatformCombo",
-                                    get_positions=lambda: self.cfg.get("overlay_positions") or {})
+                                    get_positions=self.overlay_positions)
         self._combo_token = 0
         self._finals_last = None
         self.squad = Squad(self)
@@ -534,7 +534,23 @@ class App:
             "overlay_move_hotkey": ("League of Legends", lambda: self.toggle_move_mode("League of Legends")),
             "finals_box_hotkey": ("The Finals", self.toggle_finals_box),
             "finals_move_hotkey": ("The Finals", lambda: self.toggle_move_mode("The Finals")),
+            "wow_move_hotkey": ("World of Warcraft", lambda: self.toggle_move_mode("World of Warcraft")),
         }
+
+    def playing_game(self):
+        """The game being recorded, with every WoW flavour (WoW: Forever etc) counted as World of Warcraft."""
+        rec = getattr(self, "rec", None)
+        playing = rec.label if rec and rec.capturing else ""
+        return "World of Warcraft" if is_wow(playing) else playing
+
+    def overlay_positions(self):
+        """Saved overlay spots for the game being played. WoW has its own save pop-up spot (top middle by
+        default) because the shared top left spot sits on WoW's character frame."""
+        pos = dict(self.cfg.get("overlay_positions") or {})
+        if self.playing_game() == "World of Warcraft":
+            from overlay import WOW_POPUP
+            pos["popup"] = pos.get("wow_popup") or list(WOW_POPUP)
+        return pos
 
     def register_items_hotkey(self):
         """The in-game shortcuts of every game (see game_shortcuts). Each key combo is registered once and
@@ -549,9 +565,9 @@ class App:
                 combos.setdefault(combo, []).append((game, action, key))
 
         def run(entries):
-            playing = self.rec.label if self.rec and self.rec.capturing else ""
+            playing = self.playing_game()
             if self.move_mode:   # the same key closes move mode, whichever game opened it
-                movers = [e for e in entries if e[2] in ("overlay_move_hotkey", "finals_move_hotkey")]
+                movers = [e for e in entries if e[2] in ("overlay_move_hotkey", "finals_move_hotkey", "wow_move_hotkey")]
                 if movers:
                     self.move_mode.stop()
                     return
@@ -583,7 +599,7 @@ class App:
         if self.move_mode:
             self.move_mode.stop()
             return
-        key = "finals_move_hotkey" if game == "The Finals" else "overlay_move_hotkey"
+        key = {"The Finals": "finals_move_hotkey", "World of Warcraft": "wow_move_hotkey"}.get(game, "overlay_move_hotkey")
         def screen_rect_now():
             r = self.popup_screen()
             return tuple(r) if isinstance(r, (tuple, list)) else self.overlay._monitor_rect()
@@ -596,8 +612,8 @@ class App:
 
     def _move_done(self, positions):
         self.move_mode = None
-        if positions:
-            self.cfg["overlay_positions"] = positions
+        if positions:   # only this game's boxes were moved, so keep every other game's spots
+            self.cfg["overlay_positions"] = {**(self.cfg.get("overlay_positions") or {}), **positions}
             save_config(self.cfg)
             log.info("Overlay spots saved: %s", positions)
             self.overlay.show("Overlay spots saved", accent="", sub="Reset them any time in Settings")
@@ -1421,6 +1437,8 @@ class Api:
             return {"message": f"Hide or show The Finals box with {pretty_hotkey(value)}"}
         if key == "finals_move_hotkey":
             return {"message": f"Move The Finals' overlays with {pretty_hotkey(value)}"}
+        if key == "wow_move_hotkey":
+            return {"message": f"Move WoW's save pop-up with {pretty_hotkey(value)}"}
         if key == "voice_command":
             if value and not a.voice.start():
                 a.cfg[key] = False

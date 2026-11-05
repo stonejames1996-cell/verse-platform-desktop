@@ -834,6 +834,7 @@ async function loadSettings() {
   const pretty = (v, d) => (v || d).toUpperCase().replace(/\+/g, " + ");
   $("#finals-box-hotkey-btn").textContent = pretty(r.config.finals_box_hotkey, "alt+shift+b");
   $("#finals-move-hotkey-btn").textContent = pretty(r.config.finals_move_hotkey, "alt+shift+m");
+  $("#wow-move-hotkey-btn").textContent = pretty(r.config.wow_move_hotkey, "alt+shift+m");
   $("#folder-path").textContent = r.config.clips_folder;
   $("#version").textContent = `Verse Platform for Windows ${r.version}. Updates install by themselves`;
   $("#known-games-hint").textContent = `${r.known_games.length} popular games are picked up automatically, including ${r.known_games.slice(0, 6).join(", ")}.`;
@@ -943,7 +944,8 @@ function wire() {
   // shortcut buttons: saving a clip, and each game's own in-game shortcuts
   let hk = $("#hotkey-btn"), hkSetting = "hotkey";
   for (const [btn, setting] of [[$("#hotkey-btn"), "hotkey"], [$("#items-hotkey-btn"), "item_ideas_hotkey"], [$("#box-hotkey-btn"), "lol_box_hotkey"], [$("#move-hotkey-btn"), "overlay_move_hotkey"],
-                               [$("#finals-box-hotkey-btn"), "finals_box_hotkey"], [$("#finals-move-hotkey-btn"), "finals_move_hotkey"]]) {
+                               [$("#finals-box-hotkey-btn"), "finals_box_hotkey"], [$("#finals-move-hotkey-btn"), "finals_move_hotkey"],
+                               [$("#wow-move-hotkey-btn"), "wow_move_hotkey"]]) {
     btn.addEventListener("click", () => {
       if (listening) hk.classList.remove("listening");
       hk = btn; hkSetting = setting;

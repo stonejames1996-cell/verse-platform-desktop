@@ -122,6 +122,7 @@ DEFAULT_CONFIG = {
     "finals_box_hotkey": "alt+shift+b",
     "finals_box_visible": True,
     "finals_move_hotkey": "alt+shift+m",
+    "wow_move_hotkey": "alt+shift+m",
     "overlay_positions": {},           # where they were dragged to: {"strip"|"panel"|"popup": [x, y] as screen shares}  # show the item ideas any time in a League match
     "highlight_events": {},        # which moments count, see highlights.DEFAULT_EVENTS (blank = defaults)
     "highlight_before": 5,         # seconds kept before the first moment of a play

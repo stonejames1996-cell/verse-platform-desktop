@@ -29,6 +29,7 @@ WHITE = (245, 245, 247, 255)
 SIGNAL = (34, 211, 238, 255)
 HAZE = (168, 172, 184, 255)
 SHOW_SECONDS = 3.2
+WOW_POPUP = (0.41, 0.03)   # WoW's save pop-up: top middle, clear of the character frame, buffs and minimap
 PLACE_KEYS = {"right": "strip", "left": "panel", "top": "popup", "combo": "combo", "finals_box": "finals_box"}   # overlay places -> saved position names
 
 
@@ -427,9 +428,12 @@ class MoveMode:
     the spots are saved as shares of the screen (so they survive resolution and screen changes)."""
 
     ITEMS = (("strip", "Stats box", 170, 270), ("panel", "Stats and item ideas", 330, 520), ("popup", "Save and summary pop-ups", 360, 74),
-             ("combo", "Elimination card", 330, 106), ("finals_box", "Your game so far", 170, 230))
+             ("combo", "Elimination card", 330, 106), ("finals_box", "Your game so far", 170, 230),
+             ("wow_popup", "Save pop-ups", 360, 74))
     # each game moves its own overlays (the save pop-up is shared)
-    GAME_ITEMS = {"League of Legends": ("strip", "panel", "popup"), "The Finals": ("finals_box", "combo", "popup")}
+    # (WoW keeps its own save pop-up spot: top left is where WoW draws your character's frame)
+    GAME_ITEMS = {"League of Legends": ("strip", "panel", "popup"), "The Finals": ("finals_box", "combo", "popup"),
+                  "World of Warcraft": ("wow_popup",)}
 
     def __init__(self, get_rect, current, on_done, key_name="Alt+Shift+M", game=""):
         """get_rect() -> (left, top, right, bottom) of the game's screen; current: saved positions;
@@ -552,7 +556,8 @@ class MoveMode:
             defaults = {"strip": (right - margin - 170 * scale, top + sh * 0.30),
                         "panel": (left + margin, top + sh * 0.25), "popup": (left + margin, top + margin),
                         "combo": (left + sw * 0.022, top + sh * 0.035),
-                        "finals_box": (right - margin - 170 * scale, top + sh * 0.30)}
+                        "finals_box": (right - margin - 170 * scale, top + sh * 0.30),
+                        "wow_popup": (left + sw * WOW_POPUP[0], top + sh * WOW_POPUP[1])}
             screen = u.GetDC(None)
             wins = {}
             for key, label, w, h in self.ITEMS:
