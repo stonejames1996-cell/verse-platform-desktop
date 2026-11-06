@@ -129,6 +129,21 @@ saves clips on a hotkey or automatically on highlights, and hands clips to the w
   Armory shows characters from level 10. Then: character on Game Stats + personalised guides.
   W hit level 10 (5 Nov) and the linked account still showed nothing. Note: characters are only read at link time
   (user token not stored), so a reconnect is needed after levelling/logging out; check the link code's call too.
+- WoW: Forever characters WORK (6 Nov arvo, published by W up to the realmless fix): account profile
+  /profile/user/wow (user token, at link) lists characters with name + surname, NO realm; single character lookups work
+  with our APP token at us.api.blizzard.com/profile/wow/character/<slug> (slug = name-surname LOWERCASED, e.g.
+  verse-platform; capitals 404), namespace profile-forever-us. All sub paths answer except character-media (404, no
+  avatar): equipment, specializations, statistics, professions, pvp-summary, reputations, collections (pets, mounts),
+  achievements, quests, titles, appearance, encounters. W = "Verse Platform", Windshaper Skyborne Warrior, Horde, plays Fury.
+  Built 6 Nov (preview, W to publish): link callback saves per-region status (forever_read) + admin-only raw log; no wipe on
+  errors; Refresh characters button; app token refresh (on view if >12h, nightly), 30 day delete rule; WowCharacterDetail
+  per refresh; character page (header, gear, stats, talents, professions, PvP, reputation, collections; no clips section,
+  W's call) with Blizzard icons (faction crests inv_bannerpvp_01 Horde / _02 Alliance approved); anonymous talent snapshots
+  + admin "Talent picks" tab. Talent rule check now counts class+spec trees together and flags late last-row talents.
+  Build paths: Claude is rewriting all 27 specs from the real Forever trees (builder exports compact talent lists per class).
+  Done as drafts (hidden until marked checked): Warrior (Fury 34/17, Arms 31/20, Prot 37/9/5), Rogue (Combat, Assassination,
+  Subtlety), Mage (Frost, Fire, Arcane). Each takes its row 7 talent at 40. To do: Priest, Hunter, Warlock, Druid, Paladin, Shaman.
+  Base44 prompt box: a "/word" in the text opens a skill picker and blocks Send, so avoid slashes in builder prompts.
 - Known privacy gap (not fixed yet, owner to decide): UserProfile records still hold emails readable by other users
   (Messages relies on it).
 
