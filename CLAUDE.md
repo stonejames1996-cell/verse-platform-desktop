@@ -142,7 +142,10 @@ saves clips on a hotkey or automatically on highlights, and hands clips to the w
   + admin "Talent picks" tab. Talent rule check now counts class+spec trees together and flags late last-row talents.
   Build paths: Claude is rewriting all 27 specs from the real Forever trees (builder exports compact talent lists per class).
   ALL 27 done 6 Nov with notes (pass the rule check, row 7 talent at 40 each); all marked checked on W's say so 6 Nov
-  (visible to users once published). Next: lock down BattlenetLink reads + the UserProfile email gap. Admin "Data fixes" tab (switchable) patches Blizzard data bugs: BM Intimidation needs only Bestial
+  (visible to users once published). Gear paths (27) and levelling routes (8) also marked checked 6 Nov; Dungeons/Raid
+  tabs show "Dungeon and raid loot will appear here once Blizzard shares it." until journal loot exists; icon repair in the
+  WoW import tool (194 of 199 item icons, 14 talent icons fixed; junk filter blocks Template/DNT/Test/Placeholder items).
+  Next: lock down BattlenetLink reads + the UserProfile email gap. Admin "Data fixes" tab (switchable) patches Blizzard data bugs: BM Intimidation needs only Bestial
   Swiftness; Balance Nature's Majesty needs nothing, Splendor needs Majesty; hidden leftovers: Holy row 8 Holy Specialization,
   MM row 8 Improved Serpent Sting, Survival row 7 duplicate Lightning Reflexes. The two loops need an in-game check.
   Druid has only Balance, Feral Combat, Restoration (no bear spec); Feral build takes Shifting Power 40 + Primal Bite 41.
