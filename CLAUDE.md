@@ -150,8 +150,15 @@ saves clips on a hotkey or automatically on highlights, and hands clips to the w
   MM row 8 Improved Serpent Sting, Survival row 7 duplicate Lightning Reflexes. The two loops need an in-game check.
   Druid has only Balance, Feral Combat, Restoration (no bear spec); Feral build takes Shifting Power 40 + Primal Bite 41.
   Base44 prompt box: a "/word" in the text opens a skill picker and blocks Send, so avoid slashes in builder prompts.
-- Known privacy gap (not fixed yet, owner to decide): UserProfile records still hold emails readable by other users
-  (Messages relies on it).
+- Privacy (6 Nov, built, W to publish): BattlenetLink/XboxLink/SteamLink now server+admin only, read through one server
+  function (owner: link state, tag, WoW settings, sync status; others: only badge bits). WowCharacter/Detail, admin log,
+  talent snapshots were already server/admin only. Messages readable only by sender/receiver (+admins), send only as
+  yourself; Follow: accepted readable by all, pending only by the two people, create as yourself; Notifications only the
+  recipient. 4 old follows with no status set to accepted. Still open: profile emails readable by any signed-in user
+  (~55 files use them; plan: add user ids to profiles and messages, server inbox function, move lookups server side, then
+  drop the field), notifications can be created for others in your own name (move to server later).
+  WoW characters now public by default (W's call): owner switch "Show my WoW characters on my profile"; signed-out
+  visitors allowed server side (unconfirmed until published).
 
 ## Releases (fully automatic)
 1. Bump `APP_VERSION` in `rewind_core.py`.
