@@ -141,8 +141,11 @@ saves clips on a hotkey or automatically on highlights, and hands clips to the w
   W's call) with Blizzard icons (faction crests inv_bannerpvp_01 Horde / _02 Alliance approved); anonymous talent snapshots
   + admin "Talent picks" tab. Talent rule check now counts class+spec trees together and flags late last-row talents.
   Build paths: Claude is rewriting all 27 specs from the real Forever trees (builder exports compact talent lists per class).
-  Done as drafts (hidden until marked checked): Warrior (Fury 34/17, Arms 31/20, Prot 37/9/5), Rogue (Combat, Assassination,
-  Subtlety), Mage (Frost, Fire, Arcane). Each takes its row 7 talent at 40. To do: Priest, Hunter, Warlock, Druid, Paladin, Shaman.
+  ALL 27 done 6 Nov as hidden drafts with notes (pass the rule check, row 7 talent at 40 each); W marks them checked in
+  the Edit guide panel. Admin "Data fixes" tab (switchable) patches Blizzard data bugs: BM Intimidation needs only Bestial
+  Swiftness; Balance Nature's Majesty needs nothing, Splendor needs Majesty; hidden leftovers: Holy row 8 Holy Specialization,
+  MM row 8 Improved Serpent Sting, Survival row 7 duplicate Lightning Reflexes. The two loops need an in-game check.
+  Druid has only Balance, Feral Combat, Restoration (no bear spec); Feral build takes Shifting Power 40 + Primal Bite 41.
   Base44 prompt box: a "/word" in the text opens a skill picker and blocks Send, so avoid slashes in builder prompts.
 - Known privacy gap (not fixed yet, owner to decide): UserProfile records still hold emails readable by other users
   (Messages relies on it).
