@@ -2,8 +2,8 @@
 
 Changes that are in `main` but not released yet. When it's time to release, bump `APP_VERSION`,
 turn these into `release-notes/<version>.md`, then clear this list.
-
-Nothing held right now. 1.4.5 shipped the Clipped by card fixes, WoW freeze fix, certificate fix and WoW session logo.
+* Fix: loading screens, menus and going AFK no longer count as the recording "freezing". Before, two still moments (like League's loading screen) could drop the recording to the slow, CPU-heavy capture for the rest of the session (seen on W's PC 7 Nov: gfxcapture, then ddagrab, then gdigrab in the first minute of a League game). A still picture now only counts if you pressed or moved something during it.
+* Each new game starts back on the best capture method, instead of staying on a fallback picked during an earlier game.
 
 ## Still to confirm on a real PC
 * 1.4.5: CONFIRMED on W's PC 5 Nov: Clipped by card on WoW clips and the save pop-up showing in the next clip. Still to see: no "Switching from gfxcapture" in WoW, no certificate errors on update checks.

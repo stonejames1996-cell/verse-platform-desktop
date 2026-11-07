@@ -459,6 +459,7 @@ class Recorder:
         self.tap_for = lambda label: False   # which games want the tap
         self.encoder = pick_encoder(ff, cfg["encoder"])
         self.capture = pick_capture(ff, cfg["capture"], cfg["monitor"])
+        self.first_capture = self.capture   # what each new game starts on again
         self.audio_info = open_loopback() if (cfg["record_desktop_audio"] and IS_WINDOWS) else None
 
     # these two methods are separate so the self test can swap in fake sources
@@ -647,6 +648,14 @@ class Recorder:
                 except OSError:
                     pass
         self.label = label
+        # every game gets a fresh start: a fallback picked during the last game (or a loading
+        # screen) shouldn't stick to the slower capture for the rest of the app's life
+        self.freezes = 0
+        self._tried = set()
+        if self.capture != self.first_capture:
+            log.info("Back to %s capture for this game", self.first_capture)
+            self.capture = self.first_capture
+        self.capture_started = time.time()
         self.capturing = True
         log.info("Capture started%s", f" for {label}" if label else "")
 
@@ -794,15 +803,16 @@ class Recorder:
             open_since = (open_since or now) if starts > ends else None
             if now - self.last_freeze < 30:
                 continue          # just restarted, give it a moment
-            # slow games (WoW: standing still, reading quests, AFK) show the same picture for ages, so
-            # there a still picture only counts if you pressed or moved something and it didn't change
+            # a still picture is normal on loading screens, menus, AFK and slow games (WoW), so it only
+            # counts as frozen if you pressed or moved something during it and the picture didn't change
             calm = is_calm_game(self.label)
-            if open_since and now - open_since > FREEZE_SECONDS - 2:
-                if not calm or input_since(open_since + 1):
-                    return "frozen"   # one picture for 8s straight
-            # loading screens can be still for a while, so only judge after the first 2 minutes
-            if len(recent) >= 4 and now - started > 120 and self.capture != "gdigrab" and not calm:
-                return "starved"  # the picture keeps stalling: capture is being starved
+            if open_since and now - open_since > FREEZE_SECONDS - 2 and input_since(open_since + 1):
+                return "frozen"   # one picture for 8s straight while you were playing
+            # loading screens can be still for a while, so only judge 2 minutes into the game
+            in_game_for = now - max(started, getattr(self, "capture_started", 0))
+            if (len(recent) >= 4 and in_game_for > 120 and self.capture != "gdigrab" and not calm
+                    and input_since(now - 40)):
+                return "starved"  # the picture keeps stalling while you play: capture is being starved
         return None
 
     def fallback_capture(self):
