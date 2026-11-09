@@ -202,6 +202,18 @@ saves clips on a hotkey or automatically on highlights, and hands clips to the w
   Creator email stored on most records incl. CommunityEvent, Team, VideoView, WatermarkedVideo, OsrsFundAllocation (open),
   TournamentEntry, Match. Video has an old author name field (one holds "william"). Admin dashboard reads email change
   requests directly with admin access.
+  Round 3b published 9 Nov. Round 4 step 1 (9 Nov): EmailChangeRequest + VerificationRequest LOCKED to admins only
+  (read/create/change/delete; server unaffected). 2 approved verification requests (SezzRacing, taylor) have no profile.
+  Round 4 step 2 built (W to publish): sign-in/layout/own profile by account id (profile created on first sign-in),
+  terms screen server side (referral + affiliate auto fan + terms by ids, decline removes profile), edit profile/
+  username/photo via server (photo save untested), badges earned server side, browser creates no notifications (one
+  shared notify step storing ids), old clip author name cleared on 915 clips (clear again after publish).
+  Known bug kept: sign-up order only computed for admins, so every non-admin passes Early Adopter/Verse Pioneer.
+  Lock plan after publish: owner|admin: Comment, Like, Repost, Block, Achievement, PollVote, CreatorOfMonth, Follow (own);
+  admin only: VideoPoll, WatermarkedVideo, VideoView, OsrsFundAllocation, Fan, Referral, Affiliate, FeaturedPlacement,
+  Team; Notification create admin/server only. Not ready: UserProfile (roster rank list, my roster spots, verification
+  form + Creator Leagues own profile by email, 5 game stats functions), Video (clip download function), Leaderboard
+  (Creator Climb reads directly, rows hold emails). CommunityEvent stays open. Tournaments keep host/test rules.
   WoW characters now public by default (W's call): owner switch "Show my WoW characters on my profile"; signed-out
   visitors allowed server side (unconfirmed until published).
 
