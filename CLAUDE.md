@@ -258,7 +258,11 @@ saves clips on a hotkey or automatically on highlights, and hands clips to the w
   character picture on our character page and Game Stats card.
   10 Nov: character-media now WORKS (200, us host, profile-forever-us): avatar + avatar-sd (jpg ~3 KB), main-raw +
   main-sd-raw (png ~294 KB, full transparent render) from render.worldofwarcraft.com/forever-us/character/...; no inset
-  or main. Not built into the site yet.
+  or main. Built 10 Nov (W loved it): own copies of render + portrait saved with the character refresh; character page
+  shows the render between the gear columns on a faction-tinted grid; round portraits with class badge on Game Stats.
+  Asked 10 Nov (building): brighter empty gear slots, faint Verse logo in the grid (red Horde, blue Alliance), guide tabs
+  "Character Search" (region us/eu/kr/tw + name-surname, public Blizzard data only, never reveal a hidden Verse link,
+  cached ~1h, rate limited) and "Guild Search" (probe Forever guild endpoints first; Armory guild example: beast).
   WoW characters now public by default (W's call): owner switch "Show my WoW characters on my profile"; signed-out
   visitors allowed server side (unconfirmed until published).
 
