@@ -171,6 +171,14 @@ saves clips on a hotkey or automatically on highlights, and hands clips to the w
   code writes rows without ids until then). Request badges now refresh every 30s. Following count still counts duplicates
   and deleted accounts (W shows 23, list 20), fix in round 3. Test side effect: kealanclarke unfollowed and refollowed
   (follow date now 9 Nov, a push may have gone out).
+  Round 1 published 9 Nov, checked live (StupendousSmaug 7 followers, 9 following); backfill rerun filled 0.
+  Round 2 built 9 Nov (W to publish): server functions for home feeds (All/Following/Esports), Discover, profile clips,
+  tagged/liked/scheduled, likes, reposts, untag, comments, Creator of the Month, upload (server sets author + tag notices),
+  email-free user search for the tag picker; blocked/private hiding now server side; Following tab shows suggestions when
+  empty; admin-only skip-notice test switch. Backfill: 916 clips, 2,439 likes, 206 comments, 365 reposts, 8 CotM, 1 saved
+  desktop clip; 1 tagged deleted person on 4 clips dropped. Rerun backfill after publish. Not tested: real upload, untag.
+  Still email: notifications, polls (voting), achievements/blocks/badges/game stats on profile, contest entries, featured,
+  reports, event banner + boost pickers, admin CotM controls, Search user search, @mentions, monthly CotM job.
   WoW characters now public by default (W's call): owner switch "Show my WoW characters on my profile"; signed-out
   visitors allowed server side (unconfirmed until published).
 
