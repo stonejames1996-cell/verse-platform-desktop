@@ -224,6 +224,12 @@ saves clips on a hotkey or automatically on highlights, and hands clips to the w
   drop email lookup from public profile function (lets anyone check if an email has an account), 15 profiles with no
   account id, then lock UserProfile (owner|admin read, badge/tier fields admin only), Video (owner|admin), Leaderboard
   (admin). Clip downloads: Bunny refuses the watermarked copy, none made since 31 Oct, needs looking at.
+  Counters built 9 Nov (W to publish): feed views + all 3 share buttons via server, 1 view per viewer per clip per 30 min
+  (signed out: max 10 per network per clip per 30 min, hashed addresses), comment likes one per account. Admin dashboard
+  is server side, unaffected by locks; matches DB (916 clips, 429 sign-ups, 2,440 likes, 207 comments, 365 reposts,
+  24,166 views, 220 shares; clip-stored counters drift slightly lower: 2,388 likes, 197 comments). Public profile lookup
+  no longer takes emails; old email links work only for admins or people who got a notification from that person.
+  The 15 profiles without account ids are all deleted accounts (not deleted, suggest hide or remove).
   WoW characters now public by default (W's call): owner switch "Show my WoW characters on my profile"; signed-out
   visitors allowed server side (unconfirmed until published).
 
