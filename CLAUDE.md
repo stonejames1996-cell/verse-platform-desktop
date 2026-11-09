@@ -163,6 +163,14 @@ saves clips on a hotkey or automatically on highlights, and hands clips to the w
   Published 9 Nov; backfill rerun (0 missing); Message locked to admin/server only (approved 9 Nov, inbox + chat checked
   live as StupendousSmaug afterwards). Push notification chat links now use the username (needs publish). Still on email
   server side: notification, account deletion, migration functions. Next: stage 2b, clips/comments/tags/follows/stats to ids.
+  Stage 2b in 4 rounds: 1 profiles+follows+fans, 2 clips/comments/tags (home+discover following feeds too), 3 events/
+  tournaments/tryouts/admin pages/achievements follower counts, 4 sign-in + own profile by account id, then emails off profiles.
+  Round 1 built 9 Nov (W to publish): server functions for public profiles (email etc stripped), follows (state, counts,
+  lists, follow/unfollow/requests, server writes the follow + notification), fans, suggested profiles, blocked list.
+  Backfill: 780 follows, 119 fans (1 each points at a deleted account). Re-run the backfill once after publishing (old live
+  code writes rows without ids until then). Request badges now refresh every 30s. Following count still counts duplicates
+  and deleted accounts (W shows 23, list 20), fix in round 3. Test side effect: kealanclarke unfollowed and refollowed
+  (follow date now 9 Nov, a push may have gone out).
   WoW characters now public by default (W's call): owner switch "Show my WoW characters on my profile"; signed-out
   visitors allowed server side (unconfirmed until published).
 
