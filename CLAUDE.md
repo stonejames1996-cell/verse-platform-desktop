@@ -256,6 +256,9 @@ saves clips on a hotkey or automatically on highlights, and hands clips to the w
   W published this batch 9 Nov 22:45. Also TOMORROW: Blizzard's WoW: Forever Armory now shows a full 3D character
   render with gear (W's screenshot 9 Nov), so re-probe character-media (was 404, no avatar) and, if it answers, show the
   character picture on our character page and Game Stats card.
+  10 Nov: character-media now WORKS (200, us host, profile-forever-us): avatar + avatar-sd (jpg ~3 KB), main-raw +
+  main-sd-raw (png ~294 KB, full transparent render) from render.worldofwarcraft.com/forever-us/character/...; no inset
+  or main. Not built into the site yet.
   WoW characters now public by default (W's call): owner switch "Show my WoW characters on my profile"; signed-out
   visitors allowed server side (unconfirmed until published).
 
