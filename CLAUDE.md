@@ -261,8 +261,8 @@ saves clips on a hotkey or automatically on highlights, and hands clips to the w
   or main. Built 10 Nov (W loved it): own copies of render + portrait saved with the character refresh; character page
   shows the render between the gear columns on a faction-tinted grid; round portraits with class badge on Game Stats.
   Asked 10 Nov (building): brighter empty gear slots, faint Verse logo in the grid (red Horde, blue Alliance), guide tabs
-  "Character Search" (region us/eu/kr/tw + name-surname, public Blizzard data only, never reveal a hidden Verse link,
-  cached ~1h, rate limited) and "Guild Search" (probe Forever guild endpoints first; Armory guild example: beast).
+  "Character Search" (region us/eu/kr/tw + name-surname, public Blizzard data only, agnostic: never looks up or shows
+  Verse accounts; the Show my WoW characters switch only affects the Verse profile (W's call), cached ~1h, rate limited) and "Guild Search" (probe Forever guild endpoints first; Armory guild example: beast).
   WoW characters now public by default (W's call): owner switch "Show my WoW characters on my profile"; signed-out
   visitors allowed server side (unconfirmed until published).
 
