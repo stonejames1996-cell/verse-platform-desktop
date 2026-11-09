@@ -239,6 +239,12 @@ saves clips on a hotkey or automatically on highlights, and hands clips to the w
   view/share counting all fine, no emails. Pending publish: signed-out viewer recognised by browser not network (was
   double counting), Creator Leagues join moved to server; THEN lock league tier + season score. W to test as normal
   user: change banner, pin a clip, edit a clip title, join Creator Leagues.
+  Published 9 Nov (W pinned a clip OK). League tier + season score now admin only (join + nightly jobs server side).
+  Signed-out repeat views no longer double count. Final sweep leaks: Tournament creator email (visitors, 4 rows),
+  Notification sender email (recipient, 1,673), Follow other party email (780), own clips' tagged emails (133),
+  Block blocked email (1); empty but open: ad campaigns, creator leads, partnerships, reports, suggested creators,
+  device tokens, teams. Asked builder (9 Nov) to lock the empty tables and blank those email fields after copying
+  them to an admin-only backup table, then stop writing them.
   WoW characters now public by default (W's call): owner switch "Show my WoW characters on my profile"; signed-out
   visitors allowed server side (unconfirmed until published).
 
