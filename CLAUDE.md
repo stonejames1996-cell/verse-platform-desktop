@@ -245,6 +245,14 @@ saves clips on a hotkey or automatically on highlights, and hands clips to the w
   Block blocked email (1); empty but open: ad campaigns, creator leads, partnerships, reports, suggested creators,
   device tokens, teams. Asked builder (9 Nov) to lock the empty tables and blank those email fields after copying
   them to an admin-only backup table, then stop writing them.
+  Done 9 Nov (W to publish): empty tables locked (Reports read admin, create own; DeviceToken via server only; ad
+  campaigns, creator leads, partnerships, suggested creators, teams admin only. NOTE ads in Home feed will need a server
+  read once campaigns exist). 1,982 emails backed up to an admin-only backup table, then blanked: 4 tournament creator
+  emails (server-created records still show the platform system address), 1,673 notification sender emails (2,734
+  notifications got account links; 146 senders have no profile), 305 tag emails on 133 clips. New records no longer
+  store them. Follows (780) + Blocks (1) left: ~25 server places use their emails. TOMORROW: after W publishes, blank
+  emails the old live code wrote meanwhile, make Follow + Block admin-only read (browser never reads them), recheck live;
+  later move those ~25 server spots to profile ids. Tagged tab only scans newest 200 clips (old limit, misses older tags).
   WoW characters now public by default (W's call): owner switch "Show my WoW characters on my profile"; signed-out
   visitors allowed server side (unconfirmed until published).
 
