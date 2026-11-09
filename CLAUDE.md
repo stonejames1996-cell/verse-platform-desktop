@@ -188,6 +188,8 @@ saves clips on a hotkey or automatically on highlights, and hands clips to the w
   invites, Tryouts/LFT, roster/pro team, Creator Leagues + contests, featured, verification form, admin Affiliates/
   Featured/Verifications/Reports lookups/dashboard user list. Still email after: notifications, earning achievements,
   own profile edit (round 4), link records (server only, fine), admin email tools (by design).
+  Clips black in the Base44 editor preview: preview sends no referrer and Bunny Stream library 611564 had "Block direct
+  url file access" on (403). Turned OFF 9 Nov on W's say so; preview plays now. Allowed domains list is empty anyway.
   WoW characters now public by default (W's call): owner switch "Show my WoW characters on my profile"; signed-out
   visitors allowed server side (unconfirmed until published).
 
