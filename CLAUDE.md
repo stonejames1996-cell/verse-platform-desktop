@@ -230,6 +230,15 @@ saves clips on a hotkey or automatically on highlights, and hands clips to the w
   24,166 views, 220 shares; clip-stored counters drift slightly lower: 2,388 likes, 197 comments). Public profile lookup
   no longer takes emails; old email links work only for admins or people who got a notification from that person.
   The 15 profiles without account ids are all deleted accounts (not deleted, suggest hide or remove).
+  FINAL LOCKS 9 Nov (after W published counters): UserProfile read/change owner|admin, create signed-in, delete admin;
+  admin-only fields verified, pro player, pro team, fan eligible, team, team logo, brand account, login email, last
+  username change. Video read/change/delete owner|admin, counts + monthly views + feed ranking admin only. Leaderboard
+  admin only. Game stat ranks stay owner-editable (Game Stats tab saves from browser). Claude checked live as
+  StupendousSmaug: raw reads return only own rows (1 profile, 9 clips, own likes/follows), signed out 0 profiles;
+  other profiles, CotM badge, counts all show. Builder checked signed out: feeds, clip page, search, Creator Climb, CotM,
+  view/share counting all fine, no emails. Pending publish: signed-out viewer recognised by browser not network (was
+  double counting), Creator Leagues join moved to server; THEN lock league tier + season score. W to test as normal
+  user: change banner, pin a clip, edit a clip title, join Creator Leagues.
   WoW characters now public by default (W's call): owner switch "Show my WoW characters on my profile"; signed-out
   visitors allowed server side (unconfirmed until published).
 
