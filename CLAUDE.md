@@ -253,6 +253,9 @@ saves clips on a hotkey or automatically on highlights, and hands clips to the w
   store them. Follows (780) + Blocks (1) left: ~25 server places use their emails. TOMORROW: after W publishes, blank
   emails the old live code wrote meanwhile, make Follow + Block admin-only read (browser never reads them), recheck live;
   later move those ~25 server spots to profile ids. Tagged tab only scans newest 200 clips (old limit, misses older tags).
+  W published this batch 9 Nov 22:45. Also TOMORROW: Blizzard's WoW: Forever Armory now shows a full 3D character
+  render with gear (W's screenshot 9 Nov), so re-probe character-media (was 404, no avatar) and, if it answers, show the
+  character picture on our character page and Game Stats card.
   WoW characters now public by default (W's call): owner switch "Show my WoW characters on my profile"; signed-out
   visitors allowed server side (unconfirmed until published).
 
