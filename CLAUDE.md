@@ -179,6 +179,15 @@ saves clips on a hotkey or automatically on highlights, and hands clips to the w
   desktop clip; 1 tagged deleted person on 4 clips dropped. Rerun backfill after publish. Not tested: real upload, untag.
   Still email: notifications, polls (voting), achievements/blocks/badges/game stats on profile, contest entries, featured,
   reports, event banner + boost pickers, admin CotM controls, Search user search, @mentions, monthly CotM job.
+  Round 2 published 9 Nov (untag, feeds, like checked live; real upload with tag still to try); rerun filled 0.
+  Round 3a built 9 Nov (W to publish): profile achievements/blocks/badges/game stats, following counts (real unique
+  follows of existing accounts, not self: 14 following + 8 follower counts changed, StupendousSmaug now 6/9), Search +
+  @mentions email-free, polls+votes, admin CotM controls + fandom analytics, monthly CotM job saves ids (no email in
+  reply or admin mail), Reports shows "Verse user" for missing reporters. Backfill: 647 achievements (6 for 2 deleted
+  accounts), 1 block, 2 polls, 2 votes. Round 3b left: events/registrants, banner + boost pickers, Brackets, Verse Teams +
+  invites, Tryouts/LFT, roster/pro team, Creator Leagues + contests, featured, verification form, admin Affiliates/
+  Featured/Verifications/Reports lookups/dashboard user list. Still email after: notifications, earning achievements,
+  own profile edit (round 4), link records (server only, fine), admin email tools (by design).
   WoW characters now public by default (W's call): owner switch "Show my WoW characters on my profile"; signed-out
   visitors allowed server side (unconfirmed until published).
 
