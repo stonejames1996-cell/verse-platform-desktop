@@ -214,6 +214,16 @@ saves clips on a hotkey or automatically on highlights, and hands clips to the w
   Team; Notification create admin/server only. Not ready: UserProfile (roster rank list, my roster spots, verification
   form + Creator Leagues own profile by email, 5 game stats functions), Video (clip download function), Leaderboard
   (Creator Climb reads directly, rows hold emails). CommunityEvent stays open. Tournaments keep host/test rules.
+  Round 4 step 2 published 9 Nov (sign in, bio, photo checked live by W). LOCKS APPLIED 9 Nov: owner|admin read on
+  Comment, Like, Repost, Block, Achievement, PollVote (signed-in create, owner|admin change/delete); Follow read only
+  your own; CreatorOfMonth own record + admins; admins only: VideoPoll, WatermarkedVideo, OsrsFundAllocation, Fan,
+  Referral, Affiliate, FeaturedPlacement, Team, VideoView; Notification create admin only (approved by Claude).
+  Checked signed out + live as StupendousSmaug: comments, likes, polls, badges, fans, CotM banner, feed all fine.
+  Step 4 built (W to publish): roster lists, verification form, Creator Leagues, 5 game stats functions (profile id or
+  own only), clip download, Creator Climb all server side. Next: move feed view counter + share counter to server,
+  drop email lookup from public profile function (lets anyone check if an email has an account), 15 profiles with no
+  account id, then lock UserProfile (owner|admin read, badge/tier fields admin only), Video (owner|admin), Leaderboard
+  (admin). Clip downloads: Bunny refuses the watermarked copy, none made since 31 Oct, needs looking at.
   WoW characters now public by default (W's call): owner switch "Show my WoW characters on my profile"; signed-out
   visitors allowed server side (unconfirmed until published).
 
