@@ -2,10 +2,10 @@
 
 Changes that are in `main` but not released yet. When it's time to release, bump `APP_VERSION`,
 turn these into `release-notes/<version>.md`, then clear this list.
-* Fix: loading screens, menus and going AFK no longer count as the recording "freezing". Before, two still moments (like League's loading screen) could drop the recording to the slow, CPU-heavy capture for the rest of the session (seen on W's PC 7 Nov: gfxcapture, then ddagrab, then gdigrab in the first minute of a League game). A still picture now only counts if you pressed or moved something during it.
-* Each new game starts back on the best capture method, instead of staying on a fallback picked during an earlier game.
+Nothing held right now. 1.4.6 shipped the still picture fix and the fresh capture method per game.
 
 ## Still to confirm on a real PC
+* 1.4.6: a League game keeps "Capture=gfxcapture" all match (no "Switching from" after the loading screen); "Back to gfxcapture capture for this game" when a later game starts after a fallback.
 * 1.4.5: CONFIRMED on W's PC 5 Nov: Clipped by card on WoW clips and the save pop-up showing in the next clip. Still to see: no "Switching from gfxcapture" in WoW, no certificate errors on update checks.
 * 1.4.4: WoW save pop-up top middle, Alt+Shift+M in WoW shows only the save pop-up box, League/Finals spots kept after moving WoW's.
 * 1.4.3: new dark square icon on desktop/taskbar/tray and installer; Check for updates while downloading says so.
