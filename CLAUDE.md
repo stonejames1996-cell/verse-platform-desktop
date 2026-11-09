@@ -263,6 +263,12 @@ saves clips on a hotkey or automatically on highlights, and hands clips to the w
   Asked 10 Nov (building): brighter empty gear slots, faint Verse logo in the grid (red Horde, blue Alliance), guide tabs
   "Character Search" (region us/eu/kr/tw + name-surname, public Blizzard data only, agnostic: never looks up or shows
   Verse accounts; the Show my WoW characters switch only affects the Verse profile (W's call), cached ~1h, rate limited) and "Guild Search" (probe Forever guild endpoints first; Armory guild example: beast).
+  Built 10 Nov (W to publish): empty slots dashed + brighter, faint faction-coloured Verse logo behind the render;
+  Character Search tab (tested Lengthy Lionel, complete); Guild Search tab. Forever guilds: profile namespace only
+  (data namespace 404), realmless slug (beast: Horde, 13 members, GM Dexie Bandit), roster works, achievements and
+  activity empty, no crest (faction banner used). Portraits for first 50 roster members. Cache 1h (not found 10 min),
+  30 searches per 10 min per visitor (signed out: short fingerprint), search pictures load from Blizzard (not stored),
+  cache older than 30 days deleted. KR/TW returned not found (not 403) for Verse Platform; untested with real KR/TW chars.
   WoW characters now public by default (W's call): owner switch "Show my WoW characters on my profile"; signed-out
   visitors allowed server side (unconfirmed until published).
 
