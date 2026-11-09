@@ -160,8 +160,9 @@ saves clips on a hotkey or automatically on highlights, and hands clips to the w
   Stage 2a built 9 Nov (W to publish): profiles have a server-set account id (394 backfilled, 15 orphan profiles with no
   account), messages have sender/receiver account + profile ids (73 backfilled); server functions for inbox/unread,
   conversation, send (also clip/profile shares), and react/edit/delete/accept. Chats poll every 5s (no live updates).
-  Message read rules left as before on purpose (old live code reads Message directly). After publish: re-run the
-  backfill once, then lock Message to server only; then stage 2b: move clips/comments/tags/follows/stats lookups to ids.
+  Published 9 Nov; backfill rerun (0 missing); Message locked to admin/server only (approved 9 Nov, inbox + chat checked
+  live as StupendousSmaug afterwards). Push notification chat links now use the username (needs publish). Still on email
+  server side: notification, account deletion, migration functions. Next: stage 2b, clips/comments/tags/follows/stats to ids.
   WoW characters now public by default (W's call): owner switch "Show my WoW characters on my profile"; signed-out
   visitors allowed server side (unconfirmed until published).
 
