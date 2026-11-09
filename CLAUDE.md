@@ -190,6 +190,18 @@ saves clips on a hotkey or automatically on highlights, and hands clips to the w
   own profile edit (round 4), link records (server only, fine), admin email tools (by design).
   Clips black in the Base44 editor preview: preview sends no referrer and Bunny Stream library 611564 had "Block direct
   url file access" on (403). Turned OFF 9 Nov on W's say so; preview plays now. Allowed domains list is empty anyway.
+  Round 3a published 9 Nov; rerun filled 0. Speed pass: lookups now run in parallel, search no longer reads the whole
+  profile table, follower counts counted server side (Home ~0.45s, Discover 0.52s, Search 0.24s; each server call ~0.16s).
+  Round 3b built 9 Nov (W to publish): Brackets/Teams/invites/Tryouts/roster responses email-free, event registrants,
+  Creator Leagues (opted-in only), Discover spotlight (no admin notes), verification form server side, banner/boost
+  pickers, contest judging by profile id, one admin-only profile service for Dashboard/Verifications/Featured/Reports/
+  Affiliates (only place emails show). Backfill: 1/1 featured, 27/29 verification requests.
+  ROUND 4 FINDINGS: no read rule (readable even logged out): UserProfile, Video, Comment, Like, Repost, Fan, Block,
+  Achievement, VideoPoll, PollVote, CreatorOfMonth, Referral, Affiliate, FeaturedPlacement, VerificationRequest,
+  Leaderboard, EmailChangeRequest (lock first). Partly open: Follow (accepted, both emails), Tournament (creator email).
+  Creator email stored on most records incl. CommunityEvent, Team, VideoView, WatermarkedVideo, OsrsFundAllocation (open),
+  TournamentEntry, Match. Video has an old author name field (one holds "william"). Admin dashboard reads email change
+  requests directly with admin access.
   WoW characters now public by default (W's call): owner switch "Show my WoW characters on my profile"; signed-out
   visitors allowed server side (unconfirmed until published).
 
