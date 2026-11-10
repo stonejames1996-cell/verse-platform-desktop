@@ -313,6 +313,11 @@ saves clips on a hotkey or automatically on highlights, and hands clips to the w
   Team invites fixed 10 Nov 19:00: server returns a fixed safe field list (no created_by, creator id or emails),
   TeamInvite admin-only read (no publish needed, server functions were already live). Tested with a temp Clarkie96 team,
   cleaned up. Left for later: ~25 server spots still key follows/blocks by email (server only, not exposed).
+  Download page (10 Nov eve, building): W wants an ascent.gg style hero, the League clip shrinks on scroll into the first
+  tile of a "Works with your games" grid (3D tiles from our icon map; auto-highlight games LoL, The Finals, CS2, Dota 2,
+  WoW badged), plus a Match analysis section. Assets on site-assets branch, download folder: lol-hero-1080.mp4 /
+  lol-hero-720.mp4 (first 14s of W's Double kill clip, no audio, faststart), lol-hero-poster.jpg, match-analysis.png.
+  raw.githubusercontent serves mp4 as octet-stream + nosniff, so the builder copies them into Base44 storage.
   WoW characters now public by default (W's call): owner switch "Show my WoW characters on my profile"; signed-out
   visitors allowed server side (unconfirmed until published).
 
