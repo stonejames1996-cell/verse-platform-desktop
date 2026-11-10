@@ -277,6 +277,13 @@ saves clips on a hotkey or automatically on highlights, and hands clips to the w
   Furious Precision, Blood Craze, Enrage, Death Wish at 30, ... Bloodthirst at 40, Flurry, Dual Wield Spec, Deflection,
   Improved Rend, Improved Tactical Mastery, Anger Management, Deep Wounds 59-60. Later: compare with our Fury build path
   against the real Forever tree and rules (don't copy theirs; check each choice and explain differences to W).
+  CHECKED 10 Nov: Blizzard live data still build 1.60.1_70399, identical to ours (53 Warrior talents). Mobalytics uses
+  original-Classic values: Flurry 5 ranks (Forever max 3), Improved Tactical Mastery 5 (Forever 3), "Raging Blows"
+  (doesn't exist in Forever). Our Fury path is valid (rows/points checked by hand): Cruelty, Unbridled Wrath, Enrage,
+  DW Spec, Death Wish 30, Furious Precision, Imp Execute, Flurry 35-37, Imp Whirlwind, Bloodthirst 40, Imp Execute,
+  Imp Berserker Rage, then Arms Imp Heroic Strike, Imp Rend, Imp Charge, ITM, Deep Wounds, Anger Management, Impale
+  (33 Fury / 18 Arms). W's character shows Cruelty 5/5 (level ~15). Offered: note on the build page about other guides,
+  and an optional sustain variant (Blood Craze 3 + Gore Drinker 2 instead of Imp Execute + Imp Berserker Rage).
   WoW characters now public by default (W's call): owner switch "Show my WoW characters on my profile"; signed-out
   visitors allowed server side (unconfirmed until published).
 
