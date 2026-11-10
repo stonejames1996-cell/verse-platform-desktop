@@ -324,6 +324,9 @@ saves clips on a hotkey or automatically on highlights, and hands clips to the w
   download/finals-double-kill-{1080,720}.mp4 + poster, copied to Base44 storage) now in "Automatically detect" and
   "View your clip" mocks. Bottom row alignment fix sent. Riot disclaimer at the bottom: W asked to remove it, Claude
   advised keeping it small in the footer (Riot policy requires it, app 897128 under review); W hasn't decided.
+  Download page PUBLISHED by W 10 Nov 20:34: clip starts as wide as the games grid (max 70% screen height) under the
+  subtitle, plays ~4s, only shrinks into the LoL tile, once per visit; page never scrolls sideways. Still open: Riot
+  disclaimer decision (keep small in footer vs remove).
   WoW characters now public by default (W's call): owner switch "Show my WoW characters on my profile"; signed-out
   visitors allowed server side (unconfirmed until published).
 
