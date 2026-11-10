@@ -284,6 +284,12 @@ saves clips on a hotkey or automatically on highlights, and hands clips to the w
   Imp Berserker Rage, then Arms Imp Heroic Strike, Imp Rend, Imp Charge, ITM, Deep Wounds, Anger Management, Impale
   (33 Fury / 18 Arms). W's character shows Cruelty 5/5 (level ~15). Offered: note on the build page about other guides,
   and an optional sustain variant (Blood Craze 3 + Gore Drinker 2 instead of Imp Execute + Imp Berserker Rage).
+  10 Nov eve: Follow (781) + Block (1) locked to admin-only read, live checks OK (test follow/unfollow on REGXN, notice
+  deleted). No new emails written since blanking. CLAUDE'S LIVE CHECK as StupendousSmaug found 2 leaks via the built-in
+  created_by field (can't be blanked): Notification (62 of his 86 notices were created by other users in old browser
+  code, 24 other emails) and CommunityEvent (open to signed-out visitors, creator email). Asked builder: serve both via
+  server functions without created_by, then admin-only read (after publish if needed), and redo the sweep counting
+  created_by on every table + team invites. LESSON: always check created_by when sweeping for leaks.
   WoW characters now public by default (W's call): owner switch "Show my WoW characters on my profile"; signed-out
   visitors allowed server side (unconfirmed until published).
 
