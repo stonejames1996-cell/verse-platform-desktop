@@ -310,8 +310,9 @@ saves clips on a hotkey or automatically on highlights, and hands clips to the w
   admin-only; tournaments + entries admin read plus host rule (Claude approved MapLocation, WowStatPriority,
   TournamentEntry cards). Claude's final live scan as StupendousSmaug over 52 tables, signed in and out: no other
   person's email anywhere (created_by included). Events/Brackets list loads (Halo Reclaimer Rumble, CS2 Open).
-  Left for later: team invites show the creator to both people (0 invites today); ~25 server spots still key follows/
-  blocks by email (server only, not exposed).
+  Team invites fixed 10 Nov 19:00: server returns a fixed safe field list (no created_by, creator id or emails),
+  TeamInvite admin-only read (no publish needed, server functions were already live). Tested with a temp Clarkie96 team,
+  cleaned up. Left for later: ~25 server spots still key follows/blocks by email (server only, not exposed).
   WoW characters now public by default (W's call): owner switch "Show my WoW characters on my profile"; signed-out
   visitors allowed server side (unconfirmed until published).
 
