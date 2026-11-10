@@ -296,6 +296,14 @@ saves clips on a hotkey or automatically on highlights, and hands clips to the w
   ADMIN emails as creator: W's on app settings, map locations, WoW guides/routes, 1 tournament, 4 tournament entries,
   4 talent fixes; James's (st...@gmail) on the 3 desktop release records, readable signed out (Download page reads that
   table, so needs a server function first). Next: serve those via server functions and lock them.
+  W published 10 Nov 18:30; Notification + CommunityEvent LOCKED admin-only read. Claude verified as StupendousSmaug:
+  raw reads return 0 (signed in and out), notifications page works. Built (W to publish): build paths, routes, talent
+  fixes, stat priorities, map locations via server; tournaments refresh every 15s instead of live (live link sent whole
+  records); email-free server source for desktop releases. Desktop app never reads Base44 releases (GitHub only).
+  FOUND: AppSettings had NO rules (anyone could read AND change, e.g. turn off welcome email); game genres + guide
+  cache writable by anyone. Asked builder to lock now: AppSettings admin-only all, DesktopRelease admin read, genres +
+  guide cache admin-only writes. After W's next publish: admin read on map locations, build paths, routes, stat
+  priorities, talent fixes; tournaments + entries admin read plus host rule.
   WoW characters now public by default (W's call): owner switch "Show my WoW characters on my profile"; signed-out
   visitors allowed server side (unconfirmed until published).
 
