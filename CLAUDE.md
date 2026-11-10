@@ -318,6 +318,12 @@ saves clips on a hotkey or automatically on highlights, and hands clips to the w
   WoW badged), plus a Match analysis section. Assets on site-assets branch, download folder: lol-hero-1080.mp4 /
   lol-hero-720.mp4 (first 14s of W's Double kill clip, no audio, faststart), lol-hero-poster.jpg, match-analysis.png.
   raw.githubusercontent serves mp4 as octet-stream + nosniff, so the builder copies them into Base44 storage.
+  Download page round 2 built 10 Nov eve (W to check + publish): Used by back under the buttons; League clip flies
+  into the LoL tile by itself once per visit (FLIP transform + blur, big video sits over the grid, no replay); auto
+  highlight badges removed; match analysis rebuilt in HTML (sharp). The Finals Double kill clip (site-assets
+  download/finals-double-kill-{1080,720}.mp4 + poster, copied to Base44 storage) now in "Automatically detect" and
+  "View your clip" mocks. Bottom row alignment fix sent. Riot disclaimer at the bottom: W asked to remove it, Claude
+  advised keeping it small in the footer (Riot policy requires it, app 897128 under review); W hasn't decided.
   WoW characters now public by default (W's call): owner switch "Show my WoW characters on my profile"; signed-out
   visitors allowed server side (unconfirmed until published).
 
