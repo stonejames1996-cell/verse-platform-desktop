@@ -271,6 +271,8 @@ saves clips on a hotkey or automatically on highlights, and hands clips to the w
   cache older than 30 days deleted. KR/TW returned not found (not 403) for Verse Platform; untested with real KR/TW chars.
   W checked all of it 10 Nov 7am ("all worked") and is publishing. TONIGHT: privacy (blank emails old code wrote,
   Follow + Block admin-only read, recheck live), then clip downloads, Early Adopter bug, 15 leftover profiles, Tagged tab limit.
+  W (10 Nov arvo): tonight also work on the website's Download page (desktop app page) using The Finals clips we made; W
+  will share them.
   WoW characters now public by default (W's call): owner switch "Show my WoW characters on my profile"; signed-out
   visitors allowed server side (unconfirmed until published).
 
