@@ -273,6 +273,10 @@ saves clips on a hotkey or automatically on highlights, and hands clips to the w
   Follow + Block admin-only read, recheck live), then clip downloads, Early Adopter bug, 15 leftover profiles, Tagged tab limit.
   W (10 Nov arvo): tonight also work on the website's Download page (desktop app page) using The Finals clips we made; W
   will share them.
+  W (10 Nov): Mobalytics' Fury Warrior talent order (levels 10-60) differs from ours: it goes Cruelty, Lingering Rage,
+  Furious Precision, Blood Craze, Enrage, Death Wish at 30, ... Bloodthirst at 40, Flurry, Dual Wield Spec, Deflection,
+  Improved Rend, Improved Tactical Mastery, Anger Management, Deep Wounds 59-60. Later: compare with our Fury build path
+  against the real Forever tree and rules (don't copy theirs; check each choice and explain differences to W).
   WoW characters now public by default (W's call): owner switch "Show my WoW characters on my profile"; signed-out
   visitors allowed server side (unconfirmed until published).
 
