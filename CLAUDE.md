@@ -290,6 +290,12 @@ saves clips on a hotkey or automatically on highlights, and hands clips to the w
   code, 24 other emails) and CommunityEvent (open to signed-out visitors, creator email). Asked builder: serve both via
   server functions without created_by, then admin-only read (after publish if needed), and redo the sweep counting
   created_by on every table + team invites. LESSON: always check created_by when sweeping for leaks.
+  Fix built 10 Nov (W to publish, THEN lock Notification + CommunityEvent to admin-only read): notifications bell/page/
+  mark read via server (no created_by; new ones appear within 30s, not instantly), community event lists via server.
+  Redone sweep (created_by): Notifications 2,116 readable by non-creators (closed by the lock). Public tables showing
+  ADMIN emails as creator: W's on app settings, map locations, WoW guides/routes, 1 tournament, 4 tournament entries,
+  4 talent fixes; James's (st...@gmail) on the 3 desktop release records, readable signed out (Download page reads that
+  table, so needs a server function first). Next: serve those via server functions and lock them.
   WoW characters now public by default (W's call): owner switch "Show my WoW characters on my profile"; signed-out
   visitors allowed server side (unconfirmed until published).
 
