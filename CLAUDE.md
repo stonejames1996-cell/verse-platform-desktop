@@ -306,6 +306,12 @@ saves clips on a hotkey or automatically on highlights, and hands clips to the w
   priorities, talent fixes; tournaments + entries admin read plus host rule.
   DONE 10 Nov: AppSettings admin-only all, game genres + guide cache admin-only writes (reads open), DesktopRelease
   admin-only all (approved by Claude; nothing in repo/CI writes it, Download page reads GitHub). Live tests OK.
+  PRIVACY WORK DONE 10 Nov 19:00 (after W's publish): build paths, routes, talent fixes, map locations, stat priorities
+  admin-only; tournaments + entries admin read plus host rule (Claude approved MapLocation, WowStatPriority,
+  TournamentEntry cards). Claude's final live scan as StupendousSmaug over 52 tables, signed in and out: no other
+  person's email anywhere (created_by included). Events/Brackets list loads (Halo Reclaimer Rumble, CS2 Open).
+  Left for later: team invites show the creator to both people (0 invites today); ~25 server spots still key follows/
+  blocks by email (server only, not exposed).
   WoW characters now public by default (W's call): owner switch "Show my WoW characters on my profile"; signed-out
   visitors allowed server side (unconfirmed until published).
 
