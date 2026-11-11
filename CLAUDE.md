@@ -427,6 +427,11 @@ saves clips on a hotkey or automatically on highlights, and hands clips to the w
   badge pop-up, change-only list reloads, cheaper chat checks, new Analytics.
   B Analytics BUILT 10:10 (preview): full width, period switch, 6 tiles, Views/Likes/Followers chart, Views by game,
   Top clips, New followers; real numbers per period from a new server function (All time uses saved clip totals).
+  ~10:30 BUILT (preview): C Game Stats, D Notifications (server adds clip thumbnails + follow-back state) + Messages
+  (no online dot), shared glass pop-up shell, both share pop-ups converted (3 errors fixed). Left: comments, terms and
+  Guide detail pop-ups, Guides inner pages, desktop chip-row arrows (arrows + wheel only, NO click-drag: W 10:35).
+  W 10:35: OSRS Game Stats says "failed to fetch player data" on Clarkie96 (RSN Lv99Will), asked builder to fix;
+  profile tabs row can be dragged around, should be a plain sideways scroll on phones only (no drag, no bounce).
   WoW characters now public by default (W's call): owner switch "Show my WoW characters on my profile"; signed-out
   visitors allowed server side (unconfirmed until published).
 
