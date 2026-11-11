@@ -395,6 +395,20 @@ saves clips on a hotkey or automatically on highlights, and hands clips to the w
   Notifications, Messages): queued for the builder, then Edit profile facelift, then the remaining pop-ups (terms
   acceptance, share sheets, comments sheet, Guides detail pop-ups) and all Guides inner pages. AFTER: Claude does a
   full style review of every page and pop-up on phone and desktop (W asked 12 Nov).
+  12 Nov ~9:30: built in preview: showcase badge (server only accepts unlocked badges), badge unlocked pop-up (uses the
+  bell's unread check, no own calls), new Edit profile. NOT yet built: B Analytics, C Game Stats, D Notifications +
+  Messages, remaining pop-ups + Guides inner pages, desktop chip row arrows/wheel/drag.
+  SCALABILITY REVIEW (builder, 12 Nov): Elite plan 50,000 integration credits/month (566.8 used, resets 9 Dec). DB reads
+  and writes free (but ~1,000 MB/min shared read limit, 350 reads/min per user); server function call ~1 credit per 100;
+  workflow run ~0.11; email/AI/upload ~1 each; own-key APIs (Riot, Blizzard, Bunny, Klaviyo, GIPHY, Apple push) free.
+  React Query pauses timers when hidden. Per open tab: 3 top-bar counters every 30s = 360 calls/h; chat 5s = 720/h.
+  Badge check read every account on every action (biggest read-limit risk). Scheduled jobs ~2,300 credits/month.
+  Estimate: ~10 credits per active user hour now, ~1 after fixes. W approved ALL fixes (asked builder 9:40): one combined
+  counter call 60s, badge/like milestone/push inside the saving server call (no per-action automations), sign-up order
+  stored on profile, chat 15s only while open, 5-min jobs to 15 with early exit, Pokedex warm-up daily, feed ranking
+  reads new likes only, tournament live subscription + 60s fallback, whole-table reads fixed; plus Claude's idea: a
+  per-user status record (owner read, server write) for counters and per-conversation last-message time, so polling
+  reads free DB rows instead of calling functions.
   WoW characters now public by default (W's call): owner switch "Show my WoW characters on my profile"; signed-out
   visitors allowed server side (unconfirmed until published).
 
