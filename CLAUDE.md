@@ -386,6 +386,15 @@ saves clips on a hotkey or automatically on highlights, and hands clips to the w
   switch, OFF until the catch-up runs; awaiting W's OK. Phone header pills now same glass as the All/Following pill; info
   menu = grouped bottom sheet (Verse / Get verified / Legal / Delete Account in red, real Discord logo), desktop More
   menu same groups (preview).
+  DONE 12 Nov (live, W approved): catch-up awarded 933 badges to 366 people (one bell notice each, no push; 3 missed
+  notices sent separately); 100 wrong badges removed quietly (99 Early Adopter, 1 Verse OG) after copying to an
+  admin-only backup table; automatic awarding ON. Holders now: Early Adopter 89, Verse Pioneer 396, Verse OG 7.
+  Pop-up pass (preview): shared pop-up style (phone sheets, desktop glass dialog) on info/More menu items, events,
+  profile, clips, teams/tryouts, rewards (Boost buttons now blue), admin dialogs; pop-ups sit above the phone nav;
+  Patch notes + Delete Account open as pop-ups. W approved drafts (showcase badge, Analytics, Game Stats,
+  Notifications, Messages): queued for the builder, then Edit profile facelift, then the remaining pop-ups (terms
+  acceptance, share sheets, comments sheet, Guides detail pop-ups) and all Guides inner pages. AFTER: Claude does a
+  full style review of every page and pop-up on phone and desktop (W asked 12 Nov).
   WoW characters now public by default (W's call): owner switch "Show my WoW characters on my profile"; signed-out
   visitors allowed server side (unconfirmed until published).
 
