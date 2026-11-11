@@ -368,6 +368,10 @@ saves clips on a hotkey or automatically on highlights, and hands clips to the w
   also returns tagged people's pictures, live already); Up next cards have creator picture + name (opens profile);
   Discover game title + search list show logos; Badges in the desktop bar. Claude checked badges, bar, Up next and
   Discover in preview; tagged pictures not seen yet (needs a clip with tags).
+  Badge art (12 Nov): W supplied the designed art for all 100 badges (BADGES.zip, 1920px jpg). 512px copies on
+  site-assets badges/NNN-name.jpg (typos fixed: fortnite, pioneer), copied into Base44 storage; the 48 non-game badges
+  now use them (stand-in icons only as fallback); the 52 game badges already had the same art at 1024px, kept. Checked in
+  preview. Found: badges show only on the Badges page (not on profiles) and the badge earned pop-up never fires.
   WoW characters now public by default (W's call): owner switch "Show my WoW characters on my profile"; signed-out
   visitors allowed server side (unconfirmed until published).
 
