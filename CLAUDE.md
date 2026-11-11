@@ -361,6 +361,13 @@ saves clips on a hotkey or automatically on highlights, and hands clips to the w
   All checked by Claude in the editor preview. W to test and publish everything together.
   MORNING (12 Nov, W): some badges lack icons (e.g. First Blood); show tagged people's profile pictures where tags
   appear; add creator profile pictures on Up next cards (click opens their profile).
+  11 Nov night, W said keep going: BUILT IN PREVIEW (not published) steps 3-8: Discover (+ Discover uses new player,
+  auto load more, 4 across on tablets), Profile (owner card tools on hover / ... menu on phones, tier ring kept on
+  avatar, favourite game badge uses icon map + Upload's game picker in Edit profile), Events (all 3 tabs, art cover or
+  full+blur when >20% off shape), Guides, Creator Leagues (tier colours), Badges (game badges keep own art), Polish
+  (skeleton loading, top bar + avatar kept between pages, empty states, branded 404, /Badges -> Achievements), Search
+  (live dropdown: people, games, clips + new Search page). Menus/dropdowns use solid glass rgba(14,14,17,0.92).
+  All checked by Claude in the editor preview. W to test and publish everything together.
   WoW characters now public by default (W's call): owner switch "Show my WoW characters on my profile"; signed-out
   visitors allowed server side (unconfirmed until published).
 
