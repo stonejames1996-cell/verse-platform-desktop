@@ -432,6 +432,15 @@ saves clips on a hotkey or automatically on highlights, and hands clips to the w
   Guide detail pop-ups, Guides inner pages, desktop chip-row arrows (arrows + wheel only, NO click-drag: W 10:35).
   W 10:35: OSRS Game Stats says "failed to fetch player data" on Clarkie96 (RSN Lv99Will), asked builder to fix;
   profile tabs row can be dragged around, should be a plain sideways scroll on phones only (no drag, no bounce).
+  ~10:45 DONE (preview unless noted): OSRS fix = Wise Old Man was rate limiting our server (429), official hiscores
+  added as backup (server fix, live only after W publishes per builder); profile tabs scroll only when they don't fit,
+  active tab slides into view, desktop one fixed row; bounce + whole-row drag off on every sideways row; desktop glass
+  arrows + wheel (no drag) on Discover, Events, Badges, notification filters, Game Stats, Guide chip rows; comments
+  sheet + sign-up terms gate glass; Guide detail pop-ups glass and above the top bar; Guides inner pages: glass back
+  button, Orbitron title + section headings, one dark panel, Verse chips (Valorant underline now blue), skeletons.
+  Builder couldn't test swipes on a real phone or the desktop arrows. W 10:49: phone compass menu (Guides, Creator
+  Leagues, Creator Climb, Events) still old dropdown with light blue icons; asked builder for a glass bottom sheet like
+  the info menu + sweep of every other menu/dropdown.
   WoW characters now public by default (W's call): owner switch "Show my WoW characters on my profile"; signed-out
   visitors allowed server side (unconfirmed until published).
 
