@@ -337,6 +337,16 @@ saves clips on a hotkey or automatically on highlights, and hands clips to the w
   First mockup: clip viewer desktop (video + 400px side panel) and phone: https://claude.ai/artifact/NtsD5oVgimY8m1TyopkZkr
   Review found: phone-width columns on desktop, feed info/actions far from the clip, text-only game pills on Discover,
   grey chip scrollbars, headings under the top bar, spinner page loads, crowded 9-item top bar.
+  Built 11 Nov (W to publish): PHONE player (<768px, Home feed only; Discover uses same player, not switched yet):
+  full-screen clip, glass header icon groups (Search moved up), glass All/Following/Esports pill, bare white rail icons
+  (like, comment, Boost coin, share, mute, report; repost stays in the Share sheet), glass creator pill + Follow, thin
+  blue progress bar, floating glass nav (Home, Discover, Upload centred, Badges, Profile). Shared glass style in
+  src/components/verse/verseGlass.css. DESKTOP player (>=768px, Home only): clip left + side panel (400px >=1280, 320
+  below), glass play bar + up/down chevrons, wheel = one clip per flick, arrow keys, Space, M, per-clip links, preload,
+  Up next row (thumbnail fallback: black or missing thumbs use a frame ~1s in, else dark card with game icon). Desktop
+  top bar = floating glass pill (Home, Discover, Events, Guides, Creator Leagues, More = Badges, My clips, Download app,
+  Daily rewards, Discord, About, Patch notes, legal, Requests, Delete account, Admin pages). Pages start ~40px lower.
+  Note: Chrome screenshots here are scaled (1568 px frame for a 1920 window), so measure with care.
   WoW characters now public by default (W's call): owner switch "Show my WoW characters on my profile"; signed-out
   visitors allowed server side (unconfirmed until published).
 
