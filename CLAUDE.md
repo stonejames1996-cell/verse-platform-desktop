@@ -419,6 +419,14 @@ saves clips on a hotkey or automatically on highlights, and hands clips to the w
   Estimate now ~0.5-1 credit per active user hour (was ~10), fixed jobs ~900/month (was ~2,300). Next cost lever at
   scale: how often feeds and profiles call the server. Unverified: owner-only read rule on the status record (test as
   another user), live published site still pushing every notification type (asked builder 9:57).
+  Safety check done 10:05: every notification now created in one shared server place that sends the push (likes,
+  milestones, comments, replies, follows + requests, reposts, tags, messages, boosts, clips going live, badges, CotM);
+  bracket + tryout/roster notices NEVER pushed before, now added; WoW Forever ready notice always pushes. Live site
+  still works with new server code; badges from live actions OK; new sign-ups get sign-up order + early badges via the
+  30 min sweep. Live top bar still polls every 30s (costs) until W publishes. Only after publish: near-free counters,
+  badge pop-up, change-only list reloads, cheaper chat checks, new Analytics.
+  B Analytics BUILT 10:10 (preview): full width, period switch, 6 tiles, Views/Likes/Followers chart, Views by game,
+  Top clips, New followers; real numbers per period from a new server function (All time uses saved clip totals).
   WoW characters now public by default (W's call): owner switch "Show my WoW characters on my profile"; signed-out
   visitors allowed server side (unconfirmed until published).
 
