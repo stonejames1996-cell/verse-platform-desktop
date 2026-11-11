@@ -409,6 +409,16 @@ saves clips on a hotkey or automatically on highlights, and hands clips to the w
   reads new likes only, tournament live subscription + 60s fallback, whole-table reads fixed; plus Claude's idea: a
   per-user status record (owner read, server write) for counters and per-conversation last-message time, so polling
   reads free DB rows instead of calling functions.
+  COST CHANGES DONE 12 Nov ~9:50 (server live, app parts preview): per-user status record (owner read, server write)
+  feeds the top bar every 60s + page change (0 credits), badge pop-up only calls the server when the record says a badge
+  is waiting; Notifications/Messages pages reuse it; open chat reads a per-conversation last-changed record; per-action
+  automations archived (badge check, like milestone, push now inside the saving server call, only relevant badges);
+  sign-up order saved on the status record (429 users); scheduled clips + brackets sweep every 15 min with early exit
+  (scheduled clips can go live up to 15 min late); Pokedex warm-up daily 3am Sydney (40 entries a run); feed ranking
+  only new likes; tournament live updates + 60s fallback; link lookup, share preview count, search read small sets.
+  Estimate now ~0.5-1 credit per active user hour (was ~10), fixed jobs ~900/month (was ~2,300). Next cost lever at
+  scale: how often feeds and profiles call the server. Unverified: owner-only read rule on the status record (test as
+  another user), live published site still pushing every notification type (asked builder 9:57).
   WoW characters now public by default (W's call): owner switch "Show my WoW characters on my profile"; signed-out
   visitors allowed server side (unconfirmed until published).
 
