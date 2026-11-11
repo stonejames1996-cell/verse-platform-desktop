@@ -349,6 +349,9 @@ saves clips on a hotkey or automatically on highlights, and hands clips to the w
   Note: Chrome screenshots here are scaled (1568 px frame for a 1920 window), so measure with care.
   Drafts added 11 Nov eve (same canvas, pages): Discover, Profile, Events, Guides (desktop + phone each), awaiting W.
   W: top-left of the desktop bar must be the blue V logo image, never a VERSE wordmark (mockups fixed; builder asked).
+  Canvas renamed "Verse redesign drafts" (same link). Pages: Clip player, Discover, Profile, Events, Guides, Creator
+  Leagues + Badges, Polish (skeleton loading, empty states, branded 404: /Badges 404s with Base44's white page; real
+  badges page is /Achievements, uses emoji tabs). Desktop bar logo fix built (preview). All drafts await W.
   WoW characters now public by default (W's call): owner switch "Show my WoW characters on my profile"; signed-out
   visitors allowed server side (unconfirmed until published).
 
