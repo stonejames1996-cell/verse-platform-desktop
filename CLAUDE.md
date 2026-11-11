@@ -327,6 +327,9 @@ saves clips on a hotkey or automatically on highlights, and hands clips to the w
   Download page PUBLISHED by W 10 Nov 20:34: clip starts as wide as the games grid (max 70% screen height) under the
   subtitle, plays ~4s, only shrinks into the LoL tile, once per visit; page never scrolls sideways. Still open: Riot
   disclaimer decision (keep small in footer vs remove).
+  11 Nov: phones get one pre-made fly-in video instead (site-assets download/lol-fly-in-mobile.mp4 + poster, 1080x608,
+  9s loop, made by Claude from a capture of the live grid), tile grid hidden on phones. Published by W. Next idea (W):
+  make the rest of the platform look as professional as the Download page; plan first, nothing built yet.
   WoW characters now public by default (W's call): owner switch "Show my WoW characters on my profile"; signed-out
   visitors allowed server side (unconfirmed until published).
 
