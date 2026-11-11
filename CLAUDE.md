@@ -362,6 +362,12 @@ saves clips on a hotkey or automatically on highlights, and hands clips to the w
   MORNING (12 Nov, W): some badges lack icons (e.g. First Blood); show tagged people's profile pictures where tags
   appear; add creator profile pictures on Up next cards (click opens their profile); Discover game filter: show the
   selected game's logo next to its title above the clips; Browse by game search dropdown: show each game's logo. Desktop top bar: add Badges between Creator Leagues and More (take it out of the More menu).
+  ALL 6 BUILT 12 Nov morning (preview, W to publish): 48 non-game badges got their own tier-coloured icons (all
+  pictures loaded; they just shared one faint medal), game badges fall back to an icon if art fails; tagged people show
+  round pictures in the player, side panel and phone player (feed grid cards never showed tags; the server function now
+  also returns tagged people's pictures, live already); Up next cards have creator picture + name (opens profile);
+  Discover game title + search list show logos; Badges in the desktop bar. Claude checked badges, bar, Up next and
+  Discover in preview; tagged pictures not seen yet (needs a clip with tags).
   WoW characters now public by default (W's call): owner switch "Show my WoW characters on my profile"; signed-out
   visitors allowed server side (unconfirmed until published).
 
