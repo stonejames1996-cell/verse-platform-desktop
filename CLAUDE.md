@@ -330,6 +330,13 @@ saves clips on a hotkey or automatically on highlights, and hands clips to the w
   11 Nov: phones get one pre-made fly-in video instead (site-assets download/lol-fly-in-mobile.mp4 + poster, 1080x608,
   9s loop, made by Claude from a capture of the live grid), tile grid hidden on phones. Published by W. Next idea (W):
   make the rest of the platform look as professional as the Download page; plan first, nothing built yet.
+  Site redesign (11 Nov): W wants drafts before any builder work. Style guide (Design System artifact, private to W):
+  https://claude.ai/artifact/E2HTqEm2iJc2nRNmLQ86Ba (Orbitron headings, Space Grotesk text, black ground, Verse blue
+  #0DA2E7 one primary per view, game chips with icons, Liquid glass for anything floating over clips). W's calls: likes
+  stay on clip cards, show real numbers always (no hiding under 10, no New badge), Events stats box stays (prizes paid).
+  First mockup: clip viewer desktop (video + 400px side panel) and phone: https://claude.ai/artifact/NtsD5oVgimY8m1TyopkZkr
+  Review found: phone-width columns on desktop, feed info/actions far from the clip, text-only game pills on Discover,
+  grey chip scrollbars, headings under the top bar, spinner page loads, crowded 9-item top bar.
   WoW characters now public by default (W's call): owner switch "Show my WoW characters on my profile"; signed-out
   visitors allowed server side (unconfirmed until published).
 
