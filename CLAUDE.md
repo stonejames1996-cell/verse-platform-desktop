@@ -347,6 +347,8 @@ saves clips on a hotkey or automatically on highlights, and hands clips to the w
   top bar = floating glass pill (Home, Discover, Events, Guides, Creator Leagues, More = Badges, My clips, Download app,
   Daily rewards, Discord, About, Patch notes, legal, Requests, Delete account, Admin pages). Pages start ~40px lower.
   Note: Chrome screenshots here are scaled (1568 px frame for a 1920 window), so measure with care.
+  Drafts added 11 Nov eve (same canvas, pages): Discover, Profile, Events, Guides (desktop + phone each), awaiting W.
+  W: top-left of the desktop bar must be the blue V logo image, never a VERSE wordmark (mockups fixed; builder asked).
   WoW characters now public by default (W's call): owner switch "Show my WoW characters on my profile"; signed-out
   visitors allowed server side (unconfirmed until published).
 
