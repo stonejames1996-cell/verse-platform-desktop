@@ -450,6 +450,9 @@ saves clips on a hotkey or automatically on highlights, and hands clips to the w
   then froze again right after tapping the info menu, closing it and tapping the compass on the phone preview.
   11:15 W chose to keep reviewing in fresh tabs; next fresh tab froze straight away on load (Home, phone size, signed
   in as Clarkie96). Review in the editor preview is not workable from Chrome right now.
+  CAUSE FOUND 11:25: not the app. example.com in the same Chrome window also only draws ~1.5 frames a second, so
+  Chrome on W's PC is throttling the window (screen locked/asleep or window covered/minimised). Screenshots time out
+  because no frame is drawn. Fix: W wakes/unlocks the PC and brings the Chrome window to the front.
   WoW characters now public by default (W's call): owner switch "Show my WoW characters on my profile"; signed-out
   visitors allowed server side (unconfirmed until published).
 
