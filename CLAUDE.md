@@ -535,6 +535,13 @@ saves clips on a hotkey or automatically on highlights, and hands clips to the w
   destroy the WebView window when in tray/minimised (recreate on open) instead of parking a page; lazy-import heavy
   Python modules; then compare both while recording a real game.
 
+  RePlays READ (12 Nov, open source GPL-3, lulzsun/RePlays; ideas only, copy no code): C# + WebView2 + React. Patterns:
+  (1) close/minimise to tray DISPOSES the WebView2 control and forces a GC, rebuilt on restore; start-minimised never
+  creates it. (2) game detection is event driven (WMI process start/stop + foreground/resize window events), no polling
+  loop. (3) recorder = libobs in-process with game_capture hook, monitor capture fallback; encoders/sources created per
+  session and all released on stop. (4) UI served from local files, long lists virtualised. Verse today: park() loads a
+  blank page but keeps the engine (300-430 MB); game detection polls with psutil.process_iter. Segra not read yet.
+
 ## Releases (fully automatic)
 1. Bump `APP_VERSION` in `rewind_core.py`.
 2. Add `release-notes/<version>.md` (plain bullets, user friendly).
