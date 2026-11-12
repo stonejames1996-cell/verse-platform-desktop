@@ -1070,6 +1070,9 @@ NOT_GAMES = {
     "leagueclientux.exe", "leagueclient.exe", "riotclientux.exe", "riot client.exe", "battle.net.exe",
     "obs64.exe", "powerpnt.exe", "applicationframehost.exe", "lockapp.exe", "searchhost.exe",
     "shellexperiencehost.exe", "startmenuexperiencehost.exe", "verse rewind.exe", "python.exe", "pythonw.exe",
+    # screenshot tools cover the whole screen for a moment, which looked like a fullscreen game
+    "snippingtool.exe", "screenclippinghost.exe", "screensketch.exe", "sharex.exe", "lightshot.exe",
+    "greenshot.exe", "taskmgr.exe", "textinputhost.exe", "verse platform.exe", "msedgewebview2.exe",
 }
 
 
@@ -1188,16 +1191,67 @@ class Window:
         self.hwnd, self.area = hwnd, area   # window handle and size, to find the screen a game is on
 
 
+class ProcessNames:
+    """Names of the running programs, kept between checks. Each check only grabs the list of process
+    numbers (cheap) and looks up a name just for the ones that are new since last time, instead of
+    opening every program on the PC every 2 seconds. Only reads the process list, never touches game
+    memory, so anti-cheat doesn't care."""
+    REFRESH_SECONDS = 60     # numbers get reused by Windows now and then: start from scratch this often
+
+    def __init__(self):
+        self.names = {}      # pid -> lowercase exe name ("" when it couldn't be read)
+        self.fresh_at = 0.0
+        self.lock = threading.Lock()
+
+    def snapshot(self):
+        """pid -> lowercase name for everything running right now."""
+        import psutil
+        with self.lock:
+            now = time.time()
+            if now - self.fresh_at > self.REFRESH_SECONDS:
+                self.names = {}
+                self.fresh_at = now
+            try:
+                pids = set(psutil.pids())
+            except Exception:
+                return dict(self.names)      # a failed look must not seem like every program closed
+            if not pids:
+                return dict(self.names)
+            for pid in list(self.names):
+                if pid not in pids:
+                    del self.names[pid]
+            for pid in pids:
+                if pid not in self.names:
+                    try:
+                        self.names[pid] = (psutil.Process(pid).name() or "").lower()
+                    except Exception:
+                        self.names[pid] = ""     # gone already, or a system process we can't read
+            return dict(self.names)
+
+
+PROCESS_NAMES = ProcessNames()
+
+
 def running_exes():
-    """Lowercase names of every running program. Only reads the process list,
-    never touches game memory, so anti-cheat doesn't care."""
-    import psutil
-    names = set()
-    for p in psutil.process_iter(["name"]):
-        n = p.info.get("name")
-        if n:
-            names.add(n.lower())
-    return names
+    """Lowercase names of every running program."""
+    return {n for n in PROCESS_NAMES.snapshot().values() if n}
+
+
+def trim_memory():
+    """Hand the app's unused memory back to Windows (after a game, or once the window is in the tray).
+    Anything still needed is simply brought back when it's used."""
+    import gc
+    gc.collect()
+    if not IS_WINDOWS:
+        return
+    try:
+        import ctypes
+        k32 = ctypes.WinDLL("kernel32")
+        k32.GetCurrentProcess.restype = ctypes.c_void_p
+        k32.SetProcessWorkingSetSize.argtypes = [ctypes.c_void_p, ctypes.c_size_t, ctypes.c_size_t]
+        k32.SetProcessWorkingSetSize(k32.GetCurrentProcess(), ctypes.c_size_t(-1), ctypes.c_size_t(-1))
+    except Exception:
+        log.debug("couldn't trim memory", exc_info=True)
 
 
 def visible_windows():
@@ -1208,7 +1262,7 @@ def visible_windows():
     from ctypes import wintypes
     import psutil
     u32 = ctypes.windll.user32
-    pid_names = {p.info["pid"]: p.info["name"] or "" for p in psutil.process_iter(["pid", "name"])}
+    pid_names = PROCESS_NAMES.snapshot()
     fg = u32.GetForegroundWindow()
 
     class MONITORINFO(ctypes.Structure):

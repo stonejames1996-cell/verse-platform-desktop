@@ -98,6 +98,12 @@ class GameData:
         os.replace(path + ".tmp", path)
         return data
 
+    def unload(self):
+        """Game over: drop the item and champion data from memory. It's read back from this PC's copy
+        when the next League game starts."""
+        with self.lock:
+            self.items, self.champs = {}, {}
+
     def ensure(self):
         """Loads the current patch's data (downloads it the first time). True when ready."""
         with self.lock:

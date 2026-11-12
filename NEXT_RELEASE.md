@@ -2,9 +2,25 @@
 
 Changes that are in `main` but not released yet. When it's time to release, bump `APP_VERSION`,
 turn these into `release-notes/<version>.md`, then clear this list.
-Nothing held right now. 1.5.0 shipped the new look.
+
+## Held for 1.5.1 (lighter app)
+* Window in the tray or minimised: loads a tiny page of its own (ui/parked.html) instead of a blank page inside the
+  website's tab, then asks WebView2 for low memory and to suspend (`App._lean_window`). Goal: window memory in the tray
+  from 300-430 MB down to under 100 MB. The window is NOT destroyed yet (pywebview quits when its last window closes;
+  needs testing on a real PC before trying that).
+* After a game: item/champion data and icons dropped 45s after it ends (`App.free_game_memory`, `GameData.unload`),
+  then unused memory handed back to Windows (`rewind_core.trim_memory`). Same hand-back once the window is in the tray.
+* Game detection: `rewind_core.ProcessNames` keeps program names between checks and only looks up new ones
+  (was: opened every program on the PC twice every 2 seconds).
+* Fix: the Windows Snipping Tool (and other screenshot tools, Task Manager) no longer count as a game. W's log showed
+  "Capture started for Snipping Tool Overlay" when he took a screenshot.
+
 
 ## Still to confirm on a real PC
+* 1.5.1: close to the tray, wait 5 min, "Resource use" line should say page unloaded with window well under 150 MB;
+  opening the window brings the same page back with no white flash or blank page; log line "Game over, memory used
+  for it handed back" about 45s after a game; taking a screenshot no longer starts a recording; League/WoW still detected
+  within a couple of seconds of starting.
 * 1.5.0 look: My clips, clip viewer (frame strip appears behind the trim bar), Settings jump list, paused screen, What's new pop-up on Verse, save pop-up and Clipped by card in Verse blue.
 * 1.4.6: a League game keeps "Capture=gfxcapture" all match (no "Switching from" after the loading screen); "Back to gfxcapture capture for this game" when a later game starts after a fallback.
 * 1.4.5: CONFIRMED on W's PC 5 Nov: Clipped by card on WoW clips and the save pop-up showing in the next clip. Still to see: no "Switching from gfxcapture" in WoW, no certificate errors on update checks.

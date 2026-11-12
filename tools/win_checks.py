@@ -238,5 +238,33 @@ except Exception as e:
     traceback.print_exc()
     problems.append(f"truststore / calm check failed: {e}")
 
+# ---- 1.5.1: cheaper game detection, memory hand-back, lean window
+try:
+    import time, psutil
+    t = time.time(); first = rc.running_exes(); t1 = time.time() - t
+    t = time.time(); again = rc.running_exes(); t2 = time.time() - t
+    t = time.time(); old = {(p.info.get("name") or "").lower() for p in psutil.process_iter(["name"])} - {""}; t3 = time.time() - t
+    print(f"process names: {len(first)} programs, first look {t1*1000:.1f} ms, next look {t2*1000:.1f} ms, old way {t3*1000:.1f} ms")
+    if len(first ^ old) > 5:
+        problems.append(f"process names differ from the old way: {sorted(first ^ old)[:8]}")
+    me = psutil.Process()
+    before = me.memory_info().rss
+    rc.trim_memory()
+    print(f"trim_memory: {before/1e6:.0f} MB -> {me.memory_info().rss/1e6:.0f} MB")
+    print("screenshot tools not games:", "snippingtool.exe" in rc.NOT_GAMES)
+except Exception as e:
+    import traceback
+    traceback.print_exc()
+    problems.append(f"process names / trim check failed: {e}")
+try:
+    import webview, clr
+    lib = os.path.join(os.path.dirname(webview.__file__), "lib")
+    clr.AddReference(os.path.join(lib, "Microsoft.Web.WebView2.Core.dll"))
+    from Microsoft.Web.WebView2.Core import CoreWebView2MemoryUsageTargetLevel as Level, CoreWebView2
+    print("WebView2 memory levels:", Level.Low, Level.Normal,
+          "| TrySuspendAsync:", hasattr(CoreWebView2, "TrySuspendAsync"), "| Resume:", hasattr(CoreWebView2, "Resume"))
+except Exception as e:
+    print("WebView2 lean window check skipped or failed:", repr(e)[:200])
+
 print("\nPROBLEMS:" if problems else "\nAll good", *problems, sep="\n  ")
 sys.exit(1 if problems else 0)

@@ -31,7 +31,7 @@ import urllib.parse
 from rewind_core import (APP_NAME, APP_VERSION, DATA_DIR, IS_WINDOWS, KNOWN_GAMES, LOG_PATH, NOT_GAMES, RES,
                          SEGMENT_SECONDS, VERSE_URL, GameWatcher, Recorder, already_running, find_ffmpeg,
                          get_autostart, list_mics, load_config, load_icon_image, message_box, open_path,
-                         save_config, screen_rect, set_autostart, visible_windows, _size)
+                         save_config, screen_rect, set_autostart, trim_memory, visible_windows, _size)
 from library import ALLOWED_ORIGINS, ClipLibrary, ExportError, MediaServer
 from updater import Updater
 from overlay import MoveMode, Overlay, secs_text
@@ -330,6 +330,41 @@ class App:
     def paused_url(self):
         return self.media.url("ui", "paused.html")
 
+    def parked_url(self):
+        return self.media.url("ui", "parked.html")
+
+    def _lean_window(self, lean):
+        """Tell the web engine (Edge WebView2) the window isn't being looked at, so it can hand memory back to
+        Windows, or that it's in use again. Runs on the window's own thread. If this PC's WebView2 is too old
+        for it, nothing happens and the window works as before."""
+        w = self.window
+        form = getattr(w, "native", None) if w else None
+        if not IS_WINDOWS or form is None:
+            return
+
+        def go():
+            try:
+                core = form.webview.CoreWebView2
+                if core is None:
+                    return
+                from Microsoft.Web.WebView2.Core import CoreWebView2MemoryUsageTargetLevel as Level
+                if lean:
+                    core.MemoryUsageTargetLevel = Level.Low
+                    if not form.Visible or str(form.WindowState) == "Minimized":
+                        core.TrySuspendAsync()      # only allowed while the window can't be seen
+                else:
+                    if core.IsSuspended:
+                        core.Resume()
+                    core.MemoryUsageTargetLevel = Level.Normal
+            except Exception:
+                log.debug("couldn't change the window's memory mode", exc_info=True)
+
+        try:
+            from System import Action
+            form.BeginInvoke(Action(go))
+        except Exception:
+            log.debug("couldn't reach the window's thread", exc_info=True)
+
     def _wake_url(self):
         """The page to show when the window comes back: the paused page while a game is on, otherwise
         wherever they were."""
@@ -338,7 +373,7 @@ class App:
     def _remember_page(self):
         """Keep the page they're on, so it can come back later. Never the blank or paused page."""
         url = self.current_url()
-        if url.startswith("http") and not url.startswith(self.paused_url()):
+        if url.startswith("http") and not url.startswith((self.paused_url(), self.parked_url())):
             self.park_url = url
 
     def show_window(self, *_):
@@ -349,6 +384,7 @@ class App:
         with self._view_lock:
             if self.parked:   # the page was unloaded (tray or minimized): bring back where they were
                 self.parked = False
+                self._lean_window(False)
                 self.window.load_url(self._wake_url())
         if self.win_hidden:
             self.window.show()
@@ -368,11 +404,23 @@ class App:
                 return      # restored again before it got going
             self._remember_page()
             try:
-                self.window.load_html(PARKED_HTML)
+                # a page of our own, not a blank one inside the website's tab: the web engine then drops
+                # the Verse site's memory instead of keeping it around
+                self.window.load_url(self.parked_url())
                 self.parked = True
                 log.info("Window %s, page unloaded until it's opened again", why)
             except Exception:
                 log.debug("couldn't unload the page", exc_info=True)
+                return
+        threading.Timer(3.0, self._settle_parked).start()
+
+    def _settle_parked(self):
+        """A few seconds after the window went to the tray: ask the web engine and Windows to take back
+        the memory nobody is using."""
+        if self.parked and not self.quitting:
+            self._lean_window(True)
+            if not (self.rec and self.rec.capturing):
+                trim_memory()
 
     def on_restored_window(self):
         """Back from minimized: load the page again (the paused page if a game is still on)."""
@@ -381,6 +429,7 @@ class App:
             with self._view_lock:
                 if self.parked:
                     self.parked = False
+                    self._lean_window(False)
                     self.window.load_url(self._wake_url())
 
     # ------------------------------------------------------------ quiet window while a game is on
@@ -422,12 +471,33 @@ class App:
     def game_over_for_window(self):
         self.pause_skip = False
         self.resume_after_game()
+        threading.Timer(45.0, self.free_game_memory).start()   # after the match summary has been drawn
+
+    def free_game_memory(self):
+        """The game is over: let go of what was only needed during it (item and champion data, icons)
+        so the app goes back to its resting size. All of it loads again by itself next game."""
+        if self.quitting or (self.rec and self.rec.capturing):
+            return      # another game already started
+        try:
+            import lol_live
+            import finals_overlay
+            lol_live._icons.clear()
+            finals_overlay._game_icons.clear()
+            gd = getattr(self.item_ideas, "gd", None)
+            if gd is not None:
+                gd.unload()
+        except Exception:
+            log.debug("couldn't clear game data", exc_info=True)
+        trim_memory()
+        log.info("Game over, memory used for it handed back")
 
     def _opened_on_purpose(self):
         """They opened a page themselves (tray menu, a link): that counts as "Open anyway" for this game."""
         if self.game_paused or (self.rec and self.rec.capturing and self.rec.label):
             self.pause_skip = True
         self.game_paused = False
+        if self.parked:
+            self._lean_window(False)
         self.parked = False
 
     def open_library(self, *_):
