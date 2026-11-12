@@ -573,6 +573,10 @@ saves clips on a hotkey or automatically on highlights, and hands clips to the w
   zone verse-desktop-releases (verse-desktop-releases.b-cdn.net, existing Bunny key). 41 releases' notes imported.
   Admin upload form on the Download page can't take .exe (zip only), left as is. LEFT: W publishes; repo secret
   DESKTOP_RELEASE_SECRET (James, repo settings); publish step in build.yml; release 1.5.2; then private.
+  W published the site 22:16 (Download page checked live: button = functions/desktopDownload, no GitHub links). W is now
+  a repo owner and added DESKTOP_RELEASE_SECRET 22:26. build.yml step "Send the release to verseplatform.gg" added
+  (continue-on-error, skips without the secret). RELEASED 1.5.2 12 Nov 22:28. BEFORE going private: move the Discord
+  post avatar off raw.githubusercontent, give users a few days to reach 1.5.2.
 
 ## Releases (fully automatic)
 1. Bump `APP_VERSION` in `rewind_core.py`.
