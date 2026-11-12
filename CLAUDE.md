@@ -470,6 +470,8 @@ saves clips on a hotkey or automatically on highlights, and hands clips to the w
   controls in guides (OSRS red, OW2 orange, Pokemon Champions purple, LoL solid blue chips off brand; keep data colours),
   Pokedex regions get starter sprites, About (standalone, old wordmark, cyan) + Privacy/Terms/Delete titles restyled,
   Daily rewards Boost button blue + neutral tiles, Verse Socials (Instagram verseplatform, X VersePlatform, Discord).
+  Both batches DONE in preview 12 Nov ~16:40; Claude checked Verse Socials (desktop menu + phone row), Daily rewards,
+  OSRS guide width, ALL GUIDES heading. Sent one more: long guide titles truncate on phones (OLD SCHOOL RU...). W to test + publish.
   1.5.0 desktop build succeeded 12 Nov 16:17 (run 43160092428).
   SOCIALS (W 12 Nov 13:47): "Verse Socials" item, same words as the menu heading and phone row (W: "Follow" alone is unclear) in the desktop top bar between Badges and More (opens a small glass menu
   with each platform's logo + handle), and a "Follow Verse" row of round logo icons at the top of the phone info sheet.
