@@ -448,6 +448,8 @@ saves clips on a hotkey or automatically on highlights, and hands clips to the w
   view fine, live site fine; W says preview is smooth on his phone. Builder fixed a desktop clip progress bar animating
   60 fps forever + chip-row arrows redrawing on every measure, couldn't reproduce. A fresh tab worked once (11:10),
   then froze again right after tapping the info menu, closing it and tapping the compass on the phone preview.
+  11:15 W chose to keep reviewing in fresh tabs; next fresh tab froze straight away on load (Home, phone size, signed
+  in as Clarkie96). Review in the editor preview is not workable from Chrome right now.
   WoW characters now public by default (W's call): owner switch "Show my WoW characters on my profile"; signed-out
   visitors allowed server side (unconfirmed until published).
 
