@@ -441,6 +441,13 @@ saves clips on a hotkey or automatically on highlights, and hands clips to the w
   Builder couldn't test swipes on a real phone or the desktop arrows. W 10:49: phone compass menu (Guides, Creator
   Leagues, Creator Climb, Events) still old dropdown with light blue icons; asked builder for a glass bottom sheet like
   the info menu + sweep of every other menu/dropdown.
+  ~11:00 menu sweep done (phone sheets: Explore/compass, info, clip ... menu, profile ... menu; every dropdown, sort,
+  filter, region, Upload pickers, Discover search, Game Stats picker, OSRS item picker, TFT pop-up glass; light blue
+  icons white). W 10:58: iPhone zooms on input focus (Guides search); asked for 16px inputs on phones, pinch zoom kept.
+  PREVIEW CAPTURE FREEZE: from ~10:10 Chrome screenshots of the editor preview time out (renderer busy), Dashboard
+  view fine, live site fine; W says preview is smooth on his phone. Builder fixed a desktop clip progress bar animating
+  60 fps forever + chip-row arrows redrawing on every measure, couldn't reproduce. A fresh tab worked once (11:10),
+  then froze again right after tapping the info menu, closing it and tapping the compass on the phone preview.
   WoW characters now public by default (W's call): owner switch "Show my WoW characters on my profile"; signed-out
   visitors allowed server side (unconfirmed until published).
 
