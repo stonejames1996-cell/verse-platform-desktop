@@ -489,6 +489,9 @@ saves clips on a hotkey or automatically on highlights, and hands clips to the w
   from 1280 wide), showcase badge without its box, top bar says "Verse Socials" in words at tablet width. W to publish.
   18:10 built + checked (preview): no box/border on badge art in the showcase pop-up and badge unlocked pop-up (faint
   dark square is the jpg art itself, W fine with it); profile tabs centred when they fit, scroll from the left when not. W to publish.
+  18:15 name row (preview): username, blue tick, pro mark (logo / purple pro team / gold pro player), then showcase badge
+  last at name height (32 desktop, 28 phone), 14px gap before it. Clarkie96 verified TURNED ON TEMPORARILY (shared DB, shows
+  live) to preview the combo: TURN IT OFF when W says.
   1.5.0 desktop build succeeded 12 Nov 16:17 (run 43160092428).
   SOCIALS (W 12 Nov 13:47): "Verse Socials" item, same words as the menu heading and phone row (W: "Follow" alone is unclear) in the desktop top bar between Badges and More (opens a small glass menu
   with each platform's logo + handle), and a "Follow Verse" row of round logo icons at the top of the phone info sheet.
