@@ -549,6 +549,15 @@ saves clips on a hotkey or automatically on highlights, and hands clips to the w
   game list, drop parser objects after use. PLAN for Verse (not built): destroy window in tray; pid-diff detection
   (not WMI); check no ffmpeg/GPU work when idle; stream uploads; lazy imports.
 
+  BUILT 12 Nov 21:00, HELD for 1.5.1 (see NEXT_RELEASE.md, commit ff96424; CI test build + win_checks passed for the
+  parts it can check): tray/minimised window loads ui/parked.html (own origin, so the site's renderer is dropped) then
+  WebView2 MemoryUsageTargetLevel Low + TrySuspendAsync via window.native (`App._lean_window`; bundled SDK 1.0.2045 has
+  both; NOT yet run on a real PC); `free_game_memory` 45s after a game + `rewind_core.trim_memory`; `ProcessNames`
+  pid-diff detection; Snipping Tool etc added to NOT_GAMES (W's log: "Capture started for Snipping Tool Overlay").
+  Window is not destroyed (pywebview exits with its last window). W's League match log: 211 MB in all while recording
+  (app 41, recorder 75, window 95 paused); idle after 288 MB (app 66, window 222); fresh start idle 429-594 MB.
+  Also seen: "Capture froze" warning 10s after the game closed, before the stop delay ends (harmless, could be quieter).
+
 ## Releases (fully automatic)
 1. Bump `APP_VERSION` in `rewind_core.py`.
 2. Add `release-notes/<version>.md` (plain bullets, user friendly).
