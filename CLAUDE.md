@@ -475,6 +475,9 @@ saves clips on a hotkey or automatically on highlights, and hands clips to the w
   16:45 W: Guides page top scrolls away. Claude verified Discover/Badges/Notifications pinned in preview; asked builder
   to pin every page with search/tabs/filters (Guides main + all inner guides, WoW guide, Events tabs, Creator Leagues
   switch, Search, Messages list, profile tabs), compact on phones; plus Verse Brackets notices to show the V logo.
+  16:55 queued: Guides heading pinned with search (other main pages too where room). 17:11 queued: Edit profile Country
+  box white + sweep of every form for white/default inputs. Then Claude rechecks pinning + forms in preview, W publishes,
+  Claude checks live (incl. OSRS on Clarkie96).
   1.5.0 desktop build succeeded 12 Nov 16:17 (run 43160092428).
   SOCIALS (W 12 Nov 13:47): "Verse Socials" item, same words as the menu heading and phone row (W: "Follow" alone is unclear) in the desktop top bar between Badges and More (opens a small glass menu
   with each platform's logo + handle), and a "Follow Verse" row of round logo icons at the top of the phone info sheet.
