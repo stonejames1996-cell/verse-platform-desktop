@@ -3,10 +3,19 @@
 Changes that are in `main` but not released yet. When it's time to release, bump `APP_VERSION`,
 turn these into `release-notes/<version>.md`, then clear this list.
 
-Nothing held right now (1.5.2 released 12 Nov 2026).
+## Held for 1.5.4
+* Start with Windows (app starts hidden in the tray): the hidden window now gets the same lean treatment as closing
+  to the tray (`App._park_at_start`, 8s after start). W's log 13 Nov: 430 MB idle after starting in the tray vs
+  100 MB after closing to the tray.
+* Loading screens no longer push recording to a slower capture for the whole game: during the first 3 minutes
+  (`rewind_core.LOADING_SECONDS`) a still picture only restarts capture, never switches method. W's Warwick game
+  13 Nov dropped gfxcapture -> ddagrab -> gdigrab in the loading screen and recorded the whole match on gdigrab
+  (recorder 351 MB, ~10% CPU vs 186 MB, ~2% in the game before).
+* Log line "Window opened, page loaded again" when the window comes back from the tray.
 
 
 ## Still to confirm on a real PC
+* 1.5.4: after Start with Windows, "Resource use" lines say page unloaded with window well under 150 MB; a League game stays on gfxcapture through the loading screen (no "Switching from" in the first 3 minutes).
 * 1.5.2: the NEXT update after it arrives from the website (log has no "asking GitHub" line before "Update ... downloaded").
 * 1.5.1: close to the tray, wait 5 min, "Resource use" line should say page unloaded with window well under 150 MB;
   opening the window brings the same page back with no white flash or blank page; log line "Game over, memory used

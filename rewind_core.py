@@ -140,6 +140,7 @@ NO_WINDOW = 0x08000000 if IS_WINDOWS else 0  # CREATE_NO_WINDOW so ffmpeg doesn'
 # --------------------------------------------------------------------------- config / setup
 
 FREEZE_SECONDS = 8   # a picture that hasn't changed at all for this long means capture went stale
+LOADING_SECONDS = 180  # start of a game (loading screen): a still picture there never moves us to a slower capture
 
 
 def save_config(cfg):
@@ -754,9 +755,14 @@ class Recorder:
             if problem in ("audio", "screen"):
                 continue          # relaunches straight away on the new sound device / screen
             if problem:
-                self.freezes += 1
                 self.last_freeze = time.time()
-                alt = self.fallback_capture() if problem == "starved" or self.freezes >= 2 else None
+                # a loading screen is often one still picture while you click about: restart capture if it
+                # looks stuck, but never drop to a slower method for the whole game because of it
+                loading = time.time() - getattr(self, "capture_started", 0) < LOADING_SECONDS
+                if not loading:
+                    self.freezes += 1
+                alt = (self.fallback_capture() if not loading and (problem == "starved" or self.freezes >= 2)
+                       else None)
                 if alt and alt != self.capture:
                     log.warning("Screen capture is being starved (%s). Switching from %s to %s for this session",
                                 "the picture keeps stalling" if problem == "starved" else "it froze again",

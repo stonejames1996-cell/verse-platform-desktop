@@ -592,6 +592,11 @@ saves clips on a hotkey or automatically on highlights, and hands clips to the w
   engagement only); tournament scores stay player-reported with clip proof, third-party stats services only after
   checking their terms. PLAN: (1) W + Claude set up the Epic dev account in Chrome this arvo (W enters his own
   password/codes and accepts terms himself), (2) builder: Link Epic flow, (3) Brand Review, (4) Fortnite format in Brackets.
+  Epic setup paused 13 Nov 10:04 (Outlook outage, W's sign-in code email didn't arrive).
+  W's log 13 Nov: tray works (1.5.3 close to tray: 598 -> 100 MB, window 79). Game 1 (Fizz): 263-301 MB in game,
+  78 MB after ("memory handed back" works). Found + fixed, HELD for 1.5.4: start-in-tray wasn't lean (430 MB);
+  League loading screen false freezes dropped capture to gdigrab for a whole game. Window at 700 MB 09:57-10:13 was
+  the window opened again (no log line then; now logged).
 
 ## Releases (fully automatic)
 1. Bump `APP_VERSION` in `rewind_core.py`.

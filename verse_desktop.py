@@ -386,6 +386,7 @@ class App:
                 self.parked = False
                 self._lean_window(False)
                 self.window.load_url(self._wake_url())
+                log.info("Window opened, page loaded again")
         if self.win_hidden:
             self.window.show()
             self.win_hidden = False
@@ -411,6 +412,19 @@ class App:
                 log.info("Window %s, page unloaded until it's opened again", why)
             except Exception:
                 log.debug("couldn't unload the page", exc_info=True)
+                return
+        threading.Timer(3.0, self._settle_parked).start()
+
+    def _park_at_start(self):
+        """Started hidden in the tray: swap the stand-in page for our own small one and let the web engine
+        hand its memory back, same as closing the window to the tray later."""
+        with self._view_lock:
+            if not (self.parked and self.window) or self.quitting:
+                return      # they already opened it
+            try:
+                self.window.load_url(self.parked_url())
+            except Exception:
+                log.debug("couldn't load the tray page", exc_info=True)
                 return
         threading.Timer(3.0, self._settle_parked).start()
 
@@ -1137,6 +1151,8 @@ class App:
     # ------------------------------------------------------------ startup / shutdown
     def boot(self):
         """Slow startup work, off the UI thread."""
+        if self.background:   # started in the tray (Start with Windows): make the hidden window lean too
+            threading.Timer(8.0, self._park_at_start).start()
         try:
             self.start_recorder()
         except Exception as e:
