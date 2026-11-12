@@ -482,7 +482,7 @@ saves clips on a hotkey or automatically on highlights, and hands clips to the w
   behind the trim bar (library.strip_path, media kind "strip", 10 keyframes tiled, made on first open, deleted with the
   clip), paused.html restyle + game icon, Verse dock + What's new pop-up recoloured, in-game accents (overlay SIGNAL,
   watermark/finals CYAN, squad, lol_live) now Verse blue (13,162,231). Kept native video controls (no custom play bar).
-  Checked with a mocked API in local Chromium (/tmp/uitest/run.py); not yet on a real PC.
+  Checked with a mocked API in local Chromium (/tmp/uitest/run.py). RELEASED as 1.5.0 on 12 Nov (W: "lets just release").
 
 ## Releases (fully automatic)
 1. Bump `APP_VERSION` in `rewind_core.py`.
