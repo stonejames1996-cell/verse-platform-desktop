@@ -577,6 +577,8 @@ saves clips on a hotkey or automatically on highlights, and hands clips to the w
   a repo owner and added DESKTOP_RELEASE_SECRET 22:26. build.yml step "Send the release to verseplatform.gg" added
   (continue-on-error, skips without the secret). RELEASED 1.5.2 12 Nov 22:28. BEFORE going private: move the Discord
   post avatar off raw.githubusercontent, give users a few days to reach 1.5.2.
+  1.5.3 released 12 Nov 22:37 with no changes (W asked) to test a 1.5.2 app updating from the website only: W to
+  send the log (should show no "asking GitHub" line before "Update 1.5.3 downloaded").
 
 ## Releases (fully automatic)
 1. Bump `APP_VERSION` in `rewind_core.py`.
