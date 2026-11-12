@@ -527,6 +527,14 @@ saves clips on a hotkey or automatically on highlights, and hands clips to the w
   watermark/finals CYAN, squad, lol_live) now Verse blue (13,162,231). Kept native video controls (no custom play bar).
   Checked with a mocked API in local Chromium (/tmp/uitest/run.py). RELEASED as 1.5.0 on 12 Nov (W: "lets just release").
 
+  ASCENT COMPARISON (12 Nov eve, W installed Ascent 0.5.88; black-box only, no decompiling): install folder is just
+  Ascent.exe (54 MB) + ffmpeg.exe (45 MB) + uninstall.exe, Tauri-style installer name, UI in WebView2 like ours. Defaults:
+  30 fps, 5000 kbps CBR, H.264 auto, records per match (no idle buffer). Main process 36 MB idle (its WebView2 processes
+  not measured: Task Manager is elevated so Claude's clicks don't land; W to expand the Ascent row). Verse idle per our
+  log: 430-560 MB = app (Python) ~135 MB + window (WebView2) 300-430 MB EVEN WITH page unloaded. IDEAS, not built:
+  destroy the WebView window when in tray/minimised (recreate on open) instead of parking a page; lazy-import heavy
+  Python modules; then compare both while recording a real game.
+
 ## Releases (fully automatic)
 1. Bump `APP_VERSION` in `rewind_core.py`.
 2. Add `release-notes/<version>.md` (plain bullets, user friendly).
