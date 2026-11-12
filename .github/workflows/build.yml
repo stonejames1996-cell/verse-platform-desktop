@@ -100,6 +100,28 @@ jobs:
           files: Output/VersePlatformSetup.exe
           make_latest: true
 
+      # Hands the new installer and its patch notes to verseplatform.gg, which is where the Download
+      # button and the app's updater get them. Needs the repository secret DESKTOP_RELEASE_SECRET
+      # (same value as the website's). If it fails the GitHub release above still exists, so check this step.
+      - name: Send the release to verseplatform.gg
+        if: steps.ver.outputs.new == 'true' && github.ref == 'refs/heads/main'
+        continue-on-error: true
+        shell: pwsh
+        env:
+          DESKTOP_RELEASE_SECRET: ${{ secrets.DESKTOP_RELEASE_SECRET }}
+        run: |
+          if (-not $env:DESKTOP_RELEASE_SECRET) { Write-Host "No DESKTOP_RELEASE_SECRET secret, skipping"; exit 0 }
+          $v = "${{ steps.ver.outputs.num }}"
+          $file = "Output/VersePlatformSetup.exe"
+          $hash = (Get-FileHash $file -Algorithm SHA256).Hash.ToLower()
+          curl.exe --fail-with-body --silent --show-error --max-time 600 -X POST "https://verseplatform.gg/functions/desktopPublish" `
+            -H "x-desktop-release-secret: $env:DESKTOP_RELEASE_SECRET" `
+            -F "version=$v" -F "notes=<release-notes/$v.md" -F "sha256=$hash" -F "file=@$file"
+          if ($LASTEXITCODE -ne 0) { throw "verseplatform.gg did not take the release" }
+          $latest = Invoke-RestMethod "https://verseplatform.gg/functions/desktopLatest"
+          if ($latest.version -ne $v -or $latest.sha256 -ne $hash) { throw "verseplatform.gg still shows $($latest.version)" }
+          Write-Host "verseplatform.gg now serves $v ($hash)"
+
       # Posts the patch notes to Discord's #platform-updates. Needs the repository secret
       # DISCORD_WEBHOOK_URL (Discord: channel settings, Integrations, Webhooks, Copy Webhook URL).
       # Optional secret DISCORD_PING_ROLE_ID pings the Update Pings role.
