@@ -505,6 +505,9 @@ saves clips on a hotkey or automatically on highlights, and hands clips to the w
   1920x855 clip ~510px, 1080 ~720, 2560x1300 ~925; at 2560x1440 the 2200px width cap leaves a little space below. W to publish.
   19:10: ResizeObserver loop warning (editor 'Issues Found' pop-up, from the new fit-clip + centred nav measuring) fixed via
   Resolve with AI: resize on next frame. Preview reloaded clean, layout unchanged. W to publish.
+  19:15: side panel runs down to the bottom of the Up next row + compact "No comments yet" (no scroll when empty).
+  ALL PUBLISHED by W 19:17 (Up next always visible, ResizeObserver fix, side panel); W checked both monitors + app: good.
+  Session wrapped 12 Nov evening; nothing pending in the builder.
   1.5.0 desktop build succeeded 12 Nov 16:17 (run 43160092428).
   SOCIALS (W 12 Nov 13:47): "Verse Socials" item, same words as the menu heading and phone row (W: "Follow" alone is unclear) in the desktop top bar between Badges and More (opens a small glass menu
   with each platform's logo + handle), and a "Follow Verse" row of round logo icons at the top of the phone info sheet.
