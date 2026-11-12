@@ -585,6 +585,13 @@ saves clips on a hotkey or automatically on highlights, and hands clips to the w
   published: phone profile tabs row no longer drags up or diagonally (tabs were 1px taller than the row; fix in the
   shared sideways-row style), untested on a real phone. GTA VI badges: W's designer will make them (Claude does not
   redraw game logos).
+  EPIC LINKING (W 13 Nov morning, idea): "Link Epic" on profiles like Steam/Battle.net, for Fortnite tournaments.
+  Epic Account Services: sign in with Epic (basic_profile gives Epic id + display name), needs a developer
+  organisation, verseplatform.gg verified as a domain, brand settings + privacy policy, and Brand Review before
+  anyone but us can sign in (apply early). Epic gives NO per-player match results (Fortnite Data API = island
+  engagement only); tournament scores stay player-reported with clip proof, third-party stats services only after
+  checking their terms. PLAN: (1) W + Claude set up the Epic dev account in Chrome this arvo (W enters his own
+  password/codes and accepts terms himself), (2) builder: Link Epic flow, (3) Brand Review, (4) Fortnite format in Brackets.
 
 ## Releases (fully automatic)
 1. Bump `APP_VERSION` in `rewind_core.py`.
