@@ -501,6 +501,8 @@ saves clips on a hotkey or automatically on highlights, and hands clips to the w
   W to check big-screen player + bar on his 1440p screen, then publish.
   18:57: links now centred BETWEEN the V logo and the search box (equal gaps), not the whole screen. PUBLISHED 18:59 (big-screen
   player, no @, centred bar); W checked live at 2560x1440 in the desktop app and Chrome: fills the screen, looks great.
+  19:05 (preview): Up next row (heading, thumbs, titles) always fully visible; clip takes the rest of the height (min 480px).
+  1920x855 clip ~510px, 1080 ~720, 2560x1300 ~925; at 2560x1440 the 2200px width cap leaves a little space below. W to publish.
   1.5.0 desktop build succeeded 12 Nov 16:17 (run 43160092428).
   SOCIALS (W 12 Nov 13:47): "Verse Socials" item, same words as the menu heading and phone row (W: "Follow" alone is unclear) in the desktop top bar between Badges and More (opens a small glass menu
   with each platform's logo + handle), and a "Follow Verse" row of round logo icons at the top of the phone info sheet.
