@@ -579,6 +579,12 @@ saves clips on a hotkey or automatically on highlights, and hands clips to the w
   post avatar off raw.githubusercontent, give users a few days to reach 1.5.2.
   1.5.3 released 12 Nov 22:37 with no changes (W asked) to test a 1.5.2 app updating from the website only: W to
   send the log (should show no "asking GitHub" line before "Update 1.5.3 downloaded").
+  CONFIRMED 22:40: W's app went 1.5.2 to 1.5.3 by itself, then "Up to date (1.5.3, latest v1.5.3)" with no GitHub
+  fallback line. W: go private around 17 Nov. Before that: move the Discord post avatar off raw.githubusercontent.
+  Still open: tray memory log on 1.5.1+ (close to tray 5+ min, send "Resource use" lines). Website, preview, NOT
+  published: phone profile tabs row no longer drags up or diagonally (tabs were 1px taller than the row; fix in the
+  shared sideways-row style), untested on a real phone. GTA VI badges: W's designer will make them (Claude does not
+  redraw game logos).
 
 ## Releases (fully automatic)
 1. Bump `APP_VERSION` in `rewind_core.py`.
