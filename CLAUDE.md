@@ -565,6 +565,14 @@ saves clips on a hotkey or automatically on highlights, and hands clips to the w
   PC). (3) Download page + site-assets pictures stop using github links. (4) release 1.5.2, wait for users to update.
   (5) James flips the repo to private. Order matters: old apps only know GitHub. Private repos have limited free
   build minutes (Windows counts double).
+  Step 2 BUILT by the builder 12 Nov 22:10 (W asked it himself; server live, app parts preview, W to publish):
+  desktopLatest (live, checked: version 1.5.1, url, size 43,324,444, sha256 same as GitHub, plus released_at and
+  download_url; ?all=1 gives every version's notes), desktopDownload (redirects to newest installer), desktopPublish
+  (POST, header x-desktop-release-secret = DESKTOP_RELEASE_SECRET, multipart version, notes, sha256 optional, file;
+  same version replaces; real 43 MB upload UNTESTED). Base44 storage refuses .exe, so installers sit in Bunny Storage
+  zone verse-desktop-releases (verse-desktop-releases.b-cdn.net, existing Bunny key). 41 releases' notes imported.
+  Admin upload form on the Download page can't take .exe (zip only), left as is. LEFT: W publishes; repo secret
+  DESKTOP_RELEASE_SECRET (James, repo settings); publish step in build.yml; release 1.5.2; then private.
 
 ## Releases (fully automatic)
 1. Bump `APP_VERSION` in `rewind_core.py`.
