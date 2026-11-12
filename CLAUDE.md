@@ -461,7 +461,7 @@ saves clips on a hotkey or automatically on highlights, and hands clips to the w
   (title + filter chips), and similar pages. WoW guide pages (e.g. Guild Search result "Beast") look pre-facelift: plain
   "Back" text not the glass back button, blue roster icon, red-bordered header card; its bottom nav pill is wider than on
   other pages (nearly edge to edge). Discover cards: the game name strip sits on top of the clip picture.
-  SOCIALS (W 12 Nov 13:47): "Verse socials" item (W: "Follow" alone is unclear) in the desktop top bar between Badges and More (opens a small glass menu
+  SOCIALS (W 12 Nov 13:47): "Verse Socials" item, same words as the menu heading and phone row (W: "Follow" alone is unclear) in the desktop top bar between Badges and More (opens a small glass menu
   with each platform's logo + handle), and a "Follow Verse" row of round logo icons at the top of the phone info sheet.
   Draft on the canvas first; W to send the handles. Optional later: About page "Find us" + footer on end-of-page pages.
 
