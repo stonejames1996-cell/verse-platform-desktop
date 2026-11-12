@@ -1,5 +1,5 @@
 """
-Auto update from GitHub Releases.
+Auto update. Release info comes from the Verse website (SITE_LATEST), with GitHub Releases as the backup.
 
 Every release the GitHub workflow publishes includes "VersePlatformSetup.exe". The app checks
 the latest release a minute after starting and then every 6 hours. When a newer version is out
@@ -27,6 +27,7 @@ log = logging.getLogger("verse.update")
 
 ASSET_NAME = "VersePlatformSetup.exe"
 CHECK_EVERY = 2 * 3600
+SITE_LATEST = "https://verseplatform.gg/functions/desktopLatest"
 FOLDER = os.path.join(tempfile.gettempdir(), "VersePlatformUpdate")
 UA = f"VersePlatform/{APP_VERSION}"
 
@@ -34,6 +35,25 @@ UA = f"VersePlatform/{APP_VERSION}"
 def _ver(s):
     """'v1.2.10' -> (1, 2, 10)"""
     return tuple(int(x) for x in re.findall(r"\d+", s or "")[:3]) or (0,)
+
+
+def _get_json(url, headers):
+    req = urllib.request.Request(url, headers=headers)
+    with urllib.request.urlopen(req, timeout=20) as r:
+        return json.load(r)
+
+
+def _from_site(d):
+    """The website answers {"version", "notes", "url", "size", "sha256"}. The installer link must be
+    https and must come with its sha256, so a wrong or swapped file is never installed."""
+    version, url, sha = str(d.get("version") or ""), str(d.get("url") or ""), str(d.get("sha256") or "").lower()
+    if not re.fullmatch(r"v?\d+\.\d+\.\d+", version):
+        raise ValueError("no version")
+    if not url.startswith("https://") or not re.fullmatch(r"[0-9a-f]{64}", sha):
+        raise ValueError("no safe installer link")
+    return {"tag_name": "v" + version.lstrip("v"), "body": d.get("notes") or "",
+            "assets": [{"name": ASSET_NAME, "size": int(d.get("size") or 0), "digest": "sha256:" + sha,
+                        "browser_download_url": url}]}
 
 
 class Updater:
@@ -107,10 +127,7 @@ class Updater:
         if not got:
             return
         try:
-            req = urllib.request.Request(f"https://api.github.com/repos/{UPDATE_REPO}/releases/latest",
-                                         headers={"User-Agent": UA, "Accept": "application/vnd.github+json"})
-            with urllib.request.urlopen(req, timeout=20) as r:
-                rel = json.load(r)
+            rel = self._latest()
             latest = rel.get("tag_name", "")
             if self.version and _ver(latest) <= _ver(self.version):
                 return
@@ -129,6 +146,16 @@ class Updater:
             self.on_ready(self.version)
         finally:
             self._busy.release()
+
+    def _latest(self):
+        """The newest release. Asks the Verse website first (SITE_LATEST), then GitHub, so the app keeps
+        updating whichever one is up. Both answers end up in GitHub's shape."""
+        try:
+            return _from_site(_get_json(SITE_LATEST, {"User-Agent": UA}))
+        except Exception as e:
+            log.info("Verse website has no update info yet (%s), asking GitHub", e)
+        return _get_json(f"https://api.github.com/repos/{UPDATE_REPO}/releases/latest",
+                         {"User-Agent": UA, "Accept": "application/vnd.github+json"})
 
     def _download(self, asset, tag):
         os.makedirs(FOLDER, exist_ok=True)
@@ -152,7 +179,7 @@ class Updater:
         digest = asset.get("digest") or ""   # GitHub gives "sha256:<hex>" for release files
         if digest.startswith("sha256:") and digest[7:].lower() != h.hexdigest():
             os.remove(part)
-            raise IOError("Update download didn't match GitHub's checksum")
+            raise IOError("Update download didn't match its checksum")
         os.replace(part, path)
         return path
 

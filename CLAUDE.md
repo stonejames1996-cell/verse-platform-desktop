@@ -558,6 +558,13 @@ saves clips on a hotkey or automatically on highlights, and hands clips to the w
   (app 41, recorder 75, window 95 paused); idle after 288 MB (app 66, window 222); fresh start idle 429-594 MB.
   Also seen: "Capture froze" warning 10s after the game closed, before the stop delay ends (harmless, could be quieter).
   RELEASED as 1.5.1 on 12 Nov 21:05 (W: "release 1.51 plz"). W to close to the tray for 5 min and send the log.
+  PRIVATE REPO PLAN (W 12 Nov 21:17, James fine with it; W owns Verse): code goes private, installer + patch notes
+  come from the website like Ascent (ascent.gg/api/download). Steps: (1) app updater asks the website first, GitHub as
+  backup: BUILT, held for 1.5.2 (`updater.SITE_LATEST` = verseplatform.gg/functions/desktopLatest, answers version,
+  notes, url, size, sha256). (2) Base44: desktopLatest + a download link, fed by the build (not built; needs W at his
+  PC). (3) Download page + site-assets pictures stop using github links. (4) release 1.5.2, wait for users to update.
+  (5) James flips the repo to private. Order matters: old apps only know GitHub. Private repos have limited free
+  build minutes (Windows counts double).
 
 ## Releases (fully automatic)
 1. Bump `APP_VERSION` in `rewind_core.py`.

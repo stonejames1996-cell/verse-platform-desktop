@@ -3,7 +3,10 @@
 Changes that are in `main` but not released yet. When it's time to release, bump `APP_VERSION`,
 turn these into `release-notes/<version>.md`, then clear this list.
 
-Nothing held right now (1.5.1 released 12 Nov 2026).
+## Held for 1.5.2 (updates from the website)
+* Updater asks the Verse website first (`updater.SITE_LATEST`, answer {version, notes, url, size, sha256}; https link and
+  sha256 required), then GitHub as before. The website function does NOT exist yet, so today every check falls back to
+  GitHub. This must be released and picked up by users BEFORE the repo goes private (old apps only know GitHub).
 
 
 ## Still to confirm on a real PC
