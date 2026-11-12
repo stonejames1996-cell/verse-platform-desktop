@@ -3,17 +3,7 @@
 Changes that are in `main` but not released yet. When it's time to release, bump `APP_VERSION`,
 turn these into `release-notes/<version>.md`, then clear this list.
 
-## Held for 1.5.1 (lighter app)
-* Window in the tray or minimised: loads a tiny page of its own (ui/parked.html) instead of a blank page inside the
-  website's tab, then asks WebView2 for low memory and to suspend (`App._lean_window`). Goal: window memory in the tray
-  from 300-430 MB down to under 100 MB. The window is NOT destroyed yet (pywebview quits when its last window closes;
-  needs testing on a real PC before trying that).
-* After a game: item/champion data and icons dropped 45s after it ends (`App.free_game_memory`, `GameData.unload`),
-  then unused memory handed back to Windows (`rewind_core.trim_memory`). Same hand-back once the window is in the tray.
-* Game detection: `rewind_core.ProcessNames` keeps program names between checks and only looks up new ones
-  (was: opened every program on the PC twice every 2 seconds).
-* Fix: the Windows Snipping Tool (and other screenshot tools, Task Manager) no longer count as a game. W's log showed
-  "Capture started for Snipping Tool Overlay" when he took a screenshot.
+Nothing held right now (1.5.1 released 12 Nov 2026).
 
 
 ## Still to confirm on a real PC

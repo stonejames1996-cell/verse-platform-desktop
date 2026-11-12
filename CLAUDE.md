@@ -557,6 +557,7 @@ saves clips on a hotkey or automatically on highlights, and hands clips to the w
   Window is not destroyed (pywebview exits with its last window). W's League match log: 211 MB in all while recording
   (app 41, recorder 75, window 95 paused); idle after 288 MB (app 66, window 222); fresh start idle 429-594 MB.
   Also seen: "Capture froze" warning 10s after the game closed, before the stop delay ends (harmless, could be quieter).
+  RELEASED as 1.5.1 on 12 Nov 21:05 (W: "release 1.51 plz"). W to close to the tray for 5 min and send the log.
 
 ## Releases (fully automatic)
 1. Bump `APP_VERSION` in `rewind_core.py`.
