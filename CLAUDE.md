@@ -482,6 +482,7 @@ saves clips on a hotkey or automatically on highlights, and hands clips to the w
   dark with flags; V logo notices. Sent last fixes: tablet top bar overlap (search over More/Verse Socials at ~630px),
   narrower nav pill on guide pages, Edit profile button wraps, Guides heading tight under header. Upload details
   screen not viewed (needs a file in the preview iframe); builder's form sweep covered it.
+  17:22 queued: OSRS Runecrafting icon missing on Game Stats (Clarkie96) + full tablet pass (768/1024, both ways).
   1.5.0 desktop build succeeded 12 Nov 16:17 (run 43160092428).
   SOCIALS (W 12 Nov 13:47): "Verse Socials" item, same words as the menu heading and phone row (W: "Follow" alone is unclear) in the desktop top bar between Badges and More (opens a small glass menu
   with each platform's logo + handle), and a "Follow Verse" row of round logo icons at the top of the phone info sheet.
