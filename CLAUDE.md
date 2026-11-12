@@ -492,6 +492,10 @@ saves clips on a hotkey or automatically on highlights, and hands clips to the w
   18:15 name row (preview): username, blue tick, pro mark (logo / purple pro team / gold pro player), then showcase badge
   last at name height (32 desktop, 28 phone), 14px gap before it. Clarkie96 verified was on briefly to preview the combo, turned
   OFF again 18:20 (only change). W publishing this batch 18:20; Claude to check live after (incl. OSRS on Clarkie96).
+  W published 18:20; live checked: name row, centred tabs, OSRS on Clarkie96 OK. W: Analytics tab visible to other users is
+  fine (his call). 18:30 built (preview): Home/Discover desktop player grows on screens 1600+ wide (fills height, 16:9, max
+  ~2200px, side panel matches clip height, Up next 5 cards at 1920 / 6 at 2560+); was tiny with empty bottom at 2560x1440
+  (browser too, not only the app). Claude checked 1920 in preview. W to check on his 1440p screen + publish.
   1.5.0 desktop build succeeded 12 Nov 16:17 (run 43160092428).
   SOCIALS (W 12 Nov 13:47): "Verse Socials" item, same words as the menu heading and phone row (W: "Follow" alone is unclear) in the desktop top bar between Badges and More (opens a small glass menu
   with each platform's logo + handle), and a "Follow Verse" row of round logo icons at the top of the phone info sheet.
