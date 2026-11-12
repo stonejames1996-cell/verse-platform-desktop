@@ -478,6 +478,10 @@ saves clips on a hotkey or automatically on highlights, and hands clips to the w
   16:55 queued: Guides heading pinned with search (other main pages too where room). 17:11 queued: Edit profile Country
   box white + sweep of every form for white/default inputs. Then Claude rechecks pinning + forms in preview, W publishes,
   Claude checks live (incl. OSRS on Clarkie96).
+  17:25 Claude checked preview (phone): pinned Guides heading+search, OSRS tabs+search, Notifications; Country picker
+  dark with flags; V logo notices. Sent last fixes: tablet top bar overlap (search over More/Verse Socials at ~630px),
+  narrower nav pill on guide pages, Edit profile button wraps, Guides heading tight under header. Upload details
+  screen not viewed (needs a file in the preview iframe); builder's form sweep covered it.
   1.5.0 desktop build succeeded 12 Nov 16:17 (run 43160092428).
   SOCIALS (W 12 Nov 13:47): "Verse Socials" item, same words as the menu heading and phone row (W: "Follow" alone is unclear) in the desktop top bar between Badges and More (opens a small glass menu
   with each platform's logo + handle), and a "Follow Verse" row of round logo icons at the top of the phone info sheet.
