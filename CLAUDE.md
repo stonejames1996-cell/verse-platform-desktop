@@ -496,6 +496,9 @@ saves clips on a hotkey or automatically on highlights, and hands clips to the w
   fine (his call). 18:30 built (preview): Home/Discover desktop player grows on screens 1600+ wide (fills height, 16:9, max
   ~2200px, side panel matches clip height, Up next 5 cards at 1920 / 6 at 2560+); was tiny with empty bottom at 2560x1440
   (browser too, not only the app). Claude checked 1920 in preview. W to check on his 1440p screen + publish.
+  18:35-18:55 (preview): @ icon removed from Verse Socials; desktop top bar links centred on screen when they fit (min 72px
+  gap to search, search 260-420px, else links after logo as before; tablet icon bar unchanged). Checked signed in at 1920.
+  W to check big-screen player + bar on his 1440p screen, then publish.
   1.5.0 desktop build succeeded 12 Nov 16:17 (run 43160092428).
   SOCIALS (W 12 Nov 13:47): "Verse Socials" item, same words as the menu heading and phone row (W: "Follow" alone is unclear) in the desktop top bar between Badges and More (opens a small glass menu
   with each platform's logo + handle), and a "Follow Verse" row of round logo icons at the top of the phone info sheet.
