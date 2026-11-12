@@ -462,7 +462,13 @@ saves clips on a hotkey or automatically on highlights, and hands clips to the w
   game chips with icons, match card stat tiles, clip viewer as glass dialog with filmstrip trim, Settings with a jump list
   per game (game icons), Orbitron section titles, blue toggles, white segmented pills, glass select bar/toasts, paused
   screen, What's new, delete check; in-game save pop-up only recoloured (same size/spot), Clipped by card unchanged.
-  Awaiting W. Plan: Claude builds it in ui/ (bundle Orbitron + Space Grotesk, OFL), one release, W checks on his PC.
+  W said go (12 Nov 12:24). BUILT in main, held for 1.5.0 (NEXT_RELEASE.md): ui/fonts (Orbitron + Space Grotesk
+  variable TTF, OFL; media server serves .ttf), new tokens + facelift layer at the end of ui/styles.css, deck game icon
+  (get_state "game"), clip badges in .ups row, Settings jump list (.set-nav, one column, fixed section order), filmstrip
+  behind the trim bar (library.strip_path, media kind "strip", 10 keyframes tiled, made on first open, deleted with the
+  clip), paused.html restyle + game icon, Verse dock + What's new pop-up recoloured, in-game accents (overlay SIGNAL,
+  watermark/finals CYAN, squad, lol_live) now Verse blue (13,162,231). Kept native video controls (no custom play bar).
+  Checked with a mocked API in local Chromium (/tmp/uitest/run.py); not yet on a real PC.
 
 ## Releases (fully automatic)
 1. Bump `APP_VERSION` in `rewind_core.py`.

@@ -22,7 +22,7 @@ SECONDS = 3.0
 FPS = 30
 VERSION = 2          # bump when the look changes, so old cached frames aren't reused
 
-CYAN = (34, 211, 238)
+CYAN = (13, 162, 231)   # Verse blue (name kept)
 WHITE = (247, 247, 250)
 GREY = (168, 172, 184)
 _cache = {}

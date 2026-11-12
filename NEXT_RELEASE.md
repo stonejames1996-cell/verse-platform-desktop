@@ -2,9 +2,17 @@
 
 Changes that are in `main` but not released yet. When it's time to release, bump `APP_VERSION`,
 turn these into `release-notes/<version>.md`, then clear this list.
-Nothing held right now. 1.4.6 shipped the still picture fix and the fresh capture method per game.
+Held for 1.5.0 (built 12 Nov, not released yet, waiting on W's OK):
+* A fresh new look that matches verseplatform.gg: Verse blue, the same fonts as the site, glass pop-ups.
+* The top bar shows the game you're recording with its icon and a red live dot.
+* Game icons on every filter, plus cleaner stat tiles and clip labels in My clips.
+* The clip viewer has a strip of frames from your clip behind the trim bar, so you can see where the play is.
+* Settings has a list down the left with each game's icon, so you can jump straight to your game.
+* The paused screen while you play got the new look and shows the game's icon.
+* In-game pop-ups and the Clipped by card now use Verse blue (same size and spot as before).
 
 ## Still to confirm on a real PC
+* 1.5.0 look: My clips, clip viewer (frame strip appears behind the trim bar), Settings jump list, paused screen, What's new pop-up on Verse, save pop-up and Clipped by card in Verse blue.
 * 1.4.6: a League game keeps "Capture=gfxcapture" all match (no "Switching from" after the loading screen); "Back to gfxcapture capture for this game" when a later game starts after a fallback.
 * 1.4.5: CONFIRMED on W's PC 5 Nov: Clipped by card on WoW clips and the save pop-up showing in the next clip. Still to see: no "Switching from gfxcapture" in WoW, no certificate errors on update checks.
 * 1.4.4: WoW save pop-up top middle, Alt+Shift+M in WoW shows only the save pop-up box, League/Finals spots kept after moving WoW's.

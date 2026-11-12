@@ -26,7 +26,7 @@ IS_WINDOWS = sys.platform == "win32"
 INK = (12, 12, 14, 232)
 SEAM = (255, 255, 255, 30)
 WHITE = (245, 245, 247, 255)
-SIGNAL = (34, 211, 238, 255)
+SIGNAL = (13, 162, 231, 255)   # Verse blue
 HAZE = (168, 172, 184, 255)
 SHOW_SECONDS = 3.2
 WOW_POPUP = (0.41, 0.03)   # WoW's save pop-up: top middle, clear of the character frame, buffs and minimap

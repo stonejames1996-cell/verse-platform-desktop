@@ -73,7 +73,7 @@ def _label_png(text, path):
     img = Image.new("RGBA", (w, 44), (0, 0, 0, 0))
     d = ImageDraw.Draw(img)
     d.rounded_rectangle((0, 0, w - 1, 43), radius=10, fill=(10, 10, 10, 200))
-    d.rectangle((0, 8, 3, 35), fill=(34, 211, 238, 255))
+    d.rectangle((0, 8, 3, 35), fill=(13, 162, 231, 255))
     d.text((18, 6), text, font=font, fill=(255, 255, 255, 255))
     img.save(path)
     return path

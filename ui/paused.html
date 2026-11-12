@@ -7,35 +7,42 @@
 <style>
   /* Shown while a game is on. Deliberately still: no animation, no timers, nothing checking in,
      so the window costs the game nothing. */
+  @font-face { font-family: "Space Grotesk"; src: url("fonts/SpaceGrotesk.ttf") format("truetype"); font-weight: 300 700; }
+  @font-face { font-family: "Orbitron"; src: url("fonts/Orbitron.ttf") format("truetype"); font-weight: 400 900; }
   :root { color-scheme: dark; }
   html, body { margin: 0; height: 100%; }
   body {
-    background: #0a0a0a; color: #fafafa;
-    font: 400 15px/1.5 ui-sans-serif, system-ui, "Segoe UI", Roboto, sans-serif;
+    background: radial-gradient(circle at 50% 32%, rgba(13, 162, 231, .16), #000 62%) #000; color: #fff;
+    font: 400 15px/1.5 "Space Grotesk", "Segoe UI", system-ui, sans-serif; letter-spacing: -.01em;
     display: grid; place-items: center; user-select: none;
   }
-  .card { text-align: center; max-width: 420px; padding: 24px; }
-  .logo { width: 64px; height: 64px; opacity: .95; }
-  h1 { font-size: 22px; margin: 18px 0 6px; letter-spacing: -.01em; }
-  p { margin: 0 0 6px; color: #a3a3a3; }
-  .rec { display: inline-flex; align-items: center; gap: 8px; margin: 14px 0 22px; padding: 6px 12px;
-         border: 1px solid #262626; border-radius: 9999px; background: #111; color: #fafafa; font-size: 13px; }
-  .rec i { width: 8px; height: 8px; border-radius: 50%; background: #ef4444; }
-  kbd { font: 600 12px/1 ui-monospace, Consolas, monospace; background: #1a1a1a; border: 1px solid #262626;
-        border-radius: 6px; padding: 3px 6px; color: #fafafa; }
-  button { font: 600 14px/1 ui-sans-serif, system-ui, "Segoe UI", Roboto, sans-serif; color: #0a0a0a; background: #22d3ee; border: 0; border-radius: 9999px;
-           padding: 11px 20px; cursor: pointer; }
-  button:hover { background: #06b6d4; }
-  button:focus-visible { outline: 2px solid #22d3ee; outline-offset: 3px; }
+  .card { text-align: center; max-width: 440px; padding: 24px; }
+  .logo { width: 72px; height: 72px; }
+  h1 { font: 500 22px/1.3 "Orbitron", sans-serif; letter-spacing: .08em; text-transform: uppercase; margin: 18px 0 8px; }
+  p { margin: 0 0 6px; color: rgba(240, 240, 240, .62); }
+  .lead { color: rgba(240, 240, 240, .82); }
+  .rec { display: inline-flex; align-items: center; gap: 10px; margin: 16px 0 18px; height: 40px; padding: 0 16px;
+         border: 1px solid rgba(255, 255, 255, .22); border-top-color: rgba(255, 255, 255, .34); border-radius: 9999px;
+         background: rgba(255, 255, 255, .08); color: #fff; font-size: 14px; font-weight: 600;
+         box-shadow: inset 0 1px 0 rgba(255, 255, 255, .14), 0 8px 32px rgba(0, 0, 0, .35); }
+  .rec img { width: 20px; height: 20px; border-radius: 5px; }
+  .rec img[hidden] { display: none; }
+  .rec i { width: 8px; height: 8px; border-radius: 50%; background: #ef4444; box-shadow: 0 0 8px #ef4444; }
+  kbd { font: 700 12px/1 "Space Grotesk", sans-serif; letter-spacing: .04em; background: #18181b; border: 1px solid rgba(255, 255, 255, .14);
+        border-bottom-width: 2px; border-radius: 8px; padding: 5px 8px; color: #fff; }
+  button { font: 700 14px/1 "Space Grotesk", sans-serif; color: #fff; background: transparent; border: 1px solid rgba(255, 255, 255, .3);
+           border-radius: 9999px; padding: 12px 22px; cursor: pointer; }
+  button:hover { background: rgba(255, 255, 255, .06); border-color: rgba(255, 255, 255, .5); }
+  button:focus-visible { outline: 2px solid #3db5ee; outline-offset: 3px; }
   .small { font-size: 12.5px; margin-top: 14px; }
 </style>
 </head>
 <body>
 <main class="card">
   <img class="logo" src="logo.png" alt="Verse Platform">
-  <h1>Verse is paused while you play</h1>
-  <p>So the app takes nothing from your game.</p>
-  <div class="rec"><i></i><span id="what">Still recording your game</span></div>
+  <h1>Paused while you play</h1>
+  <p class="lead">So the app takes nothing from your game.</p>
+  <div class="rec"><img id="game" alt="" hidden><i></i><span id="what">Still recording your game</span></div>
   <p id="keys">Press <kbd id="hk">your save shortcut</kbd> to save a clip, same as always.</p>
   <p style="margin-bottom:22px">New clips show up in My clips the moment you're back.</p>
   <button id="open" type="button">Open anyway</button>
@@ -53,6 +60,11 @@
     api.pause_info().then(function (r) {
       if (!r) return;
       document.getElementById("what").textContent = "Still recording " + r.game;
+      var slug = String(r.game || "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+      if (/^wow-/.test(slug)) slug = "world-of-warcraft";
+      var im = document.getElementById("game");
+      im.onload = function () { im.hidden = false; };
+      im.src = "games/" + slug + ".png";
       document.getElementById("hk").textContent = r.hotkey;
     }).catch(function () {});
   }

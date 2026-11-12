@@ -244,9 +244,9 @@ def render_timers(rows, scale=1.0, bench=None):
                 span = (hi - lo) or 1
                 x1, y1, hh = w - pad - spark_w, y + int(2 * s), lh(f_row) - int(4 * s)
                 line = [(x1 + i * spark_w / (len(pts) - 1), y1 + hh - (v - lo) / span * hh) for i, v in enumerate(pts)]
-                d.line(line, fill=(34, 211, 238, 255), width=max(1, int(1.2 * s)), joint="curve")
+                d.line(line, fill=(13, 162, 231, 255), width=max(1, int(1.2 * s)), joint="curve")
                 ex, ey = line[-1]
-                d.ellipse((ex - 2 * s, ey - 2 * s, ex + 2 * s, ey + 2 * s), fill=(34, 211, 238, 255))
+                d.ellipse((ex - 2 * s, ey - 2 * s, ex + 2 * s, ey + 2 * s), fill=(13, 162, 231, 255))
             y += lh(f_row) + gap
         y += -gap + (int(12 * s) if rows else 0)
         if rows:

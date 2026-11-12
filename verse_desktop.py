@@ -80,15 +80,15 @@ DOCK_JS = r"""
     var css = document.createElement('style');
     css.textContent =
       '#vp-dock{position:fixed;left:0;top:50%;transform:translateY(-50%);z-index:2147483000;display:flex;' +
-      'flex-direction:column;align-items:center;gap:8px;padding:12px 7px;background:rgba(10,10,10,.92);' +
-      'border:1px solid #262626;border-left:0;border-radius:0 14px 14px 0;cursor:pointer;color:#fafafa;' +
-      'font:600 11px/1 system-ui,-apple-system,Segoe UI,sans-serif;letter-spacing:.08em;' +
+      'flex-direction:column;align-items:center;gap:8px;padding:12px 7px;background:rgba(14,14,17,.92);-webkit-backdrop-filter:blur(24px);backdrop-filter:blur(24px);' +
+      'border:1px solid rgba(255,255,255,.14);border-left:0;border-radius:0 14px 14px 0;cursor:pointer;color:#fff;' +
+      'font:700 11px/1 "Space Grotesk",system-ui,Segoe UI,sans-serif;letter-spacing:.08em;' +
       'box-shadow:0 6px 24px rgba(0,0,0,.5);transition:background .15s}' +
-      '#vp-dock:hover{background:#111;border-color:#06b6d4}' +
+      '#vp-dock:hover{background:#18181b;border-color:#0DA2E7}' +
       '#vp-dock .d{width:9px;height:9px;border-radius:50%;background:#404040}' +
       '#vp-dock.rec .d{background:#ef4444;box-shadow:0 0 0 3px rgba(239,68,68,.25)}' +
       '#vp-dock .t{writing-mode:vertical-rl;transform:rotate(180deg)}' +
-      '#vp-dock .n{min-width:18px;padding:3px 5px;border-radius:999px;background:#06b6d4;color:#000;text-align:center}';
+      '#vp-dock .n{min-width:18px;padding:3px 5px;border-radius:999px;background:#0DA2E7;color:#000;text-align:center}';
     document.head.appendChild(css);
     var d = document.createElement('div');
     d.id = 'vp-dock';
@@ -124,12 +124,12 @@ DOCK_JS = r"""
           return '<section><h3>' + (i ? 'Version ' + n.version : "What's new in " + n.version) + '</h3>' + n.html + '</section>';
         }).join('');
         root.innerHTML = '<style>' +
-          '.bg{position:fixed;inset:0;background:rgba(0,0,0,.6);display:grid;place-items:center;padding:16px;font:14px/1.5 system-ui,-apple-system,Segoe UI,sans-serif;color:#fafafa}' +
-          '.box{width:min(520px,100%);max-height:min(640px,90vh);display:flex;flex-direction:column;background:#111;border:1px solid #262626;border-radius:16px;box-shadow:0 24px 70px rgba(0,0,0,.6);overflow:hidden}' +
-          '.top{display:flex;align-items:center;gap:12px;padding:20px 22px 6px}.top b{font-size:13px;letter-spacing:.08em;text-transform:uppercase;color:#22d3ee}' +
-          '.body{overflow:auto;padding:4px 22px 6px}h3{font-size:19px;margin:12px 0 6px}section+section h3{font-size:15px;color:#a3a3a3;margin-top:18px}' +
+          '.bg{position:fixed;inset:0;background:rgba(0,0,0,.65);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);display:grid;place-items:center;padding:16px;font:14px/1.5 "Space Grotesk",system-ui,Segoe UI,sans-serif;letter-spacing:-.01em;color:#fff}' +
+          '.box{width:min(520px,100%);max-height:min(640px,90vh);display:flex;flex-direction:column;background:rgba(14,14,17,.92);-webkit-backdrop-filter:blur(24px);backdrop-filter:blur(24px);border:1px solid rgba(255,255,255,.14);border-radius:20px;box-shadow:0 16px 48px rgba(0,0,0,.6);overflow:hidden}' +
+          '.top{display:flex;align-items:center;gap:12px;padding:20px 22px 6px}.top b{font-size:13px;letter-spacing:.08em;text-transform:uppercase;color:#3DB5EE}' +
+          '.body{overflow:auto;padding:4px 22px 6px}h3{font-size:20px;margin:12px 0 6px}section+section h3{font-size:15px;color:rgba(240,240,240,.62);margin-top:18px}' +
           'ul{margin:0;padding-left:20px}li{margin:6px 0}strong{color:#fff}code{background:#1f1f1f;padding:1px 5px;border-radius:5px;font-size:12.5px}p{margin:6px 0;color:#d4d4d4}' +
-          '.foot{display:flex;justify-content:flex-end;padding:14px 22px 18px}button{background:#06b6d4;color:#000;border:0;border-radius:999px;padding:9px 22px;font:600 14px system-ui,Segoe UI,sans-serif;cursor:pointer}button:hover{background:#22d3ee}' +
+          '.foot{display:flex;justify-content:flex-end;padding:14px 22px 18px}button{background:#0DA2E7;color:#000;border:0;border-radius:999px;padding:10px 22px;font:700 14px "Space Grotesk",system-ui,Segoe UI,sans-serif;cursor:pointer}button:hover{background:#2BB0EE}' +
           '</style><div class="bg" role="dialog" aria-modal="true" aria-label="What\'s new"><div class="box"><div class="top"><b>Verse Platform updated</b></div>' +
           '<div class="body">' + items + '</div><div class="foot"><button>Got it</button></div></div></div>';
         function close() { host.remove(); window.pywebview.api.whats_new_seen(); document.removeEventListener('keydown', key, true); }
@@ -1289,6 +1289,7 @@ class Api:
             "title": a.title,
             "subtitle": a.subtitle,
             "capturing": bool(a.rec and a.rec.capturing),
+            "game": (a.rec.label if a.rec and a.rec.capturing else "") or "",
             "buffer_seconds": a.cfg["buffer_seconds"],
             "buffered_seconds": a.buffered_seconds(),
             "hotkey": a.cfg["hotkey"],
@@ -1350,6 +1351,7 @@ class Api:
         out = []
         for c in a.library.list():
             c["thumb_url"] = a.media.url("thumb", c["id"]) if c.get("thumb") else ""
+            c["strip_url"] = a.media.url("strip", c["id"])
             c["video_url"] = a.media.url("clip", c["id"])
             out.append(c)
         return out

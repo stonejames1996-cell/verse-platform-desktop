@@ -50,7 +50,7 @@
   <main class="main">
     <header class="deck" id="deck">
       <div class="deck-state">
-        <span class="live-dot" id="live-dot" aria-hidden="true"></span>
+        <span class="deck-game" aria-hidden="true"><img id="deck-game-img" alt="" hidden><img class="deck-v" src="logo.png" alt=""><span class="live-dot" id="live-dot"></span></span>
         <div>
           <h1 class="deck-title" id="deck-title">Starting up</h1>
           <p class="deck-sub" id="deck-sub">Getting capture ready</p>
@@ -480,6 +480,7 @@
 <div class="player" id="player" hidden role="dialog" aria-modal="true" aria-labelledby="player-title">
   <div class="player-box">
     <div class="player-top">
+      <img class="player-game" id="player-game" alt="" hidden>
       <input class="player-title" id="player-title" aria-label="Clip name" maxlength="120">
       <button class="icon-btn star-btn" id="player-star" aria-pressed="false" aria-label="Star this clip" title="Star: starred clips are never cleaned up"><svg><use href="#i-star"/></svg></button>
       <button class="icon-btn" id="player-close" aria-label="Close"><svg><use href="#i-close"/></svg></button>

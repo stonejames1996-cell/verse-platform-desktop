@@ -192,6 +192,28 @@ class ClipLibrary:
     def thumb_path(self, clip):
         return os.path.join(self.thumb_dir, clip["thumb"]) if clip.get("thumb") else ""
 
+    def strip_path(self, clip):
+        """A row of 10 small frames across the whole clip, shown behind the trim bar. Made the first time
+        the clip is opened (keyframes only, so it takes a moment even for long clips)."""
+        out = os.path.join(self.thumb_dir, f"{clip['id']}.strip.jpg")
+        if os.path.exists(out):
+            return out
+        src = self.abs_path(clip)
+        dur = float(clip.get("duration") or 0)
+        if not os.path.exists(src) or dur <= 0:
+            return ""
+        tmp = out + ".tmp.jpg"
+        try:
+            fast = ["-skip_frame", "nokey"] if dur >= 30 else []   # short clips may not have 10 keyframes
+            subprocess.run([self.ff, "-hide_banner", "-loglevel", "error", "-y", *fast, "-i", src,
+                            "-vf", f"fps={10 / dur:.5f},scale=192:-2,tile=10x1", "-frames:v", "1", "-q:v", "5", tmp],
+                           timeout=60, creationflags=NO_WINDOW, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            if os.path.exists(tmp):
+                os.replace(tmp, out)
+        except Exception:
+            pass
+        return out if os.path.exists(out) else ""
+
     def list(self):
         with self.lock:
             return sorted((dict(c) for c in self.clips.values()), key=lambda c: c.get("created", ""), reverse=True)
@@ -310,7 +332,8 @@ class ClipLibrary:
                 if os.path.exists(path):
                     failed += 1
                     continue
-                for p in (self.thumb_path(c), self.export_path(cid), path + ".wm.mp4"):
+                strip = os.path.join(self.thumb_dir, f"{cid}.strip.jpg")
+                for p in (self.thumb_path(c), strip, self.export_path(cid), path + ".wm.mp4"):
                     try:
                         if p and os.path.exists(p):
                             os.remove(p)
@@ -679,7 +702,7 @@ class MediaServer:
         lib, secret = library, self.secret
         ui_root = os.path.realpath(ui_dir) if ui_dir else ""
         types = {".html": "text/html; charset=utf-8", ".css": "text/css", ".js": "application/javascript",
-                 ".png": "image/png", ".svg": "image/svg+xml", ".woff2": "font/woff2", ".ico": "image/x-icon"}
+                 ".png": "image/png", ".svg": "image/svg+xml", ".woff2": "font/woff2", ".ttf": "font/ttf", ".ico": "image/x-icon"}
 
         class Handler(http.server.BaseHTTPRequestHandler):
             def log_message(self, *a):
@@ -735,6 +758,8 @@ class MediaServer:
                     path, ctype = lib.export_path(clip["id"]), "video/mp4"
                 elif parts[1] == "thumb":
                     path, ctype = lib.thumb_path(clip), "image/jpeg"
+                elif parts[1] == "strip":
+                    path, ctype = lib.strip_path(clip), "image/jpeg"
                 else:
                     return self.send_error(404)
                 if not path or not os.path.exists(path):

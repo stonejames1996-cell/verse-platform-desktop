@@ -10,7 +10,7 @@ from PIL import Image, ImageDraw, ImageFilter
 INK = (16, 16, 20, 214)
 WHITE = (245, 245, 247, 255)
 HAZE = (168, 172, 184, 255)
-CYAN = (34, 211, 238, 255)
+CYAN = (13, 162, 231, 255)   # Verse blue (name kept)
 PINK = (255, 122, 196, 255)
 GOLD = (250, 204, 21, 255)
 RED = (211, 31, 60, 255)      # The Finals' own red

@@ -106,6 +106,10 @@ function renderDeck() {
   const deck = $("#deck");
   deck.classList.toggle("recording", !!S.capturing);
   $("#deck-title").textContent = S.title || "Verse Platform";
+  const gsrc = S.capturing ? logoSrc(S.game) : "";
+  const gimg = $("#deck-game-img");
+  if (gimg.getAttribute("src") !== gsrc) { if (gsrc) gimg.src = gsrc; else gimg.removeAttribute("src"); }
+  gimg.hidden = !gsrc;
   $("#deck-sub").textContent = S.subtitle || "";
   const hk = (S.hotkey || "alt+f10").toUpperCase().replace(/\+/g, " + ");
   $("#deck-hotkey").textContent = hk;
@@ -366,10 +370,10 @@ function lineChart(c, deaths, keys) {
     const y = (v) => T + (1 - v / top) * (H - T - B);
     const kids = [svgEl("defs", {},
       svgEl("linearGradient", { id: id + "fill", x1: 0, y1: 0, x2: 0, y2: 1 },
-        svgEl("stop", { offset: "0%", "stop-color": "#22d3ee", "stop-opacity": ".28" }),
-        svgEl("stop", { offset: "100%", "stop-color": "#22d3ee", "stop-opacity": "0" })),
+        svgEl("stop", { offset: "0%", "stop-color": "#3DB5EE", "stop-opacity": ".28" }),
+        svgEl("stop", { offset: "100%", "stop-color": "#3DB5EE", "stop-opacity": "0" })),
       svgEl("linearGradient", { id: id + "stroke", x1: 0, y1: 0, x2: 1, y2: 0 },
-        svgEl("stop", { offset: "0%", "stop-color": "#0891b2" }), svgEl("stop", { offset: "100%", "stop-color": "#67e8f9" })),
+        svgEl("stop", { offset: "0%", "stop-color": "#0B7DB4" }), svgEl("stop", { offset: "100%", "stop-color": "#7CCBF3" })),
       svgEl("filter", { id: id + "glow", x: "-10%", y: "-30%", width: "120%", height: "160%" },
         svgEl("feGaussianBlur", { stdDeviation: 4, result: "b" }),
         svgEl("feMerge", {}, svgEl("feMergeNode", { in: "b" }), svgEl("feMergeNode", { in: "SourceGraphic" }))),
@@ -578,11 +582,12 @@ function clipCard(c) {
         "aria-label": `${c.title}, ${fmtDur(c.duration)}`, "aria-pressed": selecting ? String(on) : null },
       el("div", { class: "clip-thumb" },
         c.thumb_url ? el("img", { src: c.thumb_url, alt: "", loading: "lazy" }) : null,
-        posted ? el("span", { class: "up uploaded" }, icon("i-check"), "Posted") : null,
-        c.highlight && !posted && !c.review && !c.squad ? el("span", { class: "up auto" }, "Auto") : null,
-      c.recap ? el("span", { class: "up auto" }, "Recap") : null,
-      c.vertical ? el("span", { class: "up auto" }, "9:16") : null,
-      c.squad_combo ? el("span", { class: "up squad" }, "Squad POV") : c.squad ? el("span", { class: "up squad" }, "Squad") : null,
+        el("span", { class: "ups" },
+          c.highlight && !posted && !c.review && !c.squad ? el("span", { class: "up auto" }, "Auto") : null,
+          c.recap ? el("span", { class: "up auto" }, "Recap") : null,
+          c.vertical ? el("span", { class: "up auto" }, "9:16") : null,
+          c.squad_combo ? el("span", { class: "up squad" }, "Squad POV") : c.squad ? el("span", { class: "up squad" }, "Squad") : null,
+          posted ? el("span", { class: "up uploaded" }, icon("i-check"), "Posted") : null),
         el("span", { class: "dur" }, fmtDur(c.duration))
       ),
       el("div", { class: "clip-name" }, c.title),
@@ -681,6 +686,17 @@ function openPlayer(id) {
   if (!c) return;
   openClipId = id;
   $("#player-title").value = c.title;
+  const pg = $("#player-game"), psrc = logoSrc(c.game);
+  pg.hidden = !psrc;
+  if (psrc) pg.src = psrc;
+  const track = $("#trim-track");
+  track.style.backgroundImage = "";
+  track.classList.remove("has-strip");
+  if (c.strip_url) {
+    const im = new Image();
+    im.onload = () => { if (openClipId === id) { track.style.backgroundImage = `url("${c.strip_url}")`; track.classList.add("has-strip"); } };
+    im.src = c.strip_url;
+  }
   const v = $("#player-video");
   v.src = c.video_url;
   $("#player").hidden = false;
@@ -1156,7 +1172,43 @@ function setupGroups() {
     settings.classList.add("set-cols");
     settings.append(left, right);
     const all = (on) => groups.forEach((g) => { if (g.classList.contains("open") !== on) g.querySelector(".set-head").click(); });
-    settings.before(el("div", { class: "set-tools" },
+    // general first, then each game, then the rest
+    const SEC_ORDER = ["Recording", "Games", "Audio", "Auto highlights", "League of Legends", "The Finals", "World of Warcraft",
+      "Counter-Strike 2", "Dota 2", "Squad POV", "More ways to save a clip", "Storage", "General"];
+    const nameOf = (g) => g.querySelector(".set-title h3").childNodes[0].textContent.trim();
+    const rank = (g) => { const i = SEC_ORDER.indexOf(nameOf(g)); return i < 0 ? 99 : i; };
+    const secOrder = [...left.children, ...right.children].sort((a, b) => rank(a) - rank(b));
+    // jump list down the left: opens the section and scrolls to it
+    const nav = el("nav", { class: "set-nav", "aria-label": "Settings sections" });
+    const navBtns = [];
+    secOrder.forEach((g) => {
+      const name = nameOf(g);
+      const [ic] = GROUP_INFO[name] || ["i-gear"];
+      const b = el("button", { type: "button" }, ic.startsWith("i-") ? icon(ic) : el("img", { src: ic, alt: "" }),
+        name === "More ways to save a clip" ? "More ways to save" : name);
+      b.addEventListener("click", () => {
+        if (!g.classList.contains("open")) g.querySelector(".set-head").click();
+        g.scrollIntoView({ behavior: "smooth", block: "start" });
+        navBtns.forEach((x) => x.classList.toggle("on", x === b));
+        g.classList.add("flash");
+        setTimeout(() => g.classList.remove("flash"), 900);
+      });
+      navBtns.push(b);
+      nav.append(b);
+    });
+    settings.replaceChildren(...secOrder);
+    const wrap = el("div", { class: "set-wrap" });
+    settings.before(wrap);
+    wrap.append(nav, settings);
+    const pane = $("#view-settings");
+    pane.addEventListener("scroll", () => {
+      const top = pane.getBoundingClientRect().top + 90;
+      let cur = 0;
+      secOrder.forEach((g, i) => { if (g.getBoundingClientRect().top <= top) cur = i; });
+      navBtns.forEach((x, i) => x.classList.toggle("on", i === cur));
+    }, { passive: true });
+    navBtns[0] && navBtns[0].classList.add("on");
+    wrap.before(el("div", { class: "set-tools" },
       el("button", { class: "link-btn", type: "button", onclick: () => all(true) }, "Open all"),
       el("button", { class: "link-btn", type: "button", onclick: () => all(false) }, "Close all")));
   }
