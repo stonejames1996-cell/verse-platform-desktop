@@ -540,7 +540,14 @@ saves clips on a hotkey or automatically on highlights, and hands clips to the w
   creates it. (2) game detection is event driven (WMI process start/stop + foreground/resize window events), no polling
   loop. (3) recorder = libobs in-process with game_capture hook, monitor capture fallback; encoders/sources created per
   session and all released on stop. (4) UI served from local files, long lists virtualised. Verse today: park() loads a
-  blank page but keeps the engine (300-430 MB); game detection polls with psutil.process_iter. Segra not read yet.
+  blank page but keeps the engine (300-430 MB); game detection polls with psutil.process_iter.
+  SEGRA READ (12 Nov, GPL-2, Segergren/Segra; ideas only): C# + WebView2 (Photino) + libobs. (1) closing to tray DESTROYS
+  the window, message loop lives on, window recreated on show (same as RePlays). (2) they REMOVED WMI process events
+  (WMI enumerates every process each second) for a 1s poll of process ids only, diffing against the last set and looking
+  up names just for NEW ids. (3) idle recorder parked on a 64x36 canvas at 2 fps so the GPU does nothing between games.
+  (4) memory: stream files in chunks for uploads/waveforms instead of reading whole files, reuse buffers, cache parsed
+  game list, drop parser objects after use. PLAN for Verse (not built): destroy window in tray; pid-diff detection
+  (not WMI); check no ffmpeg/GPU work when idle; stream uploads; lazy imports.
 
 ## Releases (fully automatic)
 1. Bump `APP_VERSION` in `rewind_core.py`.
