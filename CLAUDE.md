@@ -466,6 +466,11 @@ saves clips on a hotkey or automatically on highlights, and hands clips to the w
   WoW pages facelift + normal page width + same wrapper (fixes wide phone nav), game chip top-left instead of bottom band
   on clip cards, Events banner empty strip, section headings all Orbitron uppercase, badge art 80px desktop 64 phone,
   badge art + V logo on system notices, Home skeleton matches layout. Not checked yet: OSRS on Clarkie96 (Lv99Will).
+  BATCH 2 queued 12 Nov 16:30 (preview): every Guides inner page full desktop width (were ~560px), standard Verse
+  controls in guides (OSRS red, OW2 orange, Pokemon Champions purple, LoL solid blue chips off brand; keep data colours),
+  Pokedex regions get starter sprites, About (standalone, old wordmark, cyan) + Privacy/Terms/Delete titles restyled,
+  Daily rewards Boost button blue + neutral tiles, Verse Socials (Instagram verseplatform, X VersePlatform, Discord).
+  1.5.0 desktop build succeeded 12 Nov 16:17 (run 43160092428).
   SOCIALS (W 12 Nov 13:47): "Verse Socials" item, same words as the menu heading and phone row (W: "Follow" alone is unclear) in the desktop top bar between Badges and More (opens a small glass menu
   with each platform's logo + handle), and a "Follow Verse" row of round logo icons at the top of the phone info sheet.
   Draft on the canvas first; W to send the handles. Optional later: About page "Find us" + footer on end-of-page pages.
