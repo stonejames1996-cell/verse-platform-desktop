@@ -622,6 +622,10 @@ saves clips on a hotkey or automatically on highlights, and hands clips to the w
   616x220 / 358x190, collection header 1248x280 / 358x200, emblem 80/56, item art squares 192-300, banner cards 2:1,
   bundles 4:3. Draft partner spec given to W in chat (ring 1024 sq PNG, banner 3000x1000, badge 1024 sq, emblem 512 sq,
   hero 2496x760 + phone 1074x990, banner card 1232x440; overlay + animation formats provisional).
+  PARTNER ART GUIDE (13 Nov): Design canvas "Verse Store partner art guide", private to W,
+  https://claude.ai/artifact/4utvBLzSDDmmdUm7CUTFec : 3 A4 pages (what to send, profile pieces, Store art + delivery),
+  Verse style, marked Draft 1. Source in /home/claude/storeguide/project. Has a [YOUR CONTACT EMAIL] placeholder for W.
+  Not visually checked by Claude.
 
 ## Releases (fully automatic)
 1. Bump `APP_VERSION` in `rewind_core.py`.
