@@ -613,6 +613,15 @@ saves clips on a hotkey or automatically on highlights, and hands clips to the w
   collection banner cards, one row per collection with Shop all, collection view, card pills (New, Last day to buy),
   bundles show piece count. Placeholder collections Aurora Shift, Neon Circuit, Frostline, Team Nova, Apex Union.
   Real game/team collections need a deal with each rights holder first.
+  STORE ART SIZES (builder read them from code 13 Nov; CSS px, art at 2x). Profile: banner shown 1200x320 desktop,
+  390x170 phone, uploads re-saved as 1500x500 JPG, centre-cropped, bottom half fades to black, avatar covers bottom-left;
+  avatar 160 desktop / 96 phone (24-64 elsewhere), saved 512x512 JPG; showcase badge 32/28, Badges page 80/64; header
+  about 1200x520-600 desktop, 390x480-560 phone. NOTHING animated works for avatars/banners today (GIF rejected, all
+  re-saved as JPG): animated Store items need their own playback path. Store (preview build, no image slots yet):
+  hero 1248x380 desktop / 358x330 phone (left fade for text, item cards cover bottom 112), collection banner card
+  616x220 / 358x190, collection header 1248x280 / 358x200, emblem 80/56, item art squares 192-300, banner cards 2:1,
+  bundles 4:3. Draft partner spec given to W in chat (ring 1024 sq PNG, banner 3000x1000, badge 1024 sq, emblem 512 sq,
+  hero 2496x760 + phone 1074x990, banner card 1232x440; overlay + animation formats provisional).
 
 ## Releases (fully automatic)
 1. Bump `APP_VERSION` in `rewind_core.py`.
