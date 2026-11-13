@@ -607,6 +607,12 @@ saves clips on a hotkey or automatically on highlights, and hands clips to the w
   Google Play official badges (site-assets store-badges/, copied to Base44 storage) on Download page, desktop More menu,
   About; hidden inside the phone apps and the Windows app. iOS app id6760369589, Android com.base695f8fed3712a7e5ac398069.app.
   Claude checked Featured + pop-up on desktop preview only. Real-money sales inside the iPhone app need Apple's rules checked first.
+  Store round 2 (13 Nov 14:45, preview, W to publish): W: NO rarity (removed everywhere), Discord shop as layout
+  inspiration, collections from Verse Originals, Games and Esports orgs (fans support teams). Tabs now Featured, Games,
+  Esports, Rings, Banners, Overlays, Badges, Bundles, My items; hero with the collection's items overlapping it, two
+  collection banner cards, one row per collection with Shop all, collection view, card pills (New, Last day to buy),
+  bundles show piece count. Placeholder collections Aurora Shift, Neon Circuit, Frostline, Team Nova, Apex Union.
+  Real game/team collections need a deal with each rights holder first.
 
 ## Releases (fully automatic)
 1. Bump `APP_VERSION` in `rewind_core.py`.
