@@ -597,6 +597,16 @@ saves clips on a hotkey or automatically on highlights, and hands clips to the w
   78 MB after ("memory handed back" works). Found + fixed, HELD for 1.5.4: start-in-tray wasn't lean (430 MB);
   League loading screen false freezes dropped capture to gdigrab for a whole game. Window at 700 MB 09:57-10:13 was
   the window opened again (no log line then; now logged).
+  STORE (13 Nov): Store moved from the profile to the desktop top bar (between Verse Socials and More) + phone compass
+  sheet, own /Store page; PUBLISHED by W 13:26. Then built in PREVIEW (W to publish): Store front-end layout only,
+  placeholder items in page code, no payments/tables: tabs Featured, Rings, Banners, Overlays, Badges, Bundles, My
+  items; pinned COMING SOON glass banner; cards (abstract gradient art, made-up names, rarity Common copper / Rare
+  silver / Epic gold / Legendary purple, empty price slot, disabled Coming soon button), Try it on pop-up. W's calls:
+  real money not coins (provider chosen later; Xsolla was only a look reference), animated items keep animating on
+  phones, overlays just get unequipped, Verse Originals first; partner items (games, anime) need licences. App Store +
+  Google Play official badges (site-assets store-badges/, copied to Base44 storage) on Download page, desktop More menu,
+  About; hidden inside the phone apps and the Windows app. iOS app id6760369589, Android com.base695f8fed3712a7e5ac398069.app.
+  Claude checked Featured + pop-up on desktop preview only. Real-money sales inside the iPhone app need Apple's rules checked first.
 
 ## Releases (fully automatic)
 1. Bump `APP_VERSION` in `rewind_core.py`.
